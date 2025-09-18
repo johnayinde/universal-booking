@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Widget - Multiple Industries Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            color: white;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            text-align: center;
+            opacity: 0.9;
+            margin-bottom: 40px;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .demo-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .demo-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .demo-card h2 {
+            margin: 0 0 15px 0;
+            font-size: 1.4rem;
+        }
+
+        .demo-card p {
+            opacity: 0.9;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .code-block {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            margin: 15px 0;
+            border-left: 4px solid;
+        }
+
+        .ticketing {
+            border-left-color: #3b82f6;
+        }
+
+        .hotel {
+            border-left-color: #10b981;
+        }
+
+        .restaurant {
+            border-left-color: #f59e0b;
+        }
+
+        .tour {
+            border-left-color: #8b5cf6;
+        }
+
+        .conference {
+            border-left-color: #ef4444;
+        }
+
+        .fitness {
+            border-left-color: #06b6d4;
+        }
+
+        .highlight {
+            color: #fbbf24;
+        }
+
+        .string {
+            color: #34d399;
+        }
+
+        .comment {
+            color: #9ca3af;
+            font-style: italic;
+        }
+
+        .preview-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .preview-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .implementation-guide {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 40px;
+        }
+
+        .step {
+            display: flex;
+            align-items: flex-start;
+            margin: 20px 0;
+        }
+
+        .step-number {
+            background: #3b82f6;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .step-content h3 {
+            margin: 0 0 10px 0;
+        }
+
+        .identifier-table {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .identifier-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .identifier-table th,
+        .identifier-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .identifier-table th {
+            background: rgba(255, 255, 255, 0.1);
+            font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            .demo-grid {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🎯 Multi-Industry Booking Widget</h1>
+        <p class="subtitle">One widget, multiple business types - each with unique identifier</p>
+
+        <div class="demo-grid">
+            <!-- Event Ticketing -->
+            <div class="demo-card">
+                <h2>🎪 Event Ticketing</h2>
+                <p>Perfect for concerts, conferences, festivals, and entertainment events.</p>
+
+                <div class="code-block ticketing">
+                    <div class="comment">// Event ticketing website</div>
+                    <div>&lt;script src="<span class="highlight">widget.js</span>"</div>
+                    <div>&nbsp;&nbsp;data-identifier="<span class="string">ticketing</span>"</div>
+                    <div>&nbsp;&nbsp;data-primary-color="<span class="string">#3b82f6</span>"</div>
+                    <div>&nbsp;&nbsp;data-company-name="<span class="string">EventHub</span>"&gt;</div>
+                    <div>&lt;/script&gt;</div>
+                </div>
+
+                <button class="preview-btn" onclick="showDemo('ticketing', '#3b82f6', 'EventHub')">
+                    Preview Ticketing Widget
+                </button>
+            </div>
+
+            <!-- Hotel Booking -->
+            <div class="demo-card">
+                <h2>🏨 Hotel Booking</h2>
+                <p>Hotel reservations, room booking, and accommodation services.</p>
+
+                <div class="code-block hotel">
+                    <div class="comment">// Hotel website</div>
+                    <div>&lt;script src="<span class="highlight">widget.js</span>"</div>
+                    <div>&nbsp;&nbsp;data-identifier="<span class="string">hotel</span>"</div>
+                    <div>&nbsp;&nbsp;data-primary-color="<span class="string">#10b981</span>"</div>
+                    <div>&nbsp;&nbsp;data-company-name="<span class="string">Grand Hotel</span>"&gt;</div>
+                    <div>&lt;/script&gt;</div>
+                </div>
+
+                <button class="preview-btn" onclick="showDemo('hotel', '#10b981', 'Grand Hotel')">
+                    Preview Hotel Widget
+                </button>
+            </div>
+
+            <!-- Restaurant Reservations -->
+            <div class="demo-card">
+                <h2>🍽️ Restaurant Booking</h2>
+                <p>Table reservations, dining experiences, and restaurant bookings.</p>
+
+                <div class="code-block restaurant">
+                    <div class="comment">// Restaurant website</div>
+                    <div>&lt;script src="<span class="highlight">widget.js</span>"</div>
+                    <div>&nbsp;&nbsp;data-identifier="<span class="string">restaurant</span>"</div>
+                    <div>&nbsp;&nbsp;data-primary-color="<span class="string">#f59e0b</span>"</div>
+                    <div>&nbsp;&nbsp;data-company-name="<span class="string">Fine Dining</span>"&gt;</div>
+                    <div>&lt;/script&gt;</div>
+                </div>
+
+                <button class="preview-btn" onclick="showDemo('restaurant', '#f59e0b', 'Fine Dining')">
+                    Preview Restaurant Widget
+                </button>
+            </div>
+
+            <!-- Tour Booking -->
+            <div class="demo-card">
+                <h2>🗺️ Tour & Travel</h2>
+                <p>Tours, travel packages, experiences, and adventure bookings.</p>
+
+                <div class="code-block tour">
+                    <div class="comment">// Tour company website</div>
+                    <div>&lt;script src="<span class="highlight">widget.js</span>"</div>
+                    <div>&nbsp;&nbsp;data-identifier="<span class="string">tour</span>"</div>
+                    <div>&nbsp;&nbsp;data-primary-color="<span class="string">#8b5cf6</span>"</div>
+                    <div>&nbsp;&nbsp;data-company-name="<span class="string">Adventure Tours</span>"&gt;</div>
+                    <div>&lt;/script&gt;</div>
+                </div>
+
+                <button class="preview-btn" onclick="showDemo('tour', '#8b5cf6', 'Adventure Tours')">
+                    Preview Tour Widget
+                </button>
+            </div>
+
+            <!-- Conference Booking -->
+            <div class="demo-card">
+                <h2>💼 Conference & Events</h2>
+                <p>Business conferences, workshops, seminars, and corporate events.</p>
+
+                <div class="code-block conference">
+                    <div class="comment">// Conference website</div>
+                    <div>&lt;script src="<span class="highlight">widget.js</span>"</div>
+                    <div>&nbsp;&nbsp;data-identifier="<span class="string">conference</span>"</div>
+                    <div>&nbsp;&nbsp;data-primary-color="<span class="string">#ef4444</span>"</div>
+                    <div>&nbsp;&nbsp;data-company-name="<span class="string">BizConf</span>"&gt;</div>
+                    <div>&lt;/script&gt;</div>
+                </div>
+
+                <button class="preview-btn" onclick="showDemo('conference', '#ef4444', 'BizConf')">
+                    Preview Conference Widget
+                </button>
+            </div>
+
+            <!-- Fitness Classes -->
+            <div class="demo-card">
+                <h2>💪 Fitness & Wellness</h2>
+                <p>Gym classes, fitness sessions, wellness programs, and health services.</p>
+
+                <div class="code-block fitness">
+                    <div class="comment">// Fitness center website</div>
+                    <div>&lt;script src="<span class="highlight">widget.js</span>"</div>
+                    <div>&nbsp;&nbsp;data-identifier="<span class="string">fitness</span>"</div>
+                    <div>&nbsp;&nbsp;data-primary-color="<span class="string">#06b6d4</span>"</div>
+                    <div>&nbsp;&nbsp;data-company-name="<span class="string">FitLife Gym</span>"&gt;</div>
+                    <div>&lt;/script&gt;</div>
+                </div>
+
+                <button class="preview-btn" onclick="showDemo('fitness', '#06b6d4', 'FitLife Gym')">
+                    Preview Fitness Widget
+                </button>
+            </div>
+        </div>
+
+        <!-- Implementation Guide -->
+        <div class="implementation-guide">
+            <h2>📋 Implementation Guide</h2>
+
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h3>Choose Your Identifier</h3>
+                    <p>Select the identifier that matches your business type. This determines what UI and features users
+                        will see.</p>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h3>Customize Your Branding</h3>
+                    <p>Set your brand colors, company name, and theme to match your website's design.</p>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h3>Add Script to Your Website</h3>
+                    <p>Include the script tag with your configuration in your website's HTML. The widget appears
+                        automatically!</p>
+                </div>
+            </div>
+
+            <div class="identifier-table">
+                <h3>🎯 Available Identifiers</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Identifier</th>
+                            <th>Business Type</th>
+                            <th>Features</th>
+                            <th>Best For</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>ticketing</code></td>
+                            <td>Event Ticketing</td>
+                            <td>Events, Tickets, Seats</td>
+                            <td>Concerts, Sports, Theater</td>
+                        </tr>
+                        <tr>
+                            <td><code>hotel</code></td>
+                            <td>Hotel Booking</td>
+                            <td>Rooms, Dates, Guests</td>
+                            <td>Hotels, Resorts, B&Bs</td>
+                        </tr>
+                        <tr>
+                            <td><code>restaurant</code></td>
+                            <td>Restaurant Reservations</td>
+                            <td>Tables, Time, Party Size</td>
+                            <td>Restaurants, Cafes, Bars</td>
+                        </tr>
+                        <tr>
+                            <td><code>tour</code></td>
+                            <td>Tours & Experiences</td>
+                            <td>Tours, Dates, Group Size</td>
+                            <td>Travel, Adventures, Guides</td>
+                        </tr>
+                        <tr>
+                            <td><code>conference</code></td>
+                            <td>Business Events</td>
+                            <td>Sessions, Networking, Passes</td>
+                            <td>Conferences, Workshops</td>
+                        </tr>
+                        <tr>
+                            <td><code>fitness</code></td>
+                            <td>Fitness & Wellness</td>
+                            <td>Classes, Trainers, Schedules</td>
+                            <td>Gyms, Yoga, Personal Training</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Demo Widget (starts with ticketing) -->
+    <script src="http://127.0.0.1:8080/event-booking-widget.min.js" data-identifier="ticketing"
+        data-primary-color="#3b82f6" data-company-name="Multi-Demo">
+        </script>
+
+    <!-- <script src="dist/event-booking-widget.min.js" data-identifier="ticketing" data-primary-color="#3b82f6"
+        data-company-name="Multi-Demo">
+        </script> -->
+
+    <script>
+        function showDemo(identifier, color, companyName) {
+            // Close any existing widgets
+            if (window.EventBookingWidget) {
+                EventBookingWidget.destroyAll();
+                console.log('Destroyed existing widget');
+                // Open new widget with specified identifier
+                setTimeout(() => {
+                    EventBookingWidget.init({
+                        identifier: identifier,
+                        branding: {
+                            primaryColor: color,
+                            companyName: companyName
+                        }
+                    });
+                }, 300);
+            }
+        }
+
+        // Log widget status
+        setTimeout(() => {
+            if (window.EventBookingWidget) {
+                console.log(window.EventBookingWidget);
+                console.log('🎯 Multi-industry widget loaded!');
+                console.log('📋 Current config:', EventBookingWidget.getConfig());
+                console.log('🏷️ Current identifier:', EventBookingWidget.getConfig().identifier);
+            }
+        }, 1000);
+    </script>
+</body>
+
+</html>

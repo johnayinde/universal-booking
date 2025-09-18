@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Booking Widget - Basic Integration</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            margin: 40px;
+        }
+
+        .demo-section {
+            margin: 40px 0;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+
+        .btn {
+            background: #3b82f6;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 8px;
+        }
+
+        .btn:hover {
+            background: #2563eb;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🎯 Universal Booking Widget Demo</h1>
+    <p>Click the buttons below to test different business types:</p>
+
+    <div class="demo-section">
+        <h2>Event Ticketing</h2>
+        <button data-event-booking="events" class="btn">Book Event Tickets</button>
+        <button data-universal-booking="events" class="btn">Universal Events</button>
+    </div>
+
+    <div class="demo-section">
+        <h2>Programmatic Usage</h2>
+        <button onclick="openEventWidget()" class="btn">Open Event Widget</button>
+        <button onclick="openCustomWidget()" class="btn">Custom Configuration</button>
+        <button onclick="destroyAllWidgets()" class="btn">Close All Widgets</button>
+    </div>
+
+    <!-- Load the Universal Booking Widget -->
+    <script src="../universal-booking-widget.min.js"></script>
+
+    <script>
+        function openEventWidget() {
+            UniversalBookingWidget.init({
+                businessType: 'events',
+                branding: {
+                    primaryColor: '#059669',
+                    companyName: 'Demo Events'
+                }
+            }).open();
+        }
+
+        function openCustomWidget() {
+            UniversalBookingWidget.init({
+                businessType: 'events',
+                apiBaseUrl: 'http://127.0.0.1:8000/api',
+                branding: {
+                    primaryColor: '#dc2626',
+                    companyName: 'Custom Booking'
+                }
+            }).open();
+        }
+
+        function destroyAllWidgets() {
+            UniversalBookingWidget.destroyAll();
+        }
+
+        console.log('✅ Universal Booking Widget loaded');
+        console.log('✅ ', UniversalBookingWidget);
+        console.log('📋 Available business types:', UniversalBookingWidget.getSupportedBusinessTypes());
+    </script>
+</body>
+
+</html>

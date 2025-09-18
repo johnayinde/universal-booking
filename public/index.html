@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="description" content="Universal Booking Widget for multiple business types" />
+  <title>Universal Booking Widget</title>
+</head>
+
+<body>
+  <noscript>You need to enable JavaScript to run this app.</noscript>
+  <div id="root"></div>
+
+  <!-- Development testing buttons -->
+  <div
+    style="position: fixed; top: 20px; right: 20px; z-index: 10000; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+    <h3 style="margin: 0 0 10px 0; font-size: 14px;">Widget Test</h3>
+    <button onclick="testWidget()"
+      style="background: #3b82f6; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+      Test Widget
+    </button>
+  </div>
+
+  <script>
+    function testWidget() {
+      if (window.UniversalBookingWidget) {
+        window.UniversalBookingWidget.init({
+          businessType: 'events',
+          branding: {
+            primaryColor: '#059669',
+            companyName: 'Development Test'
+          }
+        }).open();
+      } else {
+        alert('Widget not loaded yet - check console for errors');
+      }
+    }
+  </script>
+</body>
+
+</html>
