@@ -8,7 +8,7 @@ if (process.env.NODE_ENV === "development") {
 
   // Development configuration
   const devConfig = {
-    businessType: "events",
+    businessType: "",
     apiBaseUrl: "http://127.0.0.1:8000/api",
     branding: {
       primaryColor: "#3b82f6",

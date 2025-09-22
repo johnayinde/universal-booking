@@ -1,4 +1,4 @@
-// src/App.js
+//src/App.js
 import React from "react";
 import BookingEngine from "./core/BookingEngine";
 import UniversalBookingWidget from "./components/UniversalBookingWidget";
@@ -12,12 +12,12 @@ import "./App.css";
 function App({ config = {} }) {
   // Default configuration
   const defaultConfig = {
-    businessType: null, // Changed from "events" to null to show bookables list by default
+    businessType: null, // null = show bookables list by default
     theme: "light",
     apiBaseUrl:
       process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:8000/api",
     branding: {
-      primaryColor: "#f97316", // Changed to orange for Nike Lake Resort
+      primaryColor: "#f97316", // Orange for Nike Lake Resort
       logoUrl: "",
       companyName: "Nike Lake Resort",
     },
@@ -39,7 +39,7 @@ function App({ config = {} }) {
   if (!mergedConfig.businessType) {
     return (
       <div className="universal-booking-app">
-        <UniversalBookablesList />
+        <UniversalBookablesList config={mergedConfig} />
       </div>
     );
   }
