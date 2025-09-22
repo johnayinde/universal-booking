@@ -1,39 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Universal Booking Widget - Basic Integration</title>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-            margin: 40px;
-        }
-
-        .demo-section {
-            margin: 40px 0;
-            padding: 20px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-        }
-
-        .btn {
-            background: #3b82f6;
-            color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            margin: 8px;
-        }
-
-        .btn:hover {
-            background: #2563eb;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; margin: 40px; }
+        .demo-section { margin: 40px 0; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; }
+        .btn { background: #3b82f6; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; margin: 8px; }
+        .btn:hover { background: #2563eb; }
     </style>
 </head>
-
 <body>
     <h1>🎯 Universal Booking Widget Demo</h1>
     <p>Click the buttons below to test different business types:</p>
@@ -53,7 +30,7 @@
 
     <!-- Load the Universal Booking Widget -->
     <script src="../universal-booking-widget.min.js"></script>
-
+    
     <script>
         function openEventWidget() {
             UniversalBookingWidget.init({
@@ -80,10 +57,19 @@
             UniversalBookingWidget.destroyAll();
         }
 
-        console.log('✅ Universal Booking Widget loaded');
-        console.log('✅ ', UniversalBookingWidget);
-        console.log('📋 Available business types:', UniversalBookingWidget.getSupportedBusinessTypes());
+         // Wait for widget to be fully loaded
+        if (typeof UniversalBookingWidget !== 'undefined') {
+            console.log('✅ Universal Booking Widget loaded');
+            console.log('📋 Available business types:', UniversalBookingWidget.getSupportedBusinessTypes());
+        } else {
+            console.log('⏳ Waiting for Universal Booking Widget to load...');
+            window.addEventListener('load', function() {
+                if (typeof UniversalBookingWidget !== 'undefined') {
+                    console.log('✅ Universal Booking Widget loaded');
+                    console.log('📋 Available business types:', UniversalBookingWidget.getSupportedBusinessTypes());
+                }
+            });
+        }
     </script>
 </body>
-
 </html>

@@ -1,3 +1,4 @@
+//build-widget.js
 const webpack = require("webpack");
 const path = require("path");
 const fs = require("fs");
@@ -9,8 +10,6 @@ const widgetConfig = {
   output: {
     path: path.resolve(__dirname, "../dist"),
     filename: "universal-booking-widget.min.js",
-    library: "UniversalBookingWidget",
-    libraryTarget: "window",
     clean: true,
   },
   module: {
@@ -188,8 +187,19 @@ function createExampleFiles() {
             UniversalBookingWidget.destroyAll();
         }
 
-        console.log('✅ Universal Booking Widget loaded');
-        console.log('📋 Available business types:', UniversalBookingWidget.getSupportedBusinessTypes());
+         // Wait for widget to be fully loaded
+        if (typeof UniversalBookingWidget !== 'undefined') {
+            console.log('✅ Universal Booking Widget loaded');
+            console.log('📋 Available business types:', UniversalBookingWidget.getSupportedBusinessTypes());
+        } else {
+            console.log('⏳ Waiting for Universal Booking Widget to load...');
+            window.addEventListener('load', function() {
+                if (typeof UniversalBookingWidget !== 'undefined') {
+                    console.log('✅ Universal Booking Widget loaded');
+                    console.log('📋 Available business types:', UniversalBookingWidget.getSupportedBusinessTypes());
+                }
+            });
+        }
     </script>
 </body>
 </html>`;
