@@ -1,4 +1,4 @@
-// widget.js
+// widget.js - FIXED VERSION
 import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
@@ -11,7 +11,7 @@ class UniversalBookingWidgetAPI {
   constructor() {
     this.instances = new Map();
     this.globalConfig = {
-      businessType: "events", // Default business type
+      businessType: "entry", // Default business type
       apiBaseUrl: "http://127.0.0.1:8000/api",
       theme: "light",
       branding: {
@@ -42,6 +42,11 @@ class UniversalBookingWidgetAPI {
       );
     }
 
+    // If no business type is specified, show universal bookables list
+    if (!mergedConfig.businessType && !config.identifier) {
+      mergedConfig.showBookablesList = true;
+    }
+
     // Create container
     const container = document.createElement("div");
     container.id = widgetId;
@@ -51,13 +56,6 @@ class UniversalBookingWidgetAPI {
     // Create React root and render
     const root = createRoot(container);
     root.render(React.createElement(App, { config: mergedConfig }));
-
-    // Auto-open widget if autoShow is true
-    if (mergedConfig.autoShow) {
-      setTimeout(() => {
-        this.openWidget(widgetId);
-      }, 100);
-    }
 
     // Store instance
     const instance = {
@@ -71,6 +69,14 @@ class UniversalBookingWidgetAPI {
     };
 
     this.instances.set(widgetId, instance);
+
+    // Auto-open widget if autoShow is true
+    if (mergedConfig.autoShow) {
+      setTimeout(() => {
+        this.openWidget(widgetId);
+      }, 100);
+    }
+
     return instance;
   }
 
@@ -81,17 +87,15 @@ class UniversalBookingWidgetAPI {
    */
   mapIdentifierToBusinessType(identifier) {
     const mapping = {
-      events: "events",
-      ticketing: "events",
+      entry: "entry",
+      udh: "udh",
       hotel: "hotel",
       restaurant: "restaurant",
-      udh: "udh",
-      tour: "tour",
-      conference: "events", // Map to events for now
+      tours: "tours",
       fitness: "fitness",
     };
 
-    return mapping[identifier] || "events";
+    return mapping[identifier] || "entry"; // Default to entry instead of events
   }
 
   /**
@@ -110,32 +114,34 @@ class UniversalBookingWidgetAPI {
   }
 
   /**
-   * Open a specific widget instance
+   * Open a specific widget instance - FIXED VERSION
    * @param {string} widgetId
    */
   openWidget(widgetId) {
     const instance = this.instances.get(widgetId);
     if (instance) {
-      // Dispatch custom event to open widget
+      // Dispatch custom event on DOCUMENT instead of container
       const event = new CustomEvent("ubw:open-widget", {
         detail: { widgetId },
+        bubbles: true,
       });
-      instance.container.dispatchEvent(event);
+      document.dispatchEvent(event);
     }
   }
 
   /**
-   * Close a specific widget instance
+   * Close a specific widget instance - FIXED VERSION
    * @param {string} widgetId
    */
   closeWidget(widgetId) {
     const instance = this.instances.get(widgetId);
     if (instance) {
-      // Dispatch custom event to close widget
+      // Dispatch custom event on DOCUMENT instead of container
       const event = new CustomEvent("ubw:close-widget", {
         detail: { widgetId },
+        bubbles: true,
       });
-      instance.container.dispatchEvent(event);
+      document.dispatchEvent(event);
     }
   }
 
@@ -195,7 +201,7 @@ class UniversalBookingWidgetAPI {
    * @returns {array}
    */
   getSupportedBusinessTypes() {
-    return ["events", "hotel", "restaurant", "udh", "tour", "fitness"];
+    return ["entry", "hotel", "restaurant", "udh", "tours", "fitness"];
   }
 
   /**

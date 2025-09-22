@@ -1,61 +1,94 @@
+// src/core/AdapterFactory.js
 import EventAdapter from "../business-types/events/EventAdapter";
-// Future adapters to be imported here
-// import HotelAdapter from '../business-types/hotel/HotelAdapter';
-// import UDHAdapter from '../business-types/udh/UDHAdapter';
-// import RestaurantAdapter from '../business-types/restaurant/RestaurantAdapter';
+import EntryAdapter from "../business-types/entry/EntryAdapter";
 
 /**
- * Factory for creating business type adapters
+ * Factory for creating business-specific adapters
  */
 class AdapterFactory {
   static adapters = {
     events: EventAdapter,
-    ticketing: EventAdapter, // Alias for events
+    entry: EntryAdapter,
+    // Add other business types here as they are implemented
     // hotel: HotelAdapter,
-    // udh: UDHAdapter,
     // restaurant: RestaurantAdapter,
+    // udh: UDHAdapter,
+    // tour: TourAdapter,
+    // fitness: FitnessAdapter,
   };
 
   /**
-   * Create a business adapter based on the business type
-   * @param {string} businessType
-   * @param {object} config
-   * @returns {BusinessAdapter}
+   * Create an adapter instance for the specified business type
+   * @param {string} businessType - The business type (e.g., 'events', 'entry', 'hotel')
+   * @param {object} config - Configuration object
+   * @returns {BusinessAdapter} Adapter instance
    */
-  static create(businessType, config = {}) {
+  static createAdapter(businessType, config = {}) {
     const AdapterClass = this.adapters[businessType];
 
     if (!AdapterClass) {
-      throw new Error(`Unsupported business type: ${businessType}`);
+      throw new Error(
+        `Unsupported business type: ${businessType}. Supported types: ${Object.keys(
+          this.adapters
+        ).join(", ")}`
+      );
     }
 
     return new AdapterClass(config);
   }
 
   /**
-   * Get all available business types
-   * @returns {array}
+   * Get list of supported business types
+   * @returns {string[]} Array of supported business type keys
    */
-  static getAvailableTypes() {
+  static getSupportedBusinessTypes() {
     return Object.keys(this.adapters);
   }
 
   /**
    * Check if a business type is supported
-   * @param {string} businessType
-   * @returns {boolean}
+   * @param {string} businessType - The business type to check
+   * @returns {boolean} True if supported, false otherwise
    */
   static isSupported(businessType) {
     return businessType in this.adapters;
   }
 
   /**
-   * Register a new business adapter
-   * @param {string} businessType
-   * @param {class} AdapterClass
+   * Register a new business type adapter
+   * @param {string} businessType - The business type key
+   * @param {Class} AdapterClass - The adapter class
    */
-  static register(businessType, AdapterClass) {
+  static registerAdapter(businessType, AdapterClass) {
     this.adapters[businessType] = AdapterClass;
+  }
+
+  /**
+   * Get adapter metadata for all supported business types
+   * @returns {object} Metadata for each business type
+   */
+  static getAdapterMetadata() {
+    const metadata = {};
+
+    Object.keys(this.adapters).forEach((businessType) => {
+      try {
+        const adapter = this.createAdapter(businessType);
+        metadata[businessType] = {
+          businessType: adapter.getBusinessType(),
+          steps: adapter.getBookingSteps(),
+          labels: adapter.getLabels(),
+          defaultConfig: adapter.getDefaultConfig(),
+        };
+      } catch (error) {
+        console.error(`Error getting metadata for ${businessType}:`, error);
+        metadata[businessType] = {
+          businessType,
+          error: error.message,
+        };
+      }
+    });
+
+    return metadata;
   }
 }
 

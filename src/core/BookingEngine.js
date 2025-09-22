@@ -21,11 +21,11 @@ const BookingEngine = ({ businessType = "events", config = {}, children }) => {
   // Create adapter and API service based on business type
   const adapter = useMemo(() => {
     try {
-      return AdapterFactory.create(businessType, config);
+      return AdapterFactory.createAdapter(businessType, config);
     } catch (error) {
       console.error(`Failed to create adapter for ${businessType}:`, error);
       // Fallback to events adapter
-      return AdapterFactory.create("events", config);
+      return AdapterFactory.createAdapter("events", config);
     }
   }, [businessType, config]);
 
