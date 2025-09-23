@@ -1,5 +1,4 @@
-// src/components/UniversalBookablesList.jsx - MODAL WRAPPED VERSION
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Ticket,
   Hotel,
@@ -11,18 +10,31 @@ import {
 } from "lucide-react";
 
 const UniversalBookablesList = ({ config = {} }) => {
-  console.log("****************", { config });
+  // Expected config example:
+  // {
+  //   location: 1,
+  //   bookables: ['udh','hotel'], // matches by id or type (case-insensitive)
+  //   apiBaseUrl: 'http://127.0.0.1:8000/api',
+  //   branding: {
+  //     primaryColor: '#f97316',
+  //     companyName: 'Landmark',
+  //     locationName: 'Landmark, Lagos',
+  //     locationTagline: 'Welcome to Landmark Lagos',
+  //     locationDescription: 'Business + leisure on the Atlantic shoreline.',
+  //     locationImage: 'https://your.cdn/location.jpg'
+  //   }
+  // }
 
   const [selectedBookable, setSelectedBookable] = useState(null);
 
-  // Sample bookable data - matches your UI design
-  const bookables = [
+  // Master list (global catalog). Keep ids stable.
+  const CATALOG = [
     {
       id: "entry",
       type: "entry",
       name: "Entry Ticket",
       icon: Ticket,
-      description: "Access to Nike Lake Resort facilities and grounds",
+      description: "Access to facilities and grounds",
       available: true,
     },
     {
@@ -75,56 +87,74 @@ const UniversalBookablesList = ({ config = {} }) => {
     },
   ];
 
-  const handleBookableSelect = (bookable) => {
-    setSelectedBookable(bookable);
-  };
+  // ————— Filtering logic —————
+  // If config.bookables is provided, show ONLY those (match by id OR type).
+  // Matching is case-insensitive and tolerant (e.g., 'restaurant' will match the item with id 'food' and type 'restaurant').
+  const filteredBookables = useMemo(() => {
+    const requested = (config.bookables || []).map((b) =>
+      String(b).toLowerCase()
+    );
+    if (!requested.length) return CATALOG;
+
+    const set = new Set(requested);
+    return CATALOG.filter(
+      (b) => set.has(b.id.toLowerCase()) || set.has(b.type.toLowerCase())
+    );
+  }, [config.bookables]);
+
+  const handleBookableSelect = (bookable) => setSelectedBookable(bookable);
 
   const handleNext = () => {
-    if (selectedBookable) {
-      console.log(`🚀 Opening ${selectedBookable.type} booking...`);
+    if (!selectedBookable) return;
 
-      // Close current modal and open the specific business type
-      if (window.parent) {
-        window.parent.postMessage({ type: "close-widget" }, "*");
-      }
-
-      // Open new widget after a short delay
-      setTimeout(() => {
-        if (window.UniversalBookingWidget) {
-          try {
-            window.UniversalBookingWidget.destroyAll();
-
-            const widget = window.UniversalBookingWidget.init({
-              businessType: selectedBookable.type,
-              apiBaseUrl: config.apiBaseUrl || "http://127.0.0.1:8000/api",
-              branding: {
-                ...config.branding,
-              },
-              autoShow: true,
-            });
-
-            widget.open();
-          } catch (error) {
-            console.error(
-              `Error opening ${selectedBookable.type} widget:`,
-              error
-            );
-            alert(`${selectedBookable.name} booking is not implemented yet.`);
-          }
-        }
-      }, 200);
+    // Close current modal frame
+    if (window.parent) {
+      window.parent.postMessage({ type: "close-widget" }, "*");
     }
+
+    // Open next widget for the chosen businessType, carrying location through
+    setTimeout(() => {
+      if (window.UniversalBookingWidget) {
+        try {
+          window.UniversalBookingWidget.destroyAll();
+
+          const widget = window.UniversalBookingWidget.init({
+            businessType: selectedBookable.type,
+            locationId: config.location ?? null, // ← pass location along
+            apiBaseUrl: config.apiBaseUrl || "http://127.0.0.1:8000/api",
+            branding: { ...config.branding },
+            autoShow: true,
+          });
+
+          widget.open();
+        } catch (error) {
+          console.error(
+            `Error opening ${selectedBookable.type} widget:`,
+            error
+          );
+          alert(`${selectedBookable.name} booking is not implemented yet.`);
+        }
+      }
+    }, 200);
   };
 
   const handleClose = () => {
-    // Close the widget
     if (window.parent) {
       window.parent.postMessage({ type: "close-widget" }, "*");
     }
   };
 
-  // Apply custom branding
+  // Branding / location theming
   const primaryColor = config.branding?.primaryColor || "#f97316";
+  const locationImage =
+    config.branding?.locationImage || "/api/placeholder/80/60";
+  const locationName = config.branding?.locationName || "Your Location";
+  const locationTagline =
+    config.branding?.locationTagline || `Welcome to ${locationName}`;
+  const locationDescription =
+    config.branding?.locationDescription ||
+    "Enjoy the perfect blend of business and leisure.";
+
   const customStyles = {
     "--primary-color": primaryColor,
     "--primary-50": `${primaryColor}08`,
@@ -135,14 +165,13 @@ const UniversalBookablesList = ({ config = {} }) => {
   };
 
   return (
-    // MODAL WRAPPER - This is what was missing!
     <div
       className="fixed inset-0 z-50 overflow-y-auto widget-overlay"
       style={customStyles}
     >
       <div className="flex min-h-screen items-center justify-center p-4 bg-black bg-opacity-50">
         <div className="relative bg-white rounded-xl shadow-2xl max-w-7xl w-full max-h-[90vh] overflow-hidden widget-modal">
-          {/* Modal Header */}
+          {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <div>
               <h2 className="text-xl font-semibold text-gray-900">
@@ -151,6 +180,11 @@ const UniversalBookablesList = ({ config = {} }) => {
               {config.branding?.companyName && (
                 <p className="text-sm text-gray-600 mt-1">
                   {config.branding.companyName}
+                </p>
+              )}
+              {config.location != null && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Location ID: {String(config.location)}
                 </p>
               )}
             </div>
@@ -163,34 +197,33 @@ const UniversalBookablesList = ({ config = {} }) => {
             </button>
           </div>
 
-          {/* Modal Content */}
+          {/* Content */}
           <div className="p-6 overflow-y-auto max-h-[calc(90vh-160px)] custom-scrollbar">
             <div className="flex">
               {/* Left Sidebar */}
               <div className="w-80 bg-gray-50 rounded-lg p-6 mr-8">
                 <div className="mb-8">
                   <img
-                    src="/api/placeholder/80/60"
-                    alt="Nike Lake Resort"
+                    src={locationImage}
+                    alt={locationName}
                     className="w-20 h-16 rounded-lg object-cover mb-4"
                     onError={(e) => {
-                      e.target.src =
-                        "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA4MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjRjNGNEY2Ii8+CjxyZWN0IHg9IjIwIiB5PSIxNSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjMwIiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPgo=";
+                      e.currentTarget.src =
+                        "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA4MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iODAiIGhlaWdodD0iNjAiIGZpbGw9IiNGM0Y0RjYiLz48cmVjdCB4PSIyMCIgeT0iMTUiIHdpZHRoPSI0MCIgaGVpZ2h0PSIzMCIgZmlsbD0iIjlDQTNBRiIvPjwvc3ZnPg==";
                     }}
                   />
                   <h2 className="text-lg font-semibold text-gray-900 mb-2">
-                    Nike Lake Resort, Enugu
+                    {locationName}
                   </h2>
                   <p className="text-gray-600 text-sm leading-relaxed">
-                    Welcome to Nike Lake Resort
+                    {locationTagline}
                   </p>
                   <p className="text-gray-500 text-xs mt-2">
-                    Enjoy the perfect blend of business and leisure with
-                    breath-taking views in a very secure and tranquil setting.
+                    {locationDescription}
                   </p>
                 </div>
 
-                {/* Progress Steps */}
+                {/* Progress */}
                 <div className="space-y-4">
                   <div className="flex items-center space-x-3 px-4 py-3 rounded-lg bg-orange-100 text-orange-700 border-l-4 border-orange-500">
                     <div className="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold">
@@ -203,10 +236,9 @@ const UniversalBookablesList = ({ config = {} }) => {
                 </div>
               </div>
 
-              {/* Main Content */}
+              {/* Main */}
               <div className="flex-1">
                 <div className="max-w-2xl">
-                  {/* Header */}
                   <div className="mb-8">
                     <div className="flex items-center space-x-2 text-orange-600 mb-2">
                       <div className="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold">
@@ -215,14 +247,13 @@ const UniversalBookablesList = ({ config = {} }) => {
                       <span className="text-sm font-medium">Booking Type</span>
                     </div>
                     <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                      Select a booking type and time to visit the landmark
-                      upside down house
+                      Select a booking type for {locationName}
                     </h1>
                   </div>
 
-                  {/* Bookables Grid */}
+                  {/* Bookables Grid (filtered) */}
                   <div className="grid grid-cols-2 gap-4 mb-8">
-                    {bookables.map((bookable) => {
+                    {filteredBookables.map((bookable) => {
                       const Icon = bookable.icon;
                       const isSelected = selectedBookable?.id === bookable.id;
 
@@ -278,18 +309,18 @@ const UniversalBookablesList = ({ config = {} }) => {
                       );
                     })}
                   </div>
-                </div>
 
-                {/* Right Sidebar */}
-                <div className="w-80 bg-gray-50 rounded-lg p-6 ml-8">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-6">
-                    Ticket Details
-                  </h3>
-                  <div className="space-y-4 mb-8">
-                    <div className="text-center py-16 text-gray-500">
-                      <div className="text-sm">No Data</div>
-                      <div className="text-xs mt-2">
-                        No item has been added to cart
+                  {/* Right Sidebar */}
+                  <div className="w-80 bg-gray-50 rounded-lg p-6 ml-8">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-6">
+                      Ticket Details
+                    </h3>
+                    <div className="space-y-4 mb-8">
+                      <div className="text-center py-16 text-gray-500">
+                        <div className="text-sm">No Data</div>
+                        <div className="text-xs mt-2">
+                          No item has been added to cart
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -298,7 +329,7 @@ const UniversalBookablesList = ({ config = {} }) => {
             </div>
           </div>
 
-          {/* Modal Footer */}
+          {/* Footer */}
           <div className="border-t border-gray-200 p-6">
             <div className="flex justify-between items-center">
               <button

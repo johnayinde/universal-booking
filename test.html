@@ -385,7 +385,9 @@
                 // APPROACH 2: Create config that forces bookables list
                 const config = {
                     businessType: undefined, // Try undefined instead of null
-                    identifier: undefined,   // Make sure identifier is also undefined
+                    identifier: undefined,
+                    location: 2,
+                    bookables: ['udh', 'hotel', 'entry'],   // Make sure identifier is also undefined
                     showBookablesList: true, // Explicitly request bookables list
                     apiBaseUrl: 'http://127.0.0.1:8000/api',
                     branding: {
