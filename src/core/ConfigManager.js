@@ -8,7 +8,7 @@ export class ConfigManager {
         displayName: "Nike Lake Resort, Lagos",
         endpoints: {
           entry: {
-            base: "http://entry.landmarkafrica.com/api/booking",
+            base: "http://127.0.0.1:8000/api/booking",
             list: "/entry/type?landmark_location_id={locationId}",
             items: "/entry/items?type_id={typeId}&platform=web",
           },
@@ -30,7 +30,7 @@ export class ConfigManager {
         displayName: "Nike Lake Resort, Enugu",
         endpoints: {
           entry: {
-            base: "http://entry.landmarkafrica.com/api/booking",
+            base: "http://127.0.0.1:8000/api/booking",
             list: "/entry/type?landmark_location_id={locationId}",
             items: "/entry/items?type_id={typeId}&platform=web",
           },

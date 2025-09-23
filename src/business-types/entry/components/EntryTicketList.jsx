@@ -1,4 +1,4 @@
-// src/business-types/entry/components/EntryTicketList.jsx - UPDATED with Dynamic API
+// src/business-types/entry/components/EntryTicketList.jsx - FIXED with better error handling
 import React, { useState, useEffect } from "react";
 import { useUniversalBooking } from "../../../core/UniversalStateManager";
 import { ActionTypes } from "../../../core/UniversalStateManager";
@@ -9,6 +9,7 @@ import {
   User,
   CheckCircle,
   AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 
 const EntryTicketList = () => {
@@ -30,14 +31,21 @@ const EntryTicketList = () => {
   const [totalAmount, setTotalAmount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState(null);
-  const [loadingStep, setLoadingStep] = useState("types"); // 'types', 'items', 'none'
+  const [loadingStep, setLoadingStep] = useState("none"); // 'types', 'items', 'none'
+  const [retryCount, setRetryCount] = useState(0);
+
+  console.log("🎫 EntryTicketList component rendered with state:", {
+    adapterExists: !!adapter,
+    locationId: state.config?.locationId || state.config?.location,
+    currentStep: state.currentStep,
+  });
 
   // Load ticket types on component mount
   useEffect(() => {
     loadTicketTypes();
   }, []);
 
-  // Load ticket types from the new API
+  // Load ticket types with robust error handling
   const loadTicketTypes = async () => {
     setIsLoading(true);
     setLoadingStep("types");
@@ -46,50 +54,89 @@ const EntryTicketList = () => {
     try {
       console.log("🔄 Loading ticket types...");
 
-      // Try using the adapter's new method first
-      if (adapter && typeof adapter.fetchTicketTypes === "function") {
-        const types = await adapter.fetchTicketTypes();
-        console.log("✅ Ticket types loaded:", types);
-        setTicketTypes(types);
+      // Get location ID from config
+      const locationId =
+        state.config?.locationId || state.config?.location || 1;
+      console.log("📍 Using location ID:", locationId);
 
-        // Auto-select the first active type if only one exists
-        const activeTypes = types.filter((t) => t.is_active);
-        if (activeTypes.length === 1) {
-          handleTypeSelect(activeTypes[0]);
-        }
+      let types = [];
+
+      // Try using the adapter's method first
+      if (adapter && typeof adapter.fetchTicketTypes === "function") {
+        console.log("🔧 Using adapter.fetchTicketTypes...");
+        types = await adapter.fetchTicketTypes();
       } else {
-        // Fallback to direct API call
-        const locationId =
-          state.config.locationId || state.config.location || 1;
-        const response = await fetch(
-          `http://entry.landmarkafrica.com/api/booking/entry/type?landmark_location_id=${locationId}`
-        );
+        // Direct API call fallback
+        console.log("🌐 Fallback to direct API call...");
+        const url = `http://127.0.0.1:8000/api/booking/entry/type?landmark_location_id=${locationId}`;
+        console.log("📡 API URL:", url);
+
+        const response = await fetch(url, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+        });
 
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
         const data = await response.json();
-        console.log("✅ Ticket types loaded (fallback):", data);
-        setTicketTypes(data);
+        console.log("📦 Raw API response:", data);
+
+        if (Array.isArray(data)) {
+          types = data.map((type) => ({
+            id: type.id,
+            name: type.name || "Regular",
+            description: type.description || "Standard entry type",
+            features: type.features || {},
+            is_active: type.is_active !== false,
+            fast_track: type.features?.fast_track || false,
+            created_at: type.created_at,
+            updated_at: type.updated_at,
+          }));
+        } else {
+          throw new Error("Invalid response format - expected array");
+        }
+      }
+
+      console.log("✅ Ticket types loaded:", types);
+      setTicketTypes(types);
+      setRetryCount(0);
+
+      // Auto-select the first active type if only one exists
+      const activeTypes = types.filter((t) => t.is_active);
+      if (activeTypes.length === 1) {
+        console.log("🎯 Auto-selecting single active type:", activeTypes[0]);
+        handleTypeSelect(activeTypes[0]);
+      } else if (activeTypes.length > 0) {
+        console.log("📋 Multiple types available, user must select");
+      } else {
+        console.warn("⚠️ No active ticket types found");
+        setApiError("No active ticket types are currently available.");
       }
     } catch (error) {
       console.error("❌ Error loading ticket types:", error);
       setApiError(`Failed to load ticket types: ${error.message}`);
+      setRetryCount((prev) => prev + 1);
 
-      // Fallback to sample data for development
-      console.log("🔄 Using sample data as fallback");
-      const sampleTypes = [
-        {
-          id: 1,
-          name: "Regular Entry",
-          description: "Standard entry type",
-          features: { fast_track: false },
-          is_active: true,
-        },
-      ];
-      setTicketTypes(sampleTypes);
-      handleTypeSelect(sampleTypes[0]);
+      // After multiple failures, use sample data
+      if (retryCount >= 2) {
+        console.log("🔄 Using sample data after multiple failures");
+        const sampleTypes = [
+          {
+            id: 1,
+            name: "Regular Entry",
+            description: "Standard entry type for demonstration",
+            features: { fast_track: false },
+            is_active: true,
+          },
+        ];
+        setTicketTypes(sampleTypes);
+        handleTypeSelect(sampleTypes[0]);
+      }
     } finally {
       setIsLoading(false);
       setLoadingStep("none");
@@ -98,8 +145,12 @@ const EntryTicketList = () => {
 
   // Handle ticket type selection
   const handleTypeSelect = async (type) => {
-    if (selectedType?.id === type.id) return; // Already selected
+    if (selectedType?.id === type.id) {
+      console.log("🔄 Type already selected:", type.name);
+      return;
+    }
 
+    console.log("🎯 Selecting ticket type:", type);
     setSelectedType(type);
     setTickets([]);
     setSelections({});
@@ -117,62 +168,91 @@ const EntryTicketList = () => {
     try {
       console.log(`🔄 Loading ticket items for type ${typeId}...`);
 
-      // Try using the adapter's new method first
-      if (adapter && typeof adapter.fetchTicketItems === "function") {
-        const items = await adapter.fetchTicketItems(typeId);
-        console.log("✅ Ticket items loaded:", items);
-        setTickets(items);
+      let items = [];
 
-        // Update global state
-        dispatch({
-          type: ActionTypes.SET_ITEMS,
-          payload: items,
-        });
+      // Try using the adapter's method first
+      if (adapter && typeof adapter.fetchTicketItems === "function") {
+        console.log("🔧 Using adapter.fetchTicketItems...");
+        items = await adapter.fetchTicketItems(typeId);
       } else {
-        // Fallback to direct API call
-        const response = await fetch(
-          `http://entry.landmarkafrica.com/api/booking/entry/items?type_id=${typeId}&platform=web`
-        );
+        // Direct API call fallback
+        console.log("🌐 Fallback to direct API call...");
+        const url = `http://127.0.0.1:8000/api/booking/entry/items?type_id=${typeId}&platform=web`;
+        console.log("📡 API URL:", url);
+
+        const response = await fetch(url, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+        });
 
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
         const data = await response.json();
-        console.log("✅ Ticket items loaded (fallback):", data);
-        setTickets(data);
+        console.log("📦 Raw API response:", data);
 
-        dispatch({
-          type: ActionTypes.SET_ITEMS,
-          payload: data,
-        });
+        if (Array.isArray(data)) {
+          items = data.map((item) => ({
+            id: item.id,
+            name: item.name || "Adult",
+            description: item.description || "Access to main event area",
+            price: parseFloat(item.price) || 0,
+            max_per_guest: item.max_per_guest || 2,
+            image_url: item.image_url,
+            type: item.type || "Regular",
+            category: item.category || "Individual",
+            benefits: item.benefits || [],
+            terms_conditions: item.terms_conditions || {},
+            no_refund: item.terms_conditions?.no_refund || true,
+            available: true,
+          }));
+        } else {
+          throw new Error("Invalid response format - expected array");
+        }
       }
+
+      console.log("✅ Ticket items loaded:", items);
+      setTickets(items);
+
+      // Update global state
+      dispatch({
+        type: ActionTypes.SET_ITEMS,
+        payload: items,
+      });
     } catch (error) {
       console.error("❌ Error loading ticket items:", error);
       setApiError(`Failed to load tickets: ${error.message}`);
 
-      // Fallback to sample data
+      // Fallback to sample data based on type
       console.log("🔄 Using sample ticket data as fallback");
       const sampleTickets = [
         {
           id: 1,
-          name: "Regular Ticket",
-          description: "Standard entry to Nike Lake Resort",
+          name: "Adult Ticket",
+          description: "Standard entry for adults (Demo)",
           price: 3000,
           max_per_guest: 10,
           available: true,
+          type: "Regular",
+          category: "Individual",
         },
         {
           id: 2,
-          name: "VIP Ticket",
-          description: "Premium entry with exclusive benefits",
-          price: 4000,
+          name: "Child Ticket",
+          description: "Entry for children 5-12 years (Demo)",
+          price: 2000,
           max_per_guest: 5,
           available: true,
+          type: "Regular",
+          category: "Individual",
         },
       ];
-      setTickets(sampleTickets);
 
+      setTickets(sampleTickets);
       dispatch({
         type: ActionTypes.SET_ITEMS,
         payload: sampleTickets,
@@ -252,6 +332,16 @@ const EntryTicketList = () => {
     setCurrentStep("booking");
   };
 
+  const handleRetry = () => {
+    console.log("🔄 Retrying API call...");
+    setRetryCount(0);
+    if (selectedType) {
+      loadTicketItems(selectedType.id);
+    } else {
+      loadTicketTypes();
+    }
+  };
+
   const formatCurrency = (amount) => {
     if (adapter && typeof adapter.formatCurrency === "function") {
       return adapter.formatCurrency(amount, state.config);
@@ -273,17 +363,28 @@ const EntryTicketList = () => {
 
   return (
     <div className="space-y-6">
-      {/* Error Display */}
+      {/* Error Display with Retry */}
       {apiError && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <div className="flex items-start space-x-3">
             <AlertCircle className="text-red-600 flex-shrink-0" size={20} />
-            <div>
+            <div className="flex-1">
               <h4 className="text-red-800 font-medium">API Error</h4>
               <p className="text-red-700 text-sm mt-1">{apiError}</p>
               <p className="text-red-600 text-xs mt-2">
-                Using sample data for demonstration.
+                {retryCount > 0
+                  ? "Using sample data for demonstration."
+                  : "Click retry to try again."}
               </p>
+              {retryCount < 3 && (
+                <button
+                  onClick={handleRetry}
+                  className="mt-3 inline-flex items-center px-3 py-1 bg-red-100 text-red-800 text-sm rounded hover:bg-red-200 transition-colors"
+                >
+                  <RefreshCw size={14} className="mr-1" />
+                  Retry
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -302,11 +403,12 @@ const EntryTicketList = () => {
                 <button
                   key={type.id}
                   onClick={() => handleTypeSelect(type)}
+                  disabled={isLoading}
                   className={`p-4 border-2 rounded-lg text-left transition-all ${
                     selectedType?.id === type.id
                       ? "border-orange-500 bg-orange-50"
                       : "border-gray-200 hover:border-gray-300"
-                  }`}
+                  } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   <div className="flex items-start space-x-3">
                     <Ticket
@@ -377,6 +479,11 @@ const EntryTicketList = () => {
                           <span className="text-sm text-gray-500 ml-2">
                             per person
                           </span>
+                          {ticket.type && (
+                            <span className="ml-3 text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                              {ticket.type}
+                            </span>
+                          )}
                         </div>
                       </div>
 
@@ -453,6 +560,33 @@ const EntryTicketList = () => {
           <p className="text-gray-600">
             No tickets are currently available for {selectedType.name}.
           </p>
+          <button
+            onClick={handleRetry}
+            className="mt-4 inline-flex items-center px-4 py-2 bg-orange-100 text-orange-800 rounded hover:bg-orange-200 transition-colors"
+          >
+            <RefreshCw size={16} className="mr-2" />
+            Try Again
+          </button>
+        </div>
+      )}
+
+      {/* No types available */}
+      {!isLoading && ticketTypes.length === 0 && (
+        <div className="text-center py-12">
+          <AlertCircle className="mx-auto text-gray-400 mb-4" size={48} />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            No ticket types available
+          </h3>
+          <p className="text-gray-600">
+            No ticket types are currently available for this location.
+          </p>
+          <button
+            onClick={handleRetry}
+            className="mt-4 inline-flex items-center px-4 py-2 bg-orange-100 text-orange-800 rounded hover:bg-orange-200 transition-colors"
+          >
+            <RefreshCw size={16} className="mr-2" />
+            Try Again
+          </button>
         </div>
       )}
     </div>

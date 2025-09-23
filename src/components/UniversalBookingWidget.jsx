@@ -61,7 +61,7 @@ const UniversalBookingWidget = () => {
   // Get components from adapter
   const components = adapter.getComponents();
   const bookingSteps = adapter.getBookingSteps();
-  const labels = getLabels();
+  const labels = adapter.getLabels();
 
   // Get current step component
   const CurrentStepComponent = components[currentStep];

@@ -56,11 +56,11 @@ const EntryConfirmation = () => {
       {/* Left Sidebar */}
       <div className="w-72 bg-white border-r border-gray-200 p-6">
         <div className="mb-8">
-          <img
+          {/* <img
             src="/api/placeholder/80/60"
             alt="Nike Lake Resort"
             className="w-20 h-15 rounded-lg object-cover mb-4"
-          />
+          /> */}
           <h2 className="text-xl font-semibold text-gray-900 mb-2">
             Nike Lake Resort, Enugu
           </h2>

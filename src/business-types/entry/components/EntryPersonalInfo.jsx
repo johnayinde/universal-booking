@@ -170,7 +170,7 @@ const EntryPersonalInfo = () => {
       {/* Left Sidebar */}
       <div className="w-80 bg-white border-r border-gray-200 p-6">
         <div className="mb-8">
-          <img
+          {/* <img
             src="/api/placeholder/80/60"
             alt="Nike Lake Resort"
             className="w-20 h-16 rounded-lg object-cover mb-4"
@@ -178,7 +178,7 @@ const EntryPersonalInfo = () => {
               e.target.src =
                 "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA4MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjRjNGNEY2Ii8+CjxyZWN0IHg9IjIwIiB5PSIxNSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjMwIiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPgo=";
             }}
-          />
+          /> */}
           <h2 className="text-lg font-semibold text-gray-900 mb-2">
             Nike Lake
             <br />

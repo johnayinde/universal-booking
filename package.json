@@ -11,7 +11,7 @@
     "eject": "react-scripts eject",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
-    "serve": "npx http-server dist -p 8080"
+    "serve": "npx http-server . -p 8080"
   },
   "dependencies": {
     "react": "^18.2.0",

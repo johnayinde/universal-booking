@@ -4,149 +4,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nike Lake Resort - Dynamic Location Booking</title>
+    <title>Debug - Entry Booking Test</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
-            min-height: 100vh;
+            margin: 20px;
+            background: #f5f5f5;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 800px;
             margin: 0 auto;
             background: white;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-        }
-
-        .header {
-            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-            color: white;
-            padding: 40px;
-            text-align: center;
-        }
-
-        .header h1 {
-            margin: 0 0 10px 0;
-            font-size: 2.5rem;
-            font-weight: 700;
-        }
-
-        .header p {
-            margin: 0;
-            opacity: 0.8;
-            font-size: 1.1rem;
-        }
-
-        .content {
-            padding: 40px;
-        }
-
-        .location-section {
-            margin-bottom: 40px;
-        }
-
-        .location-section h2 {
-            color: #1e293b;
-            margin-bottom: 20px;
-            font-size: 1.8rem;
-        }
-
-        .location-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .location-card {
-            border: 2px solid #e5e7eb;
             border-radius: 12px;
-            padding: 24px;
-            transition: all 0.3s ease;
-            background: white;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
-        .location-card:hover {
-            border-color: #f97316;
-            box-shadow: 0 8px 25px rgba(249, 115, 22, 0.1);
-            transform: translateY(-2px);
-        }
-
-        .location-card h3 {
-            color: #1e293b;
-            margin: 0 0 8px 0;
-            font-size: 1.25rem;
-        }
-
-        .location-card p {
-            color: #6b7280;
-            margin: 0 0 16px 0;
-            font-size: 0.9rem;
-        }
-
-        .bookable-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-bottom: 16px;
-        }
-
-        .bookable-tag {
-            background: #fef3c7;
-            color: #92400e;
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 500;
-        }
-
-        .bookable-tag.implemented {
-            background: #dcfce7;
-            color: #166534;
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
         }
 
         .btn {
-            display: inline-block;
             padding: 12px 24px;
             background: #f97316;
             color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 500;
             border: none;
+            border-radius: 8px;
             cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 0.9rem;
+            margin: 5px;
+            font-weight: 500;
         }
 
         .btn:hover {
             background: #ea580c;
-            transform: translateY(-1px);
         }
 
         .btn:disabled {
             background: #d1d5db;
-            color: #9ca3af;
             cursor: not-allowed;
-            transform: none;
-        }
-
-        .demo-section {
-            margin-top: 40px;
-            padding-top: 40px;
-            border-top: 1px solid #e5e7eb;
         }
 
         .status {
-            margin-top: 20px;
-            padding: 12px 16px;
-            border-radius: 8px;
-            font-size: 0.9rem;
+            margin: 10px 0;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 14px;
         }
 
         .status.info {
@@ -167,230 +73,301 @@
             border: 1px solid #fecaca;
         }
 
-        .api-info {
+        .debug-info {
             background: #f8fafc;
             border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 20px;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
         }
 
-        .api-info h4 {
-            margin: 0 0 12px 0;
-            color: #1e293b;
-        }
-
-        .api-endpoints {
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 0.8rem;
-            color: #475569;
-            line-height: 1.6;
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
         }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <div class="header">
-            <h1>🏨 Nike Lake Resort</h1>
-            <p>Dynamic Multi-Location Booking System</p>
+        <h1>🐛 Debug - Entry Booking Widget Test</h1>
+        <p>This page is designed to test and debug the entry booking functionality step by step.</p>
+
+        <div class="test-section">
+            <h2>1. Widget Loading Test</h2>
+            <p>First, let's check if the widget loads properly.</p>
+            <button onclick="testWidgetLoad()" class="btn">Test Widget Load</button>
+            <div id="load-status"></div>
         </div>
 
-        <div class="content">
-            <div class="location-section">
-                <h2>Select Your Location</h2>
+        <div class="test-section">
+            <h2>2. Bookables List Test</h2>
+            <p>Test the universal bookables list with different configurations.</p>
 
-                <div class="location-grid">
-                    <!-- Lagos Location -->
-                    <div class="location-card">
-                        <h3>🌴 Lagos Resort</h3>
-                        <p>Nike Lake Resort, Lagos State<br>Location ID: 1</p>
+            <h3>🏢 Lagos Location (ID: 1)</h3>
+            <button onclick="testLagosBookables()" class="btn">Show Lagos Bookables</button>
 
-                        <div class="bookable-tags">
-                            <span class="bookable-tag implemented">Entry Tickets ✅</span>
-                            <span class="bookable-tag">Hotel Rooms</span>
-                            <span class="bookable-tag">UDH Experience</span>
-                        </div>
+            <h3>🏔️ Enugu Location (ID: 2)</h3>
+            <button onclick="testEnuguBookables()" class="btn">Show Enugu Bookables</button>
 
-                        <button onclick="openLocationBooking(1)" class="btn">
-                            Book Lagos Resort
-                        </button>
-                    </div>
-
-                    <!-- Enugu Location -->
-                    <div class="location-card">
-                        <h3>🏔️ Enugu Resort</h3>
-                        <p>Nike Lake Resort, Enugu State<br>Location ID: 2</p>
-
-                        <div class="bookable-tags">
-                            <span class="bookable-tag implemented">Entry Tickets ✅</span>
-                            <span class="bookable-tag">Hotel Rooms</span>
-                            <span class="bookable-tag">UDH Experience</span>
-                        </div>
-
-                        <button onclick="openLocationBooking(2)" class="btn">
-                            Book Enugu Resort
-                        </button>
-                    </div>
-                </div>
-
-                <div class="api-info">
-                    <h4>📡 Dynamic API Configuration</h4>
-                    <div class="api-endpoints">
-                        <strong>Lagos (ID: 1):</strong><br>
-                        Entry Types: http://entry.landmarkafrica.com/api/booking/entry/type?landmark_location_id=1<br>
-                        Entry Items:
-                        http://entry.landmarkafrica.com/api/booking/entry/items?type_id={typeId}&platform=web<br><br>
-
-                        <strong>Enugu (ID: 2):</strong><br>
-                        Entry Types: http://entry.landmarkafrica.com/api/booking/entry/type?landmark_location_id=2<br>
-                        Entry Items:
-                        http://entry.landmarkafrica.com/api/booking/entry/items?type_id={typeId}&platform=web<br><br>
-
-                        <em>Hotel and UDH endpoints will be added when those adapters are implemented</em>
-                    </div>
-                </div>
-            </div>
-
-            <div class="demo-section">
-                <h2>🎯 Specific Booking Types</h2>
-
-                <div class="location-grid">
-                    <!-- Entry Tickets Only -->
-                    <div class="location-card">
-                        <h3>🎫 Entry Tickets (Direct)</h3>
-                        <p>Skip location selection, go directly to entry ticket booking for Lagos</p>
-
-                        <button onclick="openDirectEntry(1)" class="btn">
-                            Book Entry Tickets - Lagos
-                        </button>
-                        <br><br>
-                        <button onclick="openDirectEntry(2)" class="btn">
-                            Book Entry Tickets - Enugu
-                        </button>
-                    </div>
-
-                    <!-- Future Bookables -->
-                    <div class="location-card">
-                        <h3>🏨 Other Services</h3>
-                        <p>Hotel rooms, UDH experiences, and other services (coming soon)</p>
-
-                        <button onclick="showComingSoon('hotel')" class="btn" disabled>
-                            Hotel Booking - Coming Soon
-                        </button>
-                        <br><br>
-                        <button onclick="showComingSoon('udh')" class="btn" disabled>
-                            UDH Experience - Coming Soon
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div id="status"></div>
+            <div id="bookables-status"></div>
         </div>
+
+        <div class="test-section">
+            <h2>3. Direct Entry Booking Test</h2>
+            <p>Skip bookables selection and go directly to entry booking.</p>
+
+            <button onclick="testDirectEntry(1)" class="btn">Direct Entry - Lagos</button>
+            <button onclick="testDirectEntry(2)" class="btn">Direct Entry - Enugu</button>
+
+            <div id="entry-status"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>4. API Endpoints Test</h2>
+            <p>Test the actual API endpoints to see what's working.</p>
+
+            <button onclick="testApiEndpoints()" class="btn">Test API Endpoints</button>
+            <div id="api-status"></div>
+            <div id="api-results" class="debug-info" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>5. Debug Information</h2>
+            <button onclick="showDebugInfo()" class="btn">Show Debug Info</button>
+            <div id="debug-info"></div>
+        </div>
+
+        <div id="global-status"></div>
     </div>
 
     <!-- Load the Universal Booking Widget -->
-    <!-- <script src="universal-booking-widget.min.js"></script> -->
-    <script src="dist/universal-booking-widget.min.js"></script>
-
+    <script src="dist//universal-booking-widget.min.js"></script>
 
     <script>
-        function updateStatus(message, type = 'info') {
-            const statusDiv = document.getElementById('status');
-            statusDiv.className = `status ${type}`;
-            statusDiv.textContent = message;
-
+        // Utility functions
+        function updateStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.innerHTML = `<div class="status ${type}">${message}</div>`;
+            }
             console.log(`[${type.toUpperCase()}] ${message}`);
         }
 
-        function openLocationBooking(locationId) {
-            const locationNames = { 1: 'Lagos', 2: 'Enugu' };
-            const locationName = locationNames[locationId] || `Location ${locationId}`;
+        function appendStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            if (element) {
+                const statusDiv = document.createElement('div');
+                statusDiv.className = `status ${type}`;
+                statusDiv.textContent = message;
+                element.appendChild(statusDiv);
+            }
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
 
-            updateStatus(`Opening booking options for ${locationName}...`, 'info');
+        // Test 1: Widget Loading
+        function testWidgetLoad() {
+            updateStatus('load-status', 'Testing widget load...', 'info');
+
+            setTimeout(() => {
+                if (window.UniversalBookingWidget) {
+                    updateStatus('load-status', '✅ Widget loaded successfully!', 'success');
+
+                    // Check supported business types
+                    try {
+                        const supportedTypes = UniversalBookingWidget.getSupportedBusinessTypes();
+                        appendStatus('load-status', `Supported types: ${supportedTypes.join(', ')}`, 'info');
+                    } catch (error) {
+                        appendStatus('load-status', `Error getting supported types: ${error.message}`, 'error');
+                    }
+                } else {
+                    updateStatus('load-status', '❌ Widget failed to load', 'error');
+                }
+            }, 500);
+        }
+
+        // Test 2: Lagos Bookables
+        function testLagosBookables() {
+            updateStatus('bookables-status', 'Opening Lagos bookables...', 'info');
 
             try {
                 const widget = UniversalBookingWidget.init({
                     businessType: null, // Show bookables list
-                    locationId: locationId,
-                    bookables: ['entry', 'hotel', 'udh'], // Available bookables for this location
-                    apiBaseUrl: 'http://127.0.0.1:8000/api', // Fallback base URL
+                    locationId: 1,
+                    bookables: ['entry', 'hotel', 'udh'],
                     branding: {
                         primaryColor: '#f97316',
-                        companyName: `Nike Lake Resort - ${locationName}`,
-                        locationName: `Nike Lake Resort, ${locationName}`,
-                        locationImage: '/api/placeholder/80/60'
+                        companyName: 'Nike Lake Resort - Lagos',
+                        locationName: 'Nike Lake Resort, Lagos'
                     },
                     autoShow: true
                 });
 
                 widget.open();
-                updateStatus(`Booking widget opened for ${locationName}`, 'success');
-
+                updateStatus('bookables-status', '✅ Lagos bookables opened', 'success');
             } catch (error) {
-                console.error('Error opening location booking:', error);
-                updateStatus(`Error: ${error.message}`, 'error');
+                updateStatus('bookables-status', `❌ Error: ${error.message}`, 'error');
             }
         }
 
-        function openDirectEntry(locationId) {
-            const locationNames = { 1: 'Lagos', 2: 'Enugu' };
-            const locationName = locationNames[locationId] || `Location ${locationId}`;
+        // Test 3: Enugu Bookables
+        function testEnuguBookables() {
+            updateStatus('bookables-status', 'Opening Enugu bookables...', 'info');
 
-            updateStatus(`Opening entry ticket booking for ${locationName}...`, 'info');
+            try {
+                const widget = UniversalBookingWidget.init({
+                    businessType: null,
+                    locationId: 2,
+                    bookables: ['entry', 'hotel', 'udh'],
+                    branding: {
+                        primaryColor: '#f97316',
+                        companyName: 'Nike Lake Resort - Enugu',
+                        locationName: 'Nike Lake Resort, Enugu'
+                    },
+                    autoShow: true
+                });
+
+                widget.open();
+                updateStatus('bookables-status', '✅ Enugu bookables opened', 'success');
+            } catch (error) {
+                updateStatus('bookables-status', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Test 4: Direct Entry Booking
+        function testDirectEntry(locationId) {
+            const locationName = locationId === 1 ? 'Lagos' : 'Enugu';
+            updateStatus('entry-status', `Opening direct entry booking for ${locationName}...`, 'info');
 
             try {
                 const widget = UniversalBookingWidget.init({
                     businessType: 'entry',
                     locationId: locationId,
-                    apiBaseUrl: 'http://127.0.0.1:8000/api',
                     branding: {
                         primaryColor: '#f97316',
-                        companyName: `Nike Lake Resort - ${locationName}`,
-                        locationName: `Nike Lake Resort, ${locationName}`
+                        companyName: `Nike Lake Resort - ${locationName}`
                     },
                     autoShow: true
                 });
 
                 widget.open();
-                updateStatus(`Entry ticket booking opened for ${locationName}`, 'success');
-
+                updateStatus('entry-status', `✅ Direct entry opened for ${locationName}`, 'success');
             } catch (error) {
-                console.error('Error opening entry booking:', error);
-                updateStatus(`Error: ${error.message}`, 'error');
+                updateStatus('entry-status', `❌ Error: ${error.message}`, 'error');
             }
         }
 
-        function showComingSoon(bookableType) {
-            const typeNames = {
-                hotel: 'Hotel Booking',
-                udh: 'UDH Experience',
-                restaurant: 'Restaurant Booking'
-            };
+        // Test 5: API Endpoints
+        async function testApiEndpoints() {
+            updateStatus('api-status', 'Testing API endpoints...', 'info');
+            document.getElementById('api-results').style.display = 'block';
 
-            updateStatus(`${typeNames[bookableType]} is not implemented yet. Coming soon!`, 'info');
+            const results = {};
+
+            // Test Lagos entry types
+            try {
+                updateStatus('api-results', 'Testing Lagos entry types...', 'info');
+                const response1 = await fetch('http://127.0.0.1:8000/api/booking/entry/type?landmark_location_id=1');
+                results.lagosTypes = {
+                    status: response1.status,
+                    ok: response1.ok,
+                    data: response1.ok ? await response1.json() : await response1.text()
+                };
+                appendStatus('api-status', `Lagos types: ${response1.status} ${response1.ok ? '✅' : '❌'}`, response1.ok ? 'success' : 'error');
+            } catch (error) {
+                results.lagosTypes = { error: error.message };
+                appendStatus('api-status', `Lagos types error: ${error.message}`, 'error');
+            }
+
+            // Test Enugu entry types
+            try {
+                updateStatus('api-results', 'Testing Enugu entry types...', 'info');
+                const response2 = await fetch('http://127.0.0.1:8000/api/booking/entry/type?landmark_location_id=2');
+                results.enuguTypes = {
+                    status: response2.status,
+                    ok: response2.ok,
+                    data: response2.ok ? await response2.json() : await response2.text()
+                };
+                appendStatus('api-status', `Enugu types: ${response2.status} ${response2.ok ? '✅' : '❌'}`, response2.ok ? 'success' : 'error');
+            } catch (error) {
+                results.enuguTypes = { error: error.message };
+                appendStatus('api-status', `Enugu types error: ${error.message}`, 'error');
+            }
+
+            // Test entry items (if we have a valid type ID)
+            if (results.lagosTypes?.ok && results.lagosTypes.data?.[0]?.id) {
+                try {
+                    const typeId = results.lagosTypes.data[0].id;
+                    updateStatus('api-results', `Testing entry items for type ${typeId}...`, 'info');
+                    const response3 = await fetch(`http://127.0.0.1:8000/api/booking/entry/items?type_id=${typeId}&platform=web`);
+                    results.entryItems = {
+                        status: response3.status,
+                        ok: response3.ok,
+                        data: response3.ok ? await response3.json() : await response3.text()
+                    };
+                    appendStatus('api-status', `Entry items: ${response3.status} ${response3.ok ? '✅' : '❌'}`, response3.ok ? 'success' : 'error');
+                } catch (error) {
+                    results.entryItems = { error: error.message };
+                    appendStatus('api-status', `Entry items error: ${error.message}`, 'error');
+                }
+            }
+
+            // Display full results
+            document.getElementById('api-results').innerHTML = '<h4>📊 API Test Results:</h4><pre>' + JSON.stringify(results, null, 2) + '</pre>';
         }
 
-        // Initialize when page loads
+        // Test 6: Debug Information
+        function showDebugInfo() {
+            const debugInfo = {
+                timestamp: new Date().toISOString(),
+                userAgent: navigator.userAgent,
+                windowLocation: window.location.href,
+                widgetLoaded: !!window.UniversalBookingWidget,
+                supportedTypes: window.UniversalBookingWidget ? window.UniversalBookingWidget.getSupportedBusinessTypes() : 'Widget not loaded',
+                sessionStorage: {
+                    selectedBusinessType: sessionStorage.getItem('selectedBusinessType'),
+                    isReloading: sessionStorage.getItem('isReloading')
+                },
+                currentInstances: window.UniversalBookingWidget ? Object.keys(window.UniversalBookingWidget.instances || {}) : 'No instances'
+            };
+
+            document.getElementById('debug-info').innerHTML =
+                '<div class="debug-info"><h4>🐛 Debug Information:</h4><pre>' +
+                JSON.stringify(debugInfo, null, 2) +
+                '</pre></div>';
+        }
+
+        // Auto-load test
         document.addEventListener('DOMContentLoaded', function () {
-            // Check if widget loaded successfully
             setTimeout(() => {
-                if (window.UniversalBookingWidget) {
-                    updateStatus('Universal Booking Widget loaded successfully! ✅', 'success');
-
-                    // Show supported business types
-                    const supportedTypes = UniversalBookingWidget.getSupportedBusinessTypes();
-                    console.log('Supported business types:', supportedTypes);
-                    console.log('✅ Entry tickets:', supportedTypes.includes('entry') ? 'Available' : 'Missing');
-                    console.log('📋 Hotel rooms:', supportedTypes.includes('hotel') ? 'Available' : 'Not yet implemented');
-                    console.log('🏠 UDH experience:', supportedTypes.includes('udh') ? 'Available' : 'Not yet implemented');
-
-                } else {
-                    updateStatus('Failed to load booking system. Please check console for errors.', 'error');
-                }
+                updateStatus('global-status', 'Page loaded. Click tests above to debug issues.', 'info');
+                testWidgetLoad(); // Auto-run basic test
             }, 1000);
         });
+
+        // Global error handler
+        window.addEventListener('error', function (event) {
+            console.error('Global error:', event.error);
+            appendStatus('global-status', `Global error: ${event.error?.message || event.message}`, 'error');
+        });
+
+        // Console override for better debugging
+        const originalLog = console.log;
+        console.log = function (...args) {
+            originalLog.apply(console, args);
+            // Also show important logs in the UI
+            const message = args.join(' ');
+            if (message.includes('EntryAdapter') || message.includes('UniversalBookablesList') || message.includes('Error')) {
+                const logDiv = document.createElement('div');
+                logDiv.className = 'status info';
+                logDiv.style.fontSize = '11px';
+                logDiv.style.opacity = '0.7';
+                logDiv.textContent = `Console: ${message}`;
+                document.getElementById('global-status').appendChild(logDiv);
+            }
+        };
     </script>
 </body>
 

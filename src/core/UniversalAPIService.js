@@ -88,12 +88,13 @@ class UniversalAPIService {
     try {
       const url = ConfigManager.getApiUrl(locationId, "entry", "list");
       const response = await this.fetch(url);
+      console.log("Ticket Types Response>>>>>>:", response);
 
-      if (response.success && Array.isArray(response.data)) {
-        return response.data.map((type) => ({
+      if (response.success && Array.isArray(response.data.data)) {
+        return response.data.data.map((type) => ({
           id: type.id,
-          name: type.name || "Regular",
-          description: type.description || "Standard entry type",
+          name: type.name,
+          description: type.description,
           features: type.features || {},
           is_active: type.is_active,
           fast_track: type.features?.fast_track || false,
@@ -117,16 +118,16 @@ class UniversalAPIService {
       });
       const response = await this.fetch(url);
 
-      if (response.success && Array.isArray(response.data)) {
-        return response.data.map((item) => ({
+      if (response.success && Array.isArray(response.data.data)) {
+        return response.data.data.map((item) => ({
           id: item.id,
-          name: item.name || "Adult",
-          description: item.description || "Access to main event area",
+          name: item.name,
+          description: item.description,
           price: parseFloat(item.price) || 0,
           max_per_guest: item.max_per_guest || 2,
           image_url: item.image_url,
-          type: item.type || "Regular",
-          category: item.category || "Individual",
+          type: item.type,
+          category: item.category,
           benefits: item.benefits || [],
           terms_conditions: item.terms_conditions || {},
           no_refund: item.terms_conditions?.no_refund || true,
