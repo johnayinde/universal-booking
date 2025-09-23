@@ -1,8 +1,15 @@
-// src/business-types/entry/components/EntryTicketList.jsx - COMPLETE WORKING VERSION
+// src/business-types/entry/components/EntryTicketList.jsx - UPDATED with Dynamic API
 import React, { useState, useEffect } from "react";
 import { useUniversalBooking } from "../../../core/UniversalStateManager";
 import { ActionTypes } from "../../../core/UniversalStateManager";
-import { Minus, Plus, Ticket, User, CheckCircle } from "lucide-react";
+import {
+  Minus,
+  Plus,
+  Ticket,
+  User,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react";
 
 const EntryTicketList = () => {
   const {
@@ -15,101 +22,194 @@ const EntryTicketList = () => {
     setLoading,
   } = useUniversalBooking();
 
-  // Sample ticket data - will work with API when available
-  const sampleTickets = [
-    {
-      id: 1,
-      name: "Regular Ticket",
-      description: "Standard entry to Nike Lake Resort",
-      price: 3000,
-      max_per_order: 10,
-      available: true,
-    },
-    {
-      id: 2,
-      name: "VIP Ticket",
-      description: "Premium entry with exclusive benefits",
-      price: 4000,
-      max_per_order: 5,
-      available: true,
-    },
-  ];
-
+  // State management
+  const [ticketTypes, setTicketTypes] = useState([]);
+  const [selectedType, setSelectedType] = useState(null);
   const [tickets, setTickets] = useState([]);
   const [selections, setSelections] = useState({});
   const [totalAmount, setTotalAmount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState(null);
+  const [loadingStep, setLoadingStep] = useState("types"); // 'types', 'items', 'none'
 
-  // Load tickets on component mount
+  // Load ticket types on component mount
   useEffect(() => {
-    loadTickets();
+    loadTicketTypes();
   }, []);
 
-  // Fixed version - only update when selections actually change
+  // Load ticket types from the new API
+  const loadTicketTypes = async () => {
+    setIsLoading(true);
+    setLoadingStep("types");
+    setApiError(null);
+
+    try {
+      console.log("🔄 Loading ticket types...");
+
+      // Try using the adapter's new method first
+      if (adapter && typeof adapter.fetchTicketTypes === "function") {
+        const types = await adapter.fetchTicketTypes();
+        console.log("✅ Ticket types loaded:", types);
+        setTicketTypes(types);
+
+        // Auto-select the first active type if only one exists
+        const activeTypes = types.filter((t) => t.is_active);
+        if (activeTypes.length === 1) {
+          handleTypeSelect(activeTypes[0]);
+        }
+      } else {
+        // Fallback to direct API call
+        const locationId =
+          state.config.locationId || state.config.location || 1;
+        const response = await fetch(
+          `http://entry.landmarkafrica.com/api/booking/entry/type?landmark_location_id=${locationId}`
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log("✅ Ticket types loaded (fallback):", data);
+        setTicketTypes(data);
+      }
+    } catch (error) {
+      console.error("❌ Error loading ticket types:", error);
+      setApiError(`Failed to load ticket types: ${error.message}`);
+
+      // Fallback to sample data for development
+      console.log("🔄 Using sample data as fallback");
+      const sampleTypes = [
+        {
+          id: 1,
+          name: "Regular Entry",
+          description: "Standard entry type",
+          features: { fast_track: false },
+          is_active: true,
+        },
+      ];
+      setTicketTypes(sampleTypes);
+      handleTypeSelect(sampleTypes[0]);
+    } finally {
+      setIsLoading(false);
+      setLoadingStep("none");
+    }
+  };
+
+  // Handle ticket type selection
+  const handleTypeSelect = async (type) => {
+    if (selectedType?.id === type.id) return; // Already selected
+
+    setSelectedType(type);
+    setTickets([]);
+    setSelections({});
+    setTotalAmount(0);
+
+    await loadTicketItems(type.id);
+  };
+
+  // Load ticket items for selected type
+  const loadTicketItems = async (typeId) => {
+    setIsLoading(true);
+    setLoadingStep("items");
+    setApiError(null);
+
+    try {
+      console.log(`🔄 Loading ticket items for type ${typeId}...`);
+
+      // Try using the adapter's new method first
+      if (adapter && typeof adapter.fetchTicketItems === "function") {
+        const items = await adapter.fetchTicketItems(typeId);
+        console.log("✅ Ticket items loaded:", items);
+        setTickets(items);
+
+        // Update global state
+        dispatch({
+          type: ActionTypes.SET_ITEMS,
+          payload: items,
+        });
+      } else {
+        // Fallback to direct API call
+        const response = await fetch(
+          `http://entry.landmarkafrica.com/api/booking/entry/items?type_id=${typeId}&platform=web`
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log("✅ Ticket items loaded (fallback):", data);
+        setTickets(data);
+
+        dispatch({
+          type: ActionTypes.SET_ITEMS,
+          payload: data,
+        });
+      }
+    } catch (error) {
+      console.error("❌ Error loading ticket items:", error);
+      setApiError(`Failed to load tickets: ${error.message}`);
+
+      // Fallback to sample data
+      console.log("🔄 Using sample ticket data as fallback");
+      const sampleTickets = [
+        {
+          id: 1,
+          name: "Regular Ticket",
+          description: "Standard entry to Nike Lake Resort",
+          price: 3000,
+          max_per_guest: 10,
+          available: true,
+        },
+        {
+          id: 2,
+          name: "VIP Ticket",
+          description: "Premium entry with exclusive benefits",
+          price: 4000,
+          max_per_guest: 5,
+          available: true,
+        },
+      ];
+      setTickets(sampleTickets);
+
+      dispatch({
+        type: ActionTypes.SET_ITEMS,
+        payload: sampleTickets,
+      });
+    } finally {
+      setIsLoading(false);
+      setLoadingStep("none");
+    }
+  };
+
+  // Calculate total when selections change
   useEffect(() => {
     const total = calculateTotal(selections, tickets);
     setTotalAmount(total);
-  }, [selections, tickets]);
 
-  // Separate effect for global state updates
-  useEffect(() => {
+    // Update global state
     dispatch({
       type: ActionTypes.UPDATE_SELECTIONS,
       payload: selections,
     });
-  }, [selections]);
 
-  useEffect(() => {
     dispatch({
-      type: ActionTypes.SET_TOTAL_AMOUNT,
-      payload: totalAmount,
+      type: ActionTypes.CALCULATE_TOTAL,
+      payload: total,
     });
-  }, [totalAmount]);
-
-  const loadTickets = async () => {
-    setIsLoading(true);
-    setApiError(null);
-
-    try {
-      // Try to load from API first
-      if (apiService) {
-        const response = await apiService.get("/api/entry/tickets/list");
-
-        if (response.success && response.data) {
-          const apiTickets = response.data.tickets || response.data;
-          setTickets(apiTickets);
-          initializeSelections(apiTickets);
-          console.log("✅ Loaded tickets from API:", apiTickets);
-          return;
-        }
-      }
-    } catch (error) {
-      console.warn("⚠️ API not available, using sample data:", error.message);
-      setApiError("API not connected - using sample data");
-    }
-
-    // Fallback to sample data
-    setTickets(sampleTickets);
-    initializeSelections(sampleTickets);
-    console.log("✅ Using sample ticket data");
-
-    setIsLoading(false);
-  };
-
-  const initializeSelections = (ticketList) => {
-    const initialSelections = {};
-    ticketList.forEach((ticket) => {
-      initialSelections[ticket.id] = 0;
-    });
-    setSelections(initialSelections);
-  };
+  }, [selections, tickets]);
 
   const calculateTotal = (selections, tickets) => {
+    if (adapter && typeof adapter.calculateTotal === "function") {
+      return adapter.calculateTotal(selections, tickets);
+    }
+
+    // Fallback calculation
     let total = 0;
     Object.keys(selections).forEach((ticketId) => {
       const quantity = selections[ticketId];
-      const ticket = (tickets || []).find((t) => t.id === ticketId);
+      const ticket = tickets.find((t) => t.id.toString() === ticketId);
       if (ticket && quantity > 0) {
         total += parseFloat(ticket.price || 0) * quantity;
       }
@@ -117,333 +217,244 @@ const EntryTicketList = () => {
     return total;
   };
 
-  const updateQuantity = (ticketId, newQuantity) => {
-    const ticket = (tickets || []).find((t) => t.id.toString() === ticketId);
-    const maxQuantity = ticket?.max_per_order || 10;
+  const updateQuantity = (ticketId, change) => {
+    const ticket = tickets.find((t) => t.id === ticketId);
+    if (!ticket) return;
 
-    // Ensure quantity is within bounds
-    const quantity = Math.max(0, Math.min(newQuantity, maxQuantity));
+    const currentQty = selections[ticketId] || 0;
+    const newQty = Math.max(
+      0,
+      Math.min(ticket.max_per_guest || 10, currentQty + change)
+    );
 
     setSelections((prev) => ({
       ...prev,
-      [ticketId]: quantity,
+      [ticketId]: newQty,
     }));
   };
 
   const canProceed = () => {
-    return Object.values(selections).some((qty) => qty > 0);
+    return Object.values(selections).some((qty) => qty > 0) && !isLoading;
   };
 
   const handleNext = () => {
-    if (canProceed()) {
-      // Store selected tickets for reference
-      const selectedTickets = getSelectedTickets(selections, tickets);
+    if (!canProceed()) return;
+
+    // Store selected type and items in global state
+    if (selectedType) {
       dispatch({
         type: ActionTypes.SET_SELECTED_ITEM,
-        payload: { selectedTickets, selections },
+        payload: selectedType,
       });
-
-      console.log(
-        "✅ Moving to personal info step with selections:",
-        selections
-      );
-      setCurrentStep("booking");
     }
-  };
 
-  const handleBack = () => {
-    // Go back to bookables list
-    window.location.reload(); // Simple way to go back to main list
-  };
-
-  const getSelectedTickets = (selections, availableTickets) => {
-    return Object.keys(selections)
-      .filter((ticketId) => selections[ticketId] > 0)
-      .map((ticketId) => {
-        const ticket = (availableTickets || []).find(
-          (t) => t.id.toString() === ticketId
-        );
-        return {
-          ...ticket,
-          quantity: selections[ticketId],
-          totalPrice: parseFloat(ticket.price || 0) * selections[ticketId],
-        };
-      });
+    // Navigate to next step
+    setCurrentStep("booking");
   };
 
   const formatCurrency = (amount) => {
+    if (adapter && typeof adapter.formatCurrency === "function") {
+      return adapter.formatCurrency(amount, state.config);
+    }
     return `₦${parseFloat(amount).toLocaleString()}`;
   };
 
-  // Loading state
-  if (isLoading) {
+  // Show loading state
+  if (isLoading && loadingStep === "types") {
     return (
-      <div className="h-screen flex items-center justify-center bg-gray-50">
+      <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading tickets...</p>
+          <p className="text-gray-600">Loading ticket types...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex bg-gray-50">
-      {/* Left Sidebar */}
-      <div className="w-80 bg-white border-r border-gray-200 p-6">
-        <div className="mb-8">
-          <img
-            src="/api/placeholder/80/60"
-            alt="Nike Lake Resort"
-            className="w-20 h-16 rounded-lg object-cover mb-4"
-            onError={(e) => {
-              e.target.src =
-                "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA4MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjRjNGNEY2Ii8+CjxyZWN0IHg9IjIwIiB5PSIxNSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjMwIiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPgo=";
-            }}
-          />
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">
-            Nike Lake
-            <br />
-            Resort,
-            <br />
-            Enugu
-          </h2>
-          <p className="text-gray-600 text-sm leading-relaxed">
-            Welcome to Nike Lake Resort
-          </p>
-          <p className="text-gray-500 text-xs mt-2">
-            Enjoy the perfect blend of business and leisure with breath-taking
-            views in a very secure and tranquil setting.
-          </p>
-        </div>
-
-        {/* Progress Steps */}
-        <div className="space-y-2">
-          <div className="flex items-center space-x-3 px-4 py-3 rounded-lg bg-green-50 text-green-700">
-            <div className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center text-sm font-bold">
-              ✓
+    <div className="space-y-6">
+      {/* Error Display */}
+      {apiError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-start space-x-3">
+            <AlertCircle className="text-red-600 flex-shrink-0" size={20} />
+            <div>
+              <h4 className="text-red-800 font-medium">API Error</h4>
+              <p className="text-red-700 text-sm mt-1">{apiError}</p>
+              <p className="text-red-600 text-xs mt-2">
+                Using sample data for demonstration.
+              </p>
             </div>
-            <span className="font-medium">Booking Type</span>
-          </div>
-
-          <div className="flex items-center space-x-3 px-4 py-3 rounded-lg bg-orange-100 text-orange-700 border-l-4 border-orange-500">
-            <div className="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold">
-              2
-            </div>
-            <span className="font-medium text-orange-800">Tickets</span>
-          </div>
-
-          <div className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400">
-            <div className="w-6 h-6 rounded-full border-2 border-gray-300 flex items-center justify-center text-sm">
-              3
-            </div>
-            <span className="font-medium">Personal Details</span>
           </div>
         </div>
+      )}
 
-        {/* API Status */}
-        {apiError && (
-          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-xs text-yellow-800">{apiError}</p>
-          </div>
-        )}
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 flex">
-        {/* Center Content */}
-        <div className="flex-1 p-8">
-          <div className="max-w-2xl">
-            {/* Header */}
-            <div className="mb-8">
-              <div className="flex items-center space-x-2 text-orange-600 mb-2">
-                <Ticket size={20} />
-                <span className="text-sm font-medium">Ticket Type</span>
-              </div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                Select an entry ticket type and quantity
-              </h1>
-            </div>
-
-            {/* Tickets */}
-            <div className="space-y-4">
-              {tickets.map((ticket) => (
-                <div
-                  key={ticket.id}
-                  className={`bg-white border rounded-xl p-6 transition-all ${
-                    (selections[ticket.id] || 0) > 0
-                      ? "border-orange-300 ring-2 ring-orange-100"
+      {/* Ticket Types Selection */}
+      {ticketTypes.length > 1 && (
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">
+            Select Ticket Type
+          </h3>
+          <div className="grid gap-3">
+            {ticketTypes
+              .filter((type) => type.is_active !== false)
+              .map((type) => (
+                <button
+                  key={type.id}
+                  onClick={() => handleTypeSelect(type)}
+                  className={`p-4 border-2 rounded-lg text-left transition-all ${
+                    selectedType?.id === type.id
+                      ? "border-orange-500 bg-orange-50"
                       : "border-gray-200 hover:border-gray-300"
                   }`}
                 >
-                  <div className="flex justify-between items-center">
+                  <div className="flex items-start space-x-3">
+                    <Ticket
+                      className={`mt-1 ${
+                        selectedType?.id === type.id
+                          ? "text-orange-600"
+                          : "text-gray-400"
+                      }`}
+                      size={20}
+                    />
                     <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                        {ticket.name}
-                      </h3>
-                      {ticket.description && (
-                        <p className="text-gray-600 text-sm mb-3">
-                          {ticket.description}
-                        </p>
+                      <h4 className="font-medium text-gray-900">{type.name}</h4>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {type.description}
+                      </p>
+                      {type.features?.fast_track && (
+                        <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full mt-2">
+                          Fast Track
+                        </span>
                       )}
-                      <div className="text-2xl font-bold text-gray-900">
-                        {formatCurrency(ticket.price)}
-                      </div>
-                    </div>
-
-                    {/* Quantity Controls */}
-                    <div className="flex items-center space-x-4">
-                      <button
-                        onClick={() =>
-                          updateQuantity(
-                            ticket.id,
-                            (selections[ticket.id] || 0) - 1
-                          )
-                        }
-                        disabled={(selections[ticket.id] || 0) <= 0}
-                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                          (selections[ticket.id] || 0) <= 0
-                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                        }`}
-                      >
-                        <Minus size={16} />
-                      </button>
-
-                      <span className="w-8 text-center font-bold text-xl">
-                        {selections[ticket.id] || 0}
-                      </span>
-
-                      <button
-                        onClick={() =>
-                          updateQuantity(
-                            ticket.id,
-                            (selections[ticket.id] || 0) + 1
-                          )
-                        }
-                        disabled={
-                          (selections[ticket.id] || 0) >= ticket.max_per_order
-                        }
-                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                          (selections[ticket.id] || 0) >= ticket.max_per_order
-                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                            : "bg-orange-600 text-white hover:bg-orange-700"
-                        }`}
-                      >
-                        <Plus size={16} />
-                      </button>
                     </div>
                   </div>
-
-                  {ticket.max_per_order < 10 && (
-                    <p className="text-xs text-gray-500 mt-2">
-                      Maximum {ticket.max_per_order} per order
-                    </p>
-                  )}
-                </div>
+                </button>
               ))}
-            </div>
-
-            {/* Custom Group Section */}
-            <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h4 className="font-medium text-blue-900 mb-2">Custom Group</h4>
-              <p className="text-blue-800 text-sm mb-3">
-                If you want to book with a large group, please contact us for
-                custom pricing.
-              </p>
-              <button className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-                Contact us
-              </button>
-            </div>
           </div>
         </div>
+      )}
 
-        {/* Right Sidebar */}
-        <div className="w-80 bg-white border-l border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-6">
-            Ticket Details
-          </h3>
+      {/* Loading Items */}
+      {isLoading && loadingStep === "items" && (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto mb-2"></div>
+            <p className="text-gray-600 text-sm">Loading tickets...</p>
+          </div>
+        </div>
+      )}
 
-          <div className="space-y-4 mb-8">
-            {Object.keys(selections)
-              .filter((ticketId) => selections[ticketId] > 0)
-              .map((ticketId) => {
-                // const ticket = tickets.find(
-                //   (t) => t.id.toString() === ticketId
-                // );
-                const ticket = (tickets || []).find(
-                  (t) => t.id.toString() === ticketId
-                );
-                const quantity = selections[ticketId];
-                const totalPrice = parseFloat(ticket?.price || 0) * quantity;
+      {/* Ticket Selection */}
+      {tickets.length > 0 && !isLoading && (
+        <>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">
+              Select Tickets
+            </h3>
+            <div className="space-y-4">
+              {tickets.map((ticket) => {
+                const quantity = selections[ticket.id] || 0;
+                const maxQty = ticket.max_per_guest || 10;
 
                 return (
-                  <div key={ticketId} className="space-y-1">
-                    <div className="flex justify-between items-start">
-                      <div className="text-sm font-medium text-gray-900">
-                        {ticket?.name}
+                  <div
+                    key={ticket.id}
+                    className="bg-white border border-gray-200 rounded-lg p-4"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-gray-900">
+                          {ticket.name}
+                        </h4>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {ticket.description}
+                        </p>
+                        <div className="mt-2">
+                          <span className="text-lg font-bold text-orange-600">
+                            {formatCurrency(ticket.price)}
+                          </span>
+                          <span className="text-sm text-gray-500 ml-2">
+                            per person
+                          </span>
+                        </div>
                       </div>
-                      <div className="text-sm font-bold text-gray-900">
-                        {formatCurrency(ticket?.price)}
+
+                      <div className="flex items-center space-x-3 ml-4">
+                        <button
+                          onClick={() => updateQuantity(ticket.id, -1)}
+                          disabled={quantity === 0}
+                          className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Minus size={16} />
+                        </button>
+
+                        <span className="w-8 text-center font-medium">
+                          {quantity}
+                        </span>
+
+                        <button
+                          onClick={() => updateQuantity(ticket.id, 1)}
+                          disabled={quantity >= maxQty}
+                          className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Plus size={16} />
+                        </button>
                       </div>
                     </div>
-                    <div className="flex justify-between items-start">
-                      <div className="text-sm text-gray-500">
-                        Quantity: {quantity}
+
+                    {quantity > 0 && (
+                      <div className="mt-3 pt-3 border-t border-gray-100">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">
+                            {quantity} × {formatCurrency(ticket.price)}
+                          </span>
+                          <span className="font-medium text-gray-900">
+                            {formatCurrency(ticket.price * quantity)}
+                          </span>
+                        </div>
                       </div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {formatCurrency(totalPrice)}
-                      </div>
-                    </div>
+                    )}
                   </div>
                 );
               })}
-
-            {Object.values(selections).every((qty) => qty === 0) && (
-              <div className="text-center py-8 text-gray-500">
-                <div className="text-sm">No Data</div>
-                <div className="text-xs mt-1">
-                  No item has been added to cart
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Total */}
-          <div className="border-t border-gray-200 pt-4 mb-6">
-            <div className="flex justify-between items-center">
-              <span className="text-lg font-semibold text-gray-900">Total</span>
-              <span className="text-xl font-bold text-gray-900">
-                {formatCurrency(totalAmount)}
-              </span>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Bottom Navigation */}
-      <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <button
-            onClick={handleBack}
-            className="px-6 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-          >
-            Back
-          </button>
+          {/* Total & Next Button */}
+          {totalAmount > 0 && (
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-lg font-medium text-gray-900">Total</span>
+                <span className="text-xl font-bold text-orange-600">
+                  {formatCurrency(totalAmount)}
+                </span>
+              </div>
 
-          <button
-            onClick={handleNext}
-            disabled={!canProceed()}
-            className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-              canProceed()
-                ? "bg-orange-500 text-white hover:bg-orange-600"
-                : "bg-gray-200 text-gray-400 cursor-not-allowed"
-            }`}
-          >
-            Next
-          </button>
+              <button
+                onClick={handleNext}
+                disabled={!canProceed()}
+                className="w-full bg-orange-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isLoading ? "Processing..." : "Next"}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* No tickets available */}
+      {!isLoading && tickets.length === 0 && selectedType && (
+        <div className="text-center py-12">
+          <Ticket className="mx-auto text-gray-400 mb-4" size={48} />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            No tickets available
+          </h3>
+          <p className="text-gray-600">
+            No tickets are currently available for {selectedType.name}.
+          </p>
         </div>
-      </div>
+      )}
     </div>
   );
 };

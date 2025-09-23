@@ -1,246 +1,230 @@
-import axios from "axios";
+// src/core/UniversalAPIService.js
+import ConfigManager from "./ConfigManager";
 
-/**
- * Universal API Service that adapts to different business types
- */
 class UniversalAPIService {
-  constructor(adapter, baseUrl) {
-    this.adapter = adapter;
-    this.baseUrl = baseUrl || "http://127.0.0.1:8000/api";
-    this.apiConfig = adapter.getAPIConfig();
+  constructor() {
+    this.cache = new Map();
+    this.requestInterceptors = [];
+    this.responseInterceptors = [];
+  }
 
-    // Create axios instance with default config
-    this.client = axios.create({
-      baseURL: this.baseUrl,
-      timeout: 10000,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+  // Add request interceptor
+  addRequestInterceptor(interceptor) {
+    this.requestInterceptors.push(interceptor);
+  }
 
-    // Setup response interceptor for error handling
-    this.client.interceptors.response.use(
-      (response) => response,
-      (error) => {
-        console.error("API Error:", error);
-        return Promise.reject(this.formatError(error));
-      }
+  // Add response interceptor
+  addResponseInterceptor(interceptor) {
+    this.responseInterceptors.push(interceptor);
+  }
+
+  // Apply request interceptors
+  applyRequestInterceptors(config) {
+    return this.requestInterceptors.reduce(
+      (config, interceptor) => interceptor(config),
+      config
     );
   }
 
-  /**
-   * Format API errors consistently
-   * @param {object} error
-   * @returns {object}
-   */
-  formatError(error) {
-    if (error.response) {
-      return {
-        success: false,
-        error: error.response.data.message || "An error occurred",
-        status: error.response.status,
-        data: error.response.data,
+  // Apply response interceptors
+  applyResponseInterceptors(response) {
+    return this.responseInterceptors.reduce(
+      (response, interceptor) => interceptor(response),
+      response
+    );
+  }
+
+  // Generic fetch method with interceptors
+  async fetch(url, options = {}) {
+    // Apply request interceptors
+    const config = this.applyRequestInterceptors({
+      url,
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+    });
+
+    try {
+      console.log(`🌐 API Request: ${config.method || "GET"} ${config.url}`);
+
+      const response = await fetch(config.url, {
+        method: config.method || "GET",
+        headers: config.headers,
+        body: config.body,
+      });
+
+      let data;
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        data = await response.text();
+      }
+
+      const result = {
+        success: response.ok,
+        status: response.status,
+        data: response.ok ? data : null,
+        error: !response.ok ? data : null,
       };
-    } else if (error.request) {
+
+      // Apply response interceptors
+      return this.applyResponseInterceptors(result);
+    } catch (error) {
+      console.error("🚨 API Error:", error);
       return {
         success: false,
-        error: "Network error - please check your connection",
         status: 0,
-      };
-    } else {
-      return {
-        success: false,
-        error: error.message || "An unexpected error occurred",
-        status: 0,
+        data: null,
+        error: error.message,
       };
     }
   }
 
-  /**
-   * Get available items (events, rooms, tours, etc.)
-   * @param {object} filters
-   * @returns {Promise}
-   */
-  async getAvailableItems(filters = {}) {
+  // Get ticket types for entry bookings
+  async getTicketTypes(locationId) {
     try {
-      const endpoint = this.apiConfig.endpoints.list;
-      const response = await this.client.get(endpoint, { params: filters });
+      const url = ConfigManager.getApiUrl(locationId, "entry", "list");
+      const response = await this.fetch(url);
 
-      return {
-        success: true,
-        data: response.data.data || response.data,
-        meta: response.data.meta || {},
-      };
-    } catch (error) {
-      return this.formatError(error);
-    }
-  }
-
-  /**
-   * Get item details
-   * @param {string|number} id
-   * @returns {Promise}
-   */
-  async getItemDetails(id) {
-    try {
-      const endpoint = this.apiConfig.endpoints.details.replace("{id}", id);
-      const response = await this.client.get(endpoint);
-
-      return {
-        success: true,
-        data: response.data.data || response.data,
-      };
-    } catch (error) {
-      return this.formatError(error);
-    }
-  }
-
-  /**
-   * Get sub-items (tickets, room types, etc.)
-   * @param {string|number} id
-   * @returns {Promise}
-   */
-  async getSubItems(id) {
-    try {
-      if (!this.apiConfig.endpoints.subItems) {
-        return { success: true, data: [] };
+      if (response.success && Array.isArray(response.data)) {
+        return response.data.map((type) => ({
+          id: type.id,
+          name: type.name || "Regular",
+          description: type.description || "Standard entry type",
+          features: type.features || {},
+          is_active: type.is_active,
+          fast_track: type.features?.fast_track || false,
+          created_at: type.created_at,
+          updated_at: type.updated_at,
+        }));
       }
 
-      const endpoint = this.apiConfig.endpoints.subItems.replace("{id}", id);
-      const response = await this.client.get(endpoint);
-
-      return {
-        success: true,
-        data: response.data.data || response.data,
-      };
+      throw new Error(response.error || "Failed to fetch ticket types");
     } catch (error) {
-      return this.formatError(error);
+      console.error("Error fetching ticket types:", error);
+      throw error;
     }
   }
 
-  /**
-   * Get categories
-   * @returns {Promise}
-   */
-  async getCategories() {
+  // Get ticket items for a specific type
+  async getTicketItems(locationId, typeId) {
     try {
-      if (!this.apiConfig.endpoints.categories) {
-        return { success: true, data: [] };
+      const url = ConfigManager.getApiUrl(locationId, "entry", "items", {
+        typeId,
+      });
+      const response = await this.fetch(url);
+
+      if (response.success && Array.isArray(response.data)) {
+        return response.data.map((item) => ({
+          id: item.id,
+          name: item.name || "Adult",
+          description: item.description || "Access to main event area",
+          price: parseFloat(item.price) || 0,
+          max_per_guest: item.max_per_guest || 2,
+          image_url: item.image_url,
+          type: item.type || "Regular",
+          category: item.category || "Individual",
+          benefits: item.benefits || [],
+          terms_conditions: item.terms_conditions || {},
+          no_refund: item.terms_conditions?.no_refund || true,
+        }));
       }
 
-      const response = await this.client.get(
-        this.apiConfig.endpoints.categories
-      );
-
-      return {
-        success: true,
-        data: response.data.data || response.data,
-      };
+      throw new Error(response.error || "Failed to fetch ticket items");
     } catch (error) {
-      return this.formatError(error);
+      console.error("Error fetching ticket items:", error);
+      throw error;
     }
   }
 
-  /**
-   * Create a booking
-   * @param {object} bookingData
-   * @returns {Promise}
-   */
-  async createBooking(bookingData) {
+  // Create booking
+  async createBooking(locationId, bookableType, bookingData) {
     try {
-      // Transform data using the adapter
-      const transformedData = this.adapter.transformBookingData(bookingData);
+      const config = ConfigManager.getBookableConfig(locationId, bookableType);
+      const url = config.base + "/create-booking";
 
-      const response = await this.client.post(
-        this.apiConfig.endpoints.booking,
-        transformedData
-      );
+      const response = await this.fetch(url, {
+        method: "POST",
+        body: JSON.stringify({
+          ...bookingData,
+          location_id: locationId,
+        }),
+      });
 
-      return {
-        success: true,
-        data: response.data.data || response.data,
-      };
-    } catch (error) {
-      return this.formatError(error);
-    }
-  }
-
-  /**
-   * Update booking
-   * @param {string|number} id
-   * @param {object} updateData
-   * @returns {Promise}
-   */
-  async updateBooking(id, updateData) {
-    try {
-      if (!this.apiConfig.endpoints.updateBooking) {
-        throw new Error("Update booking endpoint not configured");
+      if (response.success) {
+        return response.data;
       }
 
-      const endpoint = this.apiConfig.endpoints.updateBooking.replace(
-        "{id}",
-        id
-      );
-      const response = await this.client.put(endpoint, updateData);
-
-      return {
-        success: true,
-        data: response.data.data || response.data,
-      };
+      throw new Error(response.error || "Failed to create booking");
     } catch (error) {
-      return this.formatError(error);
+      console.error("Error creating booking:", error);
+      throw error;
     }
   }
 
-  /**
-   * Cancel booking
-   * @param {string|number} id
-   * @returns {Promise}
-   */
-  async cancelBooking(id) {
-    try {
-      if (!this.apiConfig.endpoints.cancelBooking) {
-        throw new Error("Cancel booking endpoint not configured");
-      }
+  // Hotel specific methods (placeholder for future implementation)
+  async getHotelRoomTypes(locationId) {
+    const url = ConfigManager.getApiUrl(locationId, "hotel", "list");
+    // Implementation will be added when hotel adapter is created
+    throw new Error("Hotel booking not implemented yet");
+  }
 
-      const endpoint = this.apiConfig.endpoints.cancelBooking.replace(
-        "{id}",
-        id
-      );
-      const response = await this.client.delete(endpoint);
+  async getHotelRooms(locationId, roomTypeId) {
+    const url = ConfigManager.getApiUrl(locationId, "hotel", "items", {
+      typeId: roomTypeId,
+    });
+    // Implementation will be added when hotel adapter is created
+    throw new Error("Hotel booking not implemented yet");
+  }
 
-      return {
-        success: true,
-        data: response.data.data || response.data,
-      };
-    } catch (error) {
-      return this.formatError(error);
+  // UDH specific methods (placeholder for future implementation)
+  async getUDHExperiences(locationId) {
+    const url = ConfigManager.getApiUrl(locationId, "udh", "list");
+    // Implementation will be added when UDH adapter is created
+    throw new Error("UDH booking not implemented yet");
+  }
+
+  async getUDHPackages(locationId, experienceId) {
+    const url = ConfigManager.getApiUrl(locationId, "udh", "items", {
+      typeId: experienceId,
+    });
+    // Implementation will be added when UDH adapter is created
+    throw new Error("UDH booking not implemented yet");
+  }
+
+  // Cache management
+  getCacheKey(method, params) {
+    return `${method}_${JSON.stringify(params)}`;
+  }
+
+  cacheResponse(key, data, ttl = 300000) {
+    // 5 minutes default
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now(),
+      ttl,
+    });
+  }
+
+  getCachedResponse(key) {
+    const cached = this.cache.get(key);
+    if (!cached) return null;
+
+    const isExpired = Date.now() - cached.timestamp > cached.ttl;
+    if (isExpired) {
+      this.cache.delete(key);
+      return null;
     }
+
+    return cached.data;
   }
 
-  /**
-   * Format date for API
-   * @param {Date|string} date
-   * @returns {string}
-   */
-  formatDate(date) {
-    if (!date) return "";
-
-    const d = new Date(date);
-    return d.toISOString().split("T")[0];
-  }
-
-  /**
-   * Format datetime for API
-   * @param {Date|string} datetime
-   * @returns {string}
-   */
-  formatDateTime(datetime) {
-    if (!datetime) return "";
-
-    const d = new Date(datetime);
-    return d.toISOString();
+  clearCache() {
+    this.cache.clear();
   }
 }
 
-export default UniversalAPIService;
+export default new UniversalAPIService();
