@@ -79,21 +79,43 @@ const UniversalBookablesList = ({ config = {} }) => {
 
   const handleNext = () => {
     if (selectedBookable) {
-      // Create new widget with specific business type
-      if (window.UniversalBookingWidget) {
-        window.UniversalBookingWidget.destroyAll();
+      console.log(`🚀 Opening ${selectedBookable.type} booking...`);
 
-        setTimeout(() => {
-          const widget = window.UniversalBookingWidget.init({
-            businessType: selectedBookable.type,
-            apiBaseUrl: config.apiBaseUrl,
-            branding: {
-              ...config.branding,
-            },
-          });
-          widget.open();
-        }, 100);
+      // For entry tickets, we need to create a proper widget instance
+      if (selectedBookable.type === "entry") {
+        // Store the selection in sessionStorage for the widget to pick up
+        sessionStorage.setItem("selectedBusinessType", "entry");
+
+        // Reload the page to trigger the widget with entry type
+        window.location.reload();
+        return;
       }
+
+      // For other types, try the widget API if available
+      // if (window.UniversalBookingWidget) {
+      //   window.UniversalBookingWidget.destroyAll();
+
+      //   setTimeout(() => {
+      //     try {
+      //       const widget = window.UniversalBookingWidget.init({
+      //         businessType: selectedBookable.type,
+      //         apiBaseUrl: config.apiBaseUrl || "http://127.0.0.1:8000/api",
+      //         branding: {
+      //           ...config.branding,
+      //         },
+      //       });
+      //       widget.open();
+      //     } catch (error) {
+      //       console.error(
+      //         `Error creating ${selectedBookable.type} widget:`,
+      //         error
+      //       );
+      //       alert(`${selectedBookable.name} booking is not implemented yet.`);
+      //     }
+      //   }, 100);
+      // } else {
+      //   alert(`${selectedBookable.name} booking is not implemented yet.`);
+      // }
     }
   };
 

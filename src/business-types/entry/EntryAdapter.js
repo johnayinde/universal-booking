@@ -1,4 +1,4 @@
-// src/business-types/entry/EntryAdapter.js
+// src/business-types/entry/EntryAdapter.js - COMPLETE FIXED VERSION
 import BusinessAdapter from "../../core/BusinessAdapter";
 
 // Import components
@@ -63,7 +63,7 @@ class EntryAdapter extends BusinessAdapter {
     return {
       ...super.getDefaultConfig(),
       branding: {
-        primaryColor: "#3b82f6",
+        primaryColor: "#f97316",
         companyName: "Nike Lake Resort",
         logoUrl: "/api/branding/logo",
       },
@@ -85,6 +85,50 @@ class EntryAdapter extends BusinessAdapter {
       makePayment: "Make Payment",
       processingPayment: "Processing Payment...",
     };
+  }
+
+  /**
+   * Calculate total amount from selections
+   */
+  calculateTotal(selections, tickets) {
+    let total = 0;
+
+    Object.keys(selections).forEach((ticketId) => {
+      const quantity = selections[ticketId];
+      const ticket = tickets.find((t) => t.id.toString() === ticketId);
+
+      if (ticket && quantity > 0) {
+        total += parseFloat(ticket.price || 0) * quantity;
+      }
+    });
+
+    return total;
+  }
+
+  /**
+   * Get selected tickets from selections
+   */
+  getSelectedTickets(selections, availableTickets) {
+    return Object.keys(selections)
+      .filter((ticketId) => selections[ticketId] > 0)
+      .map((ticketId) => {
+        const ticket = availableTickets.find(
+          (t) => t.id.toString() === ticketId
+        );
+        return {
+          ...ticket,
+          quantity: selections[ticketId],
+          totalPrice: parseFloat(ticket.price || 0) * selections[ticketId],
+        };
+      });
+  }
+
+  /**
+   * Format currency for display
+   */
+  formatCurrency(amount, config) {
+    const symbol = config?.currencySymbol || "₦";
+    return `${symbol}${parseFloat(amount).toLocaleString()}`;
   }
 
   /**
@@ -165,50 +209,6 @@ class EntryAdapter extends BusinessAdapter {
       isValid: Object.keys(errors).length === 0,
       errors,
     };
-  }
-
-  /**
-   * Calculate total amount from selections
-   */
-  calculateTotal(selections, tickets) {
-    let total = 0;
-
-    Object.keys(selections).forEach((ticketId) => {
-      const quantity = selections[ticketId];
-      const ticket = tickets.find((t) => t.id.toString() === ticketId);
-
-      if (ticket && quantity > 0) {
-        total += parseFloat(ticket.price || 0) * quantity;
-      }
-    });
-
-    return total;
-  }
-
-  /**
-   * Format currency for display
-   */
-  formatCurrency(amount, config) {
-    const symbol = config?.currencySymbol || "₦";
-    return `${symbol}${parseFloat(amount).toLocaleString()}`;
-  }
-
-  /**
-   * Get selected tickets from selections
-   */
-  getSelectedTickets(selections, availableTickets) {
-    return Object.keys(selections)
-      .filter((ticketId) => selections[ticketId] > 0)
-      .map((ticketId) => {
-        const ticket = availableTickets.find(
-          (t) => t.id.toString() === ticketId
-        );
-        return {
-          ...ticket,
-          quantity: selections[ticketId],
-          totalPrice: parseFloat(ticket.price || 0) * selections[ticketId],
-        };
-      });
   }
 }
 

@@ -1,4 +1,4 @@
-//src/App.js
+//src/App.js - FIXED VERSION
 import React from "react";
 import BookingEngine from "./core/BookingEngine";
 import UniversalBookingWidget from "./components/UniversalBookingWidget";
@@ -35,8 +35,20 @@ function App({ config = {} }) {
     },
   };
 
+  // Check for selected business type from sessionStorage (from bookables list navigation)
+  const selectedFromBookables = sessionStorage.getItem("selectedBusinessType");
+  if (selectedFromBookables && !mergedConfig.businessType) {
+    mergedConfig.businessType = selectedFromBookables;
+    // Clear it so it doesn't persist
+    sessionStorage.removeItem("selectedBusinessType");
+    console.log(
+      `📋 Loading business type from bookables selection: ${selectedFromBookables}`
+    );
+  }
+
   // If no business type is specified, show the universal bookables list
   if (!mergedConfig.businessType) {
+    console.log("📋 No business type - showing Universal Bookables List");
     return (
       <div className="universal-booking-app">
         <UniversalBookablesList config={mergedConfig} />
@@ -45,6 +57,7 @@ function App({ config = {} }) {
   }
 
   // Otherwise, show the specific business type booking flow
+  console.log(`🎯 Loading business type: ${mergedConfig.businessType}`);
   return (
     <BookingEngine
       businessType={mergedConfig.businessType}

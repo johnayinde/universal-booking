@@ -1,4 +1,4 @@
-// src/business-types/entry/components/EntryTicketList.jsx - EXACT UI MATCH
+// src/business-types/entry/components/EntryTicketList.jsx - COMPLETE WORKING VERSION
 import React, { useState, useEffect } from "react";
 import { useUniversalBooking } from "../../../core/UniversalStateManager";
 import { ActionTypes } from "../../../core/UniversalStateManager";
@@ -15,11 +15,12 @@ const EntryTicketList = () => {
     setLoading,
   } = useUniversalBooking();
 
-  // Sample ticket data - matches your UI design exactly
+  // Sample ticket data - will work with API when available
   const sampleTickets = [
     {
       id: 1,
       name: "Regular Ticket",
+      description: "Standard entry to Nike Lake Resort",
       price: 3000,
       max_per_order: 10,
       available: true,
@@ -27,31 +28,30 @@ const EntryTicketList = () => {
     {
       id: 2,
       name: "VIP Ticket",
+      description: "Premium entry with exclusive benefits",
       price: 4000,
       max_per_order: 5,
       available: true,
     },
   ];
 
-  const [tickets, setTickets] = useState(sampleTickets);
+  const [tickets, setTickets] = useState([]);
   const [selections, setSelections] = useState({});
   const [totalAmount, setTotalAmount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [apiError, setApiError] = useState(null);
 
-  // Initialize selections on component mount
+  // Load tickets on component mount
   useEffect(() => {
-    const initialSelections = {};
-    tickets.forEach((ticket) => {
-      initialSelections[ticket.id] = 0;
-    });
-    setSelections(initialSelections);
-  }, [tickets]);
+    loadTickets();
+  }, []);
 
   // Update total when selections change
   useEffect(() => {
     const total = calculateTotal(selections, tickets);
     setTotalAmount(total);
 
-    // Update state
+    // Update global state
     dispatch({
       type: ActionTypes.UPDATE_SELECTIONS,
       payload: selections,
@@ -62,6 +62,44 @@ const EntryTicketList = () => {
       payload: total,
     });
   }, [selections, tickets, dispatch]);
+
+  const loadTickets = async () => {
+    setIsLoading(true);
+    setApiError(null);
+
+    try {
+      // Try to load from API first
+      if (apiService) {
+        const response = await apiService.get("/api/entry/tickets/list");
+
+        if (response.success && response.data) {
+          const apiTickets = response.data.tickets || response.data;
+          setTickets(apiTickets);
+          initializeSelections(apiTickets);
+          console.log("✅ Loaded tickets from API:", apiTickets);
+          return;
+        }
+      }
+    } catch (error) {
+      console.warn("⚠️ API not available, using sample data:", error.message);
+      setApiError("API not connected - using sample data");
+    }
+
+    // Fallback to sample data
+    setTickets(sampleTickets);
+    initializeSelections(sampleTickets);
+    console.log("✅ Using sample ticket data");
+
+    setIsLoading(false);
+  };
+
+  const initializeSelections = (ticketList) => {
+    const initialSelections = {};
+    ticketList.forEach((ticket) => {
+      initialSelections[ticket.id] = 0;
+    });
+    setSelections(initialSelections);
+  };
 
   const calculateTotal = (selections, tickets) => {
     let total = 0;
@@ -101,8 +139,17 @@ const EntryTicketList = () => {
         payload: { selectedTickets, selections },
       });
 
+      console.log(
+        "✅ Moving to personal info step with selections:",
+        selections
+      );
       setCurrentStep("booking");
     }
+  };
+
+  const handleBack = () => {
+    // Go back to bookables list
+    window.location.reload(); // Simple way to go back to main list
   };
 
   const getSelectedTickets = (selections, availableTickets) => {
@@ -124,29 +171,17 @@ const EntryTicketList = () => {
     return `₦${parseFloat(amount).toLocaleString()}`;
   };
 
-  const getStepIcon = (stepKey, isActive, isCompleted) => {
-    const icons = {
-      list: Ticket,
-      booking: User,
-      confirmation: CheckCircle,
-    };
-
-    const Icon = icons[stepKey];
-    return Icon ? (
-      <Icon size={20} />
-    ) : (
-      <div className="w-5 h-5 bg-current rounded-full" />
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading tickets...</p>
+        </div>
+      </div>
     );
-  };
-
-  const bookingSteps = [
-    { key: "list", label: "Booking Type", component: "list" },
-    { key: "list", label: "Tickets", component: "list" },
-    { key: "booking", label: "Personal Details", component: "booking" },
-  ];
-  const currentStepIndex = bookingSteps.findIndex(
-    (step) => step.key === state.currentStep
-  );
+  }
 
   return (
     <div className="h-screen flex bg-gray-50">
@@ -201,6 +236,13 @@ const EntryTicketList = () => {
             <span className="font-medium">Personal Details</span>
           </div>
         </div>
+
+        {/* API Status */}
+        {apiError && (
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-xs text-yellow-800">{apiError}</p>
+          </div>
+        )}
       </div>
 
       {/* Main Content */}
@@ -224,14 +266,23 @@ const EntryTicketList = () => {
               {tickets.map((ticket) => (
                 <div
                   key={ticket.id}
-                  className="bg-white border border-gray-200 rounded-xl p-6"
+                  className={`bg-white border rounded-xl p-6 transition-all ${
+                    (selections[ticket.id] || 0) > 0
+                      ? "border-orange-300 ring-2 ring-orange-100"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
                 >
                   <div className="flex justify-between items-center">
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-gray-900 mb-1">
                         {ticket.name}
                       </h3>
-                      <div className="text-2xl font-bold text-gray-900 mb-4">
+                      {ticket.description && (
+                        <p className="text-gray-600 text-sm mb-3">
+                          {ticket.description}
+                        </p>
+                      )}
+                      <div className="text-2xl font-bold text-gray-900">
                         {formatCurrency(ticket.price)}
                       </div>
                     </div>
@@ -279,6 +330,12 @@ const EntryTicketList = () => {
                       </button>
                     </div>
                   </div>
+
+                  {ticket.max_per_order < 10 && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      Maximum {ticket.max_per_order} per order
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
@@ -325,10 +382,10 @@ const EntryTicketList = () => {
                     </div>
                     <div className="flex justify-between items-start">
                       <div className="text-sm text-gray-500">
-                        {ticket?.name?.includes("VIP") ? "XMAS30 VIFID" : ""}
+                        Quantity: {quantity}
                       </div>
-                      <div className="text-sm text-red-600">
-                        {ticket?.name?.includes("VIP") ? "₦1,000" : ""}
+                      <div className="text-sm font-medium text-gray-900">
+                        {formatCurrency(totalPrice)}
                       </div>
                     </div>
                   </div>
@@ -361,7 +418,7 @@ const EntryTicketList = () => {
       <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <button
-            onClick={() => setCurrentStep("list")}
+            onClick={handleBack}
             className="px-6 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
           >
             Back
@@ -383,294 +440,5 @@ const EntryTicketList = () => {
     </div>
   );
 };
-
-// export default EntryTicketList; <Icon size={20} /> : <div className="w-5 h-5 bg-current rounded-full" />;
-//   };
-
-//   if (state.isLoading) {
-//     return (
-//       <div className="flex items-center justify-center h-64">
-//         <div className="text-center">
-//           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-//           <p className="text-gray-600">Loading tickets...</p>
-//         </div>
-//       </div>
-//     );
-//   }
-
-//   if (state.error) {
-//     return (
-//       <div className="text-center py-12">
-//         <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
-//           <div className="text-red-600 mb-4">
-//             <svg className="w-12 h-12 mx-auto" fill="currentColor" viewBox="0 0 20 20">
-//               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-//             </svg>
-//           </div>
-//           <h3 className="text-lg font-medium text-red-800 mb-2">Error Loading Tickets</h3>
-//           <p className="text-red-700 mb-4">{state.error}</p>
-//           <button
-//             onClick={loadTickets}
-//             className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
-//           >
-//             Try Again
-//           </button>
-//         </div>
-//       </div>
-//     );
-//   }
-
-//   const bookingSteps = adapter.getBookingSteps();
-//   const currentStepIndex = bookingSteps.findIndex(step => step.key === state.currentStep);
-
-//   return (
-//     <div className="h-full flex bg-gray-50">
-//       {/* Left Sidebar */}
-//       <div className="w-72 bg-white border-r border-gray-200 p-6">
-//         <div className="mb-8">
-//           <img
-//             src="/api/placeholder/80/60"
-//             alt="Nike Lake Resort"
-//             className="w-20 h-15 rounded-lg object-cover mb-4"
-//           />
-//           <h2 className="text-xl font-semibold text-gray-900 mb-2">
-//             Nike Lake Resort, Enugu
-//           </h2>
-//           <p className="text-gray-600 text-sm">
-//             Enjoy the perfect blend of business and leisure with peaceful waterfront setting.
-//           </p>
-//         </div>
-
-//         {/* Booking Steps */}
-//         <div className="space-y-1">
-//           {bookingSteps.map((step, index) => {
-//             const isActive = state.currentStep === step.key;
-//             const isCompleted = index < currentStepIndex;
-//             const isEnabled = index <= currentStepIndex || isCompleted;
-
-//             return (
-//               <div
-//                 key={step.key}
-//                 className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-//                   isActive
-//                     ? "bg-orange-100 text-orange-700 border-l-4 border-orange-500"
-//                     : isCompleted
-//                     ? "bg-green-50 text-green-700"
-//                     : isEnabled
-//                     ? "text-gray-600 hover:bg-gray-50"
-//                     : "text-gray-400"
-//                 }`}
-//               >
-//                 <div className={`flex-shrink-0 ${isActive ? "text-orange-600" : isCompleted ? "text-green-600" : "text-gray-400"}`}>
-//                   {getStepIcon(step.key, isActive, isCompleted)}
-//                 </div>
-//                 <span className={`font-medium ${isActive ? "text-orange-800" : ""}`}>
-//                   {step.label}
-//                 </span>
-//               </div>
-//             );
-//           })}
-//         </div>
-//       </div>
-
-//       {/* Main Content */}
-//       <div className="flex-1 flex">
-//         <div className="flex-1 p-8">
-//           <div className="max-w-2xl">
-//             <div className="mb-8">
-//               <div className="flex items-center space-x-2 text-orange-600 mb-2">
-//                 <Ticket size={20} />
-//                 <span className="text-sm font-medium">Ticket Type</span>
-//               </div>
-//               <h1 className="text-2xl font-bold text-gray-900 mb-2">
-//                 Select an entry ticket and quantity
-//               </h1>
-//             </div>
-
-//             {/* Ticket Selection */}
-//             <div className="space-y-4">
-//               {tickets.map((ticket) => (
-//                 <TicketCard
-//                   key={ticket.id}
-//                   ticket={ticket}
-//                   quantity={selections[ticket.id] || 0}
-//                   onQuantityChange={(qty) => updateQuantity(ticket.id, qty)}
-//                   adapter={adapter}
-//                   config={state.config}
-//                 />
-//               ))}
-//             </div>
-
-//             {/* Custom Ticket Note */}
-//             <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-//               <h4 className="font-medium text-blue-900 mb-2">Custom Group</h4>
-//               <p className="text-blue-800 text-sm mb-3">
-//                 If you want to book with a large group, please contact us for custom pricing.
-//               </p>
-//               <button className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-//                 Contact us
-//               </button>
-//             </div>
-//           </div>
-//         </div>
-
-//         {/* Right Sidebar - Ticket Summary */}
-//         <div className="w-80 bg-white border-l border-gray-200 p-6">
-//           <h3 className="text-lg font-semibold text-gray-900 mb-6">Ticket Details</h3>
-
-//           <div className="space-y-4 mb-8">
-//             {Object.keys(selections)
-//               .filter(ticketId => selections[ticketId] > 0)
-//               .map(ticketId => {
-//                 const ticket = tickets.find(t => t.id.toString() === ticketId);
-//                 const quantity = selections[ticketId];
-//                 const totalPrice = parseFloat(ticket?.price || 0) * quantity;
-
-//                 return (
-//                   <div key={ticketId} className="flex justify-between items-start">
-//                     <div className="flex-1">
-//                       <div className="text-sm font-medium text-gray-900">
-//                         {ticket?.name} x{quantity}
-//                       </div>
-//                       <div className="text-sm text-gray-500">
-//                         {adapter.formatCurrency(ticket?.price, state.config)} each
-//                       </div>
-//                     </div>
-//                     <div className="text-sm font-medium text-gray-900">
-//                       {adapter.formatCurrency(totalPrice, state.config)}
-//                     </div>
-//                   </div>
-//                 );
-//               })
-//             }
-
-//             {Object.values(selections).every(qty => qty === 0) && (
-//               <div className="text-center py-8 text-gray-500">
-//                 <Ticket size={48} className="mx-auto mb-4 text-gray-300" />
-//                 <p>No tickets selected yet</p>
-//               </div>
-//             )}
-//           </div>
-
-//           {/* Total */}
-//           <div className="border-t border-gray-200 pt-4 mb-6">
-//             <div className="flex justify-between items-center">
-//               <span className="text-lg font-semibold text-gray-900">Total</span>
-//               <span className="text-xl font-bold text-gray-900">
-//                 {adapter.formatCurrency(totalAmount, state.config)}
-//               </span>
-//             </div>
-//           </div>
-
-//           {/* Navigation Buttons */}
-//           <div className="space-y-3">
-//             <button
-//               onClick={handleNext}
-//               disabled={!canProceed()}
-//               className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
-//                 canProceed()
-//                   ? "bg-orange-600 text-white hover:bg-orange-700"
-//                   : "bg-gray-200 text-gray-500 cursor-not-allowed"
-//               }`}
-//             >
-//               Next
-//             </button>
-
-//             <button
-//               onClick={() => window.parent?.postMessage?.({ type: 'close-widget' }, '*')}
-//               className="w-full py-3 px-4 rounded-lg font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
-//             >
-//               Back
-//             </button>
-//           </div>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// Ticket Card Component
-// const TicketCard = ({
-//   ticket,
-//   quantity,
-//   onQuantityChange,
-//   adapter,
-//   config,
-// }) => {
-//   const maxQuantity = ticket.max_per_order || 10;
-//   const isAvailable = ticket.available !== false;
-//   const price = parseFloat(ticket.price || 0);
-
-//   return (
-//     <div
-//       className={`bg-white border rounded-xl p-6 transition-all ${
-//         quantity > 0
-//           ? "border-orange-300 ring-2 ring-orange-100"
-//           : "border-gray-200 hover:border-gray-300"
-//       }`}
-//     >
-//       <div className="flex justify-between items-start">
-//         <div className="flex-1">
-//           <h4 className="text-lg font-semibold text-gray-900 mb-2">
-//             {ticket.name}
-//           </h4>
-//           {ticket.description && (
-//             <p className="text-gray-600 text-sm mb-4">{ticket.description}</p>
-//           )}
-
-//           <div className="flex items-center justify-between">
-//             <div className="text-xl font-bold text-gray-900">
-//               {price === 0 ? "Free" : adapter.formatCurrency(price, config)}
-//             </div>
-
-//             {isAvailable && (
-//               <div className="flex items-center space-x-3">
-//                 <button
-//                   onClick={() => onQuantityChange(quantity - 1)}
-//                   disabled={quantity <= 0}
-//                   className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-//                     quantity <= 0
-//                       ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-//                       : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-//                   }`}
-//                 >
-//                   <Minus size={16} />
-//                 </button>
-
-//                 <span className="w-8 text-center font-medium text-lg">
-//                   {quantity}
-//                 </span>
-
-//                 <button
-//                   onClick={() => onQuantityChange(quantity + 1)}
-//                   disabled={quantity >= maxQuantity}
-//                   className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-//                     quantity >= maxQuantity
-//                       ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-//                       : "bg-orange-600 text-white hover:bg-orange-700"
-//                   }`}
-//                 >
-//                   <Plus size={16} />
-//                 </button>
-//               </div>
-//             )}
-
-//             {!isAvailable && (
-//               <div className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium">
-//                 Sold Out
-//               </div>
-//             )}
-//           </div>
-
-//           {maxQuantity < 10 && (
-//             <p className="text-xs text-gray-500 mt-2">
-//               Maximum {maxQuantity} per order
-//             </p>
-//           )}
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
 
 export default EntryTicketList;
