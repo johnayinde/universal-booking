@@ -296,7 +296,7 @@
                             <li>Guided tours</li>
                         </ul>
                     </div>
-                    <button data-universal-booking class="wp-block-button__link">
+                    <button data-universal-booking data-config='{"businessType": null}' class="wp-block-button__link">
                         Entry Tickets only button
                     </button>
                     <button onclick="openAllBookables()" class="btn primary">
@@ -377,24 +377,49 @@
             updateStatus('Opening universal bookables list...', 'info');
 
             try {
-                // No business type specified - shows all bookables
-                const widget = UniversalBookingWidget.init({
+                // APPROACH 1: Destroy any existing widgets first
+                if (window.UniversalBookingWidget && window.UniversalBookingWidget.destroyAll) {
+                    window.UniversalBookingWidget.destroyAll();
+                }
+
+                // APPROACH 2: Create config that forces bookables list
+                const config = {
+                    businessType: undefined, // Try undefined instead of null
+                    identifier: undefined,   // Make sure identifier is also undefined
+                    showBookablesList: true, // Explicitly request bookables list
                     apiBaseUrl: 'http://127.0.0.1:8000/api',
                     branding: {
                         primaryColor: '#f97316',
                         companyName: 'Nike Lake Resort'
                     },
-                });
+                    autoShow: true // Auto open
+                };
 
-                widget.open();
+                console.log('🔧 Opening with config:', config);
+
+                const widget = UniversalBookingWidget.init(config);
+                // Don't call widget.open() since autoShow is true
+
                 updateStatus('Universal bookables list opened', 'success');
 
             } catch (error) {
                 console.error('Error opening bookables:', error);
                 updateStatus('Error: ' + error.message, 'error');
+
+                // FALLBACK: Try a different approach
+                setTimeout(() => {
+                    try {
+                        console.log('🔄 Trying fallback approach...');
+                        const fallbackWidget = UniversalBookingWidget.init();
+                        fallbackWidget.open();
+                        updateStatus('Fallback: Universal bookables opened', 'success');
+                    } catch (fallbackError) {
+                        console.error('Fallback also failed:', fallbackError);
+                        updateStatus('Both attempts failed', 'error');
+                    }
+                }, 100);
             }
         }
-
         function openEntryTickets() {
             updateStatus('Opening entry ticket booking...', 'info');
 
@@ -496,7 +521,68 @@
                 updateStatus('Restaurant adapter not implemented yet', 'error');
             }
         }
+        function debugOpenAllBookables() {
+            console.log('🐛 DEBUG: Starting openAllBookables...');
+            updateStatus('DEBUG: Opening universal bookables list...', 'info');
 
+            try {
+                const config = {
+                    businessType: null,
+                    apiBaseUrl: 'http://127.0.0.1:8000/api',
+                    branding: {
+                        primaryColor: '#f97316',
+                        companyName: 'Nike Lake Resort'
+                    }
+                };
+
+                console.log('🐛 Creating widget with config:', config);
+                const widget = UniversalBookingWidget.init(config);
+
+                console.log('🐛 Widget created:', widget);
+                console.log('🐛 Widget container:', widget.container);
+                console.log('🐛 Container in DOM:', document.body.contains(widget.container));
+
+                // Check if container is visible
+                const containerStyle = window.getComputedStyle(widget.container);
+                console.log('🐛 Container styles:', {
+                    display: containerStyle.display,
+                    visibility: containerStyle.visibility,
+                    opacity: containerStyle.opacity,
+                    position: containerStyle.position,
+                    zIndex: containerStyle.zIndex
+                });
+
+                widget.open();
+
+                // After opening, check what's in the container
+                setTimeout(() => {
+                    console.log('🐛 Container innerHTML after opening:', widget.container.innerHTML);
+                    console.log('🐛 Container children:', widget.container.children);
+
+                    // Look for the UniversalBookablesList component
+                    const bookablesList = widget.container.querySelector('.universal-booking-app');
+                    console.log('🐛 Found bookables list element:', bookablesList);
+
+                    if (bookablesList) {
+                        const listStyle = window.getComputedStyle(bookablesList);
+                        console.log('🐛 Bookables list styles:', {
+                            display: listStyle.display,
+                            visibility: listStyle.visibility,
+                            opacity: listStyle.opacity,
+                            width: listStyle.width,
+                            height: listStyle.height
+                        });
+                    }
+
+                    updateStatus('DEBUG: Check browser console for details', 'info');
+                }, 1000);
+
+            } catch (error) {
+                console.error('🐛 DEBUG Error:', error);
+                console.error('🐛 Stack trace:', error.stack);
+                updateStatus('DEBUG Error: ' + error.message, 'error');
+            }
+        }
         // Event listeners
         document.addEventListener('ubw:open-widget', function (e) {
             console.log('Widget opened:', e.detail.widgetId);

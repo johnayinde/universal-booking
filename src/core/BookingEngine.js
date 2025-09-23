@@ -11,7 +11,9 @@ import UniversalBookingContext, {
  * Main Booking Engine Component
  * Orchestrates the entire booking flow using business adapters
  */
-const BookingEngine = ({ businessType = "events", config = {}, children }) => {
+const BookingEngine = ({ businessType = "", config = {}, children }) => {
+  console.log("****************", { businessType, config });
+
   // Initialize state with reducer
   const [state, dispatch] = useReducer(universalBookingReducer, {
     ...initialState,

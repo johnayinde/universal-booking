@@ -46,6 +46,8 @@ function App({ config = {} }) {
       const selectedFromBookables = sessionStorage.getItem(
         "selectedBusinessType"
       );
+      console.log({ selectedFromBookables });
+
       const isReloading = sessionStorage.getItem("isReloading");
 
       console.log("📋 SessionStorage check:", {
@@ -74,6 +76,8 @@ function App({ config = {} }) {
       }
 
       setFinalConfig(mergedConfig);
+      console.log("set Config****");
+
       setIsLoading(false);
     };
 
