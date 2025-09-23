@@ -46,22 +46,26 @@ const EntryTicketList = () => {
     loadTickets();
   }, []);
 
-  // Update total when selections change
+  // Fixed version - only update when selections actually change
   useEffect(() => {
     const total = calculateTotal(selections, tickets);
     setTotalAmount(total);
+  }, [selections, tickets]);
 
-    // Update global state
+  // Separate effect for global state updates
+  useEffect(() => {
     dispatch({
       type: ActionTypes.UPDATE_SELECTIONS,
       payload: selections,
     });
+  }, [selections]);
 
+  useEffect(() => {
     dispatch({
       type: ActionTypes.SET_TOTAL_AMOUNT,
-      payload: total,
+      payload: totalAmount,
     });
-  }, [selections, tickets, dispatch]);
+  }, [totalAmount]);
 
   const loadTickets = async () => {
     setIsLoading(true);
@@ -105,7 +109,7 @@ const EntryTicketList = () => {
     let total = 0;
     Object.keys(selections).forEach((ticketId) => {
       const quantity = selections[ticketId];
-      const ticket = tickets.find((t) => t.id.toString() === ticketId);
+      const ticket = (tickets || []).find((t) => t.id === ticketId);
       if (ticket && quantity > 0) {
         total += parseFloat(ticket.price || 0) * quantity;
       }
@@ -114,7 +118,7 @@ const EntryTicketList = () => {
   };
 
   const updateQuantity = (ticketId, newQuantity) => {
-    const ticket = tickets.find((t) => t.id === ticketId);
+    const ticket = (tickets || []).find((t) => t.id.toString() === ticketId);
     const maxQuantity = ticket?.max_per_order || 10;
 
     // Ensure quantity is within bounds
@@ -156,7 +160,7 @@ const EntryTicketList = () => {
     return Object.keys(selections)
       .filter((ticketId) => selections[ticketId] > 0)
       .map((ticketId) => {
-        const ticket = availableTickets.find(
+        const ticket = (availableTickets || []).find(
           (t) => t.id.toString() === ticketId
         );
         return {
@@ -364,7 +368,10 @@ const EntryTicketList = () => {
             {Object.keys(selections)
               .filter((ticketId) => selections[ticketId] > 0)
               .map((ticketId) => {
-                const ticket = tickets.find(
+                // const ticket = tickets.find(
+                //   (t) => t.id.toString() === ticketId
+                // );
+                const ticket = (tickets || []).find(
                   (t) => t.id.toString() === ticketId
                 );
                 const quantity = selections[ticketId];

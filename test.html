@@ -296,6 +296,9 @@
                             <li>Guided tours</li>
                         </ul>
                     </div>
+                    <button data-universal-booking class="wp-block-button__link">
+                        Entry Tickets only button
+                    </button>
                     <button onclick="openAllBookables()" class="btn primary">
                         View All Bookables
                     </button>
@@ -337,59 +340,7 @@
                     </button>
                 </div>
 
-                <!-- Hotel Booking -->
-                <div class="demo-card">
-                    <h3>🏨 Hotel Rooms</h3>
-                    <p>Accommodation booking with room selection and amenities.</p>
-                    <div class="features">
-                        <h4>🚧 Planned Features:</h4>
-                        <ul>
-                            <li>Room type selection</li>
-                            <li>Date range picker</li>
-                            <li>Guest management</li>
-                            <li>Amenities selection</li>
-                        </ul>
-                    </div>
-                    <button onclick="openHotelBooking()" class="btn">
-                        Book Hotel Room
-                    </button>
-                </div>
 
-                <!-- Restaurant -->
-                <div class="demo-card">
-                    <h3>🍽️ Restaurant</h3>
-                    <p>Table reservations with dining preferences and special requests.</p>
-                    <div class="features">
-                        <h4>🚧 Future Features:</h4>
-                        <ul>
-                            <li>Table selection</li>
-                            <li>Party size options</li>
-                            <li>Time slot booking</li>
-                            <li>Special requests</li>
-                        </ul>
-                    </div>
-                    <button onclick="openRestaurant()" class="btn">
-                        Make Reservation
-                    </button>
-                </div>
-
-                <!-- Tours -->
-                <div class="demo-card">
-                    <h3>🚢 Guided Tours</h3>
-                    <p>Explore the resort with knowledgeable local guides.</p>
-                    <div class="features">
-                        <h4>🚧 Future Features:</h4>
-                        <ul>
-                            <li>Tour route selection</li>
-                            <li>Guide preferences</li>
-                            <li>Group booking</li>
-                            <li>Duration options</li>
-                        </ul>
-                    </div>
-                    <button onclick="openTours()" class="btn">
-                        Book Tour
-                    </button>
-                </div>
             </div>
 
             <div class="status-panel" id="statusPanel">
@@ -397,45 +348,7 @@
                 <p id="statusMessage">Universal Booking Widget loading...</p>
             </div>
 
-            <!-- API Information -->
-            <div class="info-section">
-                <h4>🔧 API Endpoints Required</h4>
-                <p style="color: #b45309; margin-bottom: 15px;">For the universal bookables list to work, you'll need
-                    these endpoints:</p>
 
-                <div class="endpoint">GET /api/bookables/list</div>
-                <p style="color: #b45309; font-size: 14px; margin: 5px 0;">Returns all available booking types with
-                    details, pricing, and availability</p>
-
-                <div class="endpoint">GET /api/entry/tickets/list</div>
-                <p style="color: #b45309; font-size: 14px; margin: 5px 0;">Returns available entry tickets</p>
-
-                <div class="endpoint">POST /api/entry/booking/create</div>
-                <p style="color: #b45309; font-size: 14px; margin: 5px 0;">Creates entry ticket booking and returns
-                    Paystack payment URL</p>
-            </div>
-
-            <!-- Integration Examples -->
-            <div class="code-example">
-                // HTML Data Attributes (Auto-initialized)
-                &lt;!-- Shows all bookables by default --&gt;
-                &lt;button data-universal-booking&gt;Book Now&lt;/button&gt;
-
-                &lt;!-- Direct to specific booking types --&gt;
-                &lt;button data-universal-booking="entry"&gt;Entry Tickets&lt;/button&gt;
-                &lt;button data-universal-booking="udh"&gt;UDH Experience&lt;/button&gt;
-                &lt;button data-universal-booking="hotel"&gt;Hotel Rooms&lt;/button&gt;
-
-                // JavaScript API
-                // Shows all bookables (default behavior)
-                UniversalBookingWidget.init().open();
-
-                // Direct to specific business type
-                UniversalBookingWidget.init({
-                businessType: 'entry',
-                apiBaseUrl: 'https://your-api.com/api'
-                }).open();
-            </div>
         </div>
     </div>
 
@@ -470,7 +383,7 @@
                     branding: {
                         primaryColor: '#f97316',
                         companyName: 'Nike Lake Resort'
-                    }
+                    },
                 });
 
                 widget.open();

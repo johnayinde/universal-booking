@@ -11,7 +11,7 @@ class UniversalBookingWidgetAPI {
   constructor() {
     this.instances = new Map();
     this.globalConfig = {
-      businessType: "entry", // Default business type
+      businessType: "", // Default business type
       apiBaseUrl: "http://127.0.0.1:8000/api",
       theme: "light",
       branding: {

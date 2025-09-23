@@ -81,44 +81,77 @@ const UniversalBookablesList = ({ config = {} }) => {
     if (selectedBookable) {
       console.log(`🚀 Opening ${selectedBookable.type} booking...`);
 
-      // For entry tickets, we need to create a proper widget instance
+      // For entry tickets, directly initialize the widget instead of reloading
       if (selectedBookable.type === "entry") {
-        // Store the selection in sessionStorage for the widget to pick up
+        // Method 1: Try to use the widget API directly
+        if (window.UniversalBookingWidget) {
+          try {
+            console.log("🔧 Using UniversalBookingWidget API");
+
+            // Destroy any existing widgets
+            window.UniversalBookingWidget.destroyAll();
+
+            setTimeout(() => {
+              const widget = window.UniversalBookingWidget.init({
+                businessType: "entry",
+                apiBaseUrl: config.apiBaseUrl || "http://127.0.0.1:8000/api",
+                branding: {
+                  ...config.branding,
+                },
+                autoShow: true, // Auto-open the widget
+              });
+
+              widget.open();
+            }, 100);
+
+            return;
+          } catch (error) {
+            console.error(
+              "Widget API failed, falling back to sessionStorage method:",
+              error
+            );
+          }
+        }
+
+        // Method 2: Fallback to sessionStorage + reload
+        console.log("🔄 Using sessionStorage + reload method");
         sessionStorage.setItem("selectedBusinessType", "entry");
 
-        // Reload the page to trigger the widget with entry type
-        window.location.reload();
+        // Add a flag to track the reload
+        sessionStorage.setItem("isReloading", "true");
+
+        // Use location.href instead of reload for better reliability
+        window.location.href = window.location.href;
         return;
       }
 
-      // For other types, try the widget API if available
-      // if (window.UniversalBookingWidget) {
-      //   window.UniversalBookingWidget.destroyAll();
+      // For other types, try the widget API
+      if (window.UniversalBookingWidget) {
+        window.UniversalBookingWidget.destroyAll();
 
-      //   setTimeout(() => {
-      //     try {
-      //       const widget = window.UniversalBookingWidget.init({
-      //         businessType: selectedBookable.type,
-      //         apiBaseUrl: config.apiBaseUrl || "http://127.0.0.1:8000/api",
-      //         branding: {
-      //           ...config.branding,
-      //         },
-      //       });
-      //       widget.open();
-      //     } catch (error) {
-      //       console.error(
-      //         `Error creating ${selectedBookable.type} widget:`,
-      //         error
-      //       );
-      //       alert(`${selectedBookable.name} booking is not implemented yet.`);
-      //     }
-      //   }, 100);
-      // } else {
-      //   alert(`${selectedBookable.name} booking is not implemented yet.`);
-      // }
+        setTimeout(() => {
+          try {
+            const widget = window.UniversalBookingWidget.init({
+              businessType: selectedBookable.type,
+              apiBaseUrl: config.apiBaseUrl || "http://127.0.0.1:8000/api",
+              branding: {
+                ...config.branding,
+              },
+            });
+            widget.open();
+          } catch (error) {
+            console.error(
+              `Error creating ${selectedBookable.type} widget:`,
+              error
+            );
+            alert(`${selectedBookable.name} booking is not implemented yet.`);
+          }
+        }, 100);
+      } else {
+        alert(`${selectedBookable.name} booking is not implemented yet.`);
+      }
     }
   };
-
   const handlePrevious = () => {
     // Close the widget or go back
     if (window.parent) {

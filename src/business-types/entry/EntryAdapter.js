@@ -95,7 +95,8 @@ class EntryAdapter extends BusinessAdapter {
 
     Object.keys(selections).forEach((ticketId) => {
       const quantity = selections[ticketId];
-      const ticket = tickets.find((t) => t.id.toString() === ticketId);
+      // const ticket = tickets.find((t) => t.id.toString() === ticketId);
+      const ticket = (tickets || []).find((t) => t.id.toString() === ticketId);
 
       if (ticket && quantity > 0) {
         total += parseFloat(ticket.price || 0) * quantity;
@@ -142,7 +143,7 @@ class EntryAdapter extends BusinessAdapter {
     const tickets = Object.keys(selections)
       .filter((ticketId) => selections[ticketId] > 0)
       .map((ticketId) => {
-        const ticket = selectedTickets.find(
+        const ticket = (selectedTickets || []).find(
           (t) => t.id.toString() === ticketId
         );
         return {
