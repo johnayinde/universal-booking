@@ -139,7 +139,7 @@ function App({ config = {} }) {
         <UniversalBookablesList config={finalConfig} />
 
         {/* Development Test Button */}
-        {isDevelopment && (
+        {/* {isDevelopment && (
           <div className="fixed top-4 right-4 z-50">
             <button
               onClick={() => {
@@ -154,7 +154,7 @@ function App({ config = {} }) {
               🧪 Test Entry Widget
             </button>
           </div>
-        )}
+        )} */}
       </div>
     );
   }
@@ -170,7 +170,7 @@ function App({ config = {} }) {
       </BookingEngine>
 
       {/* Development Debug Panel */}
-      {isDevelopment && <DevelopmentDebugPanel config={finalConfig} />}
+      {/* {isDevelopment && <DevelopmentDebugPanel config={finalConfig} />} */}
     </div>
   );
 }

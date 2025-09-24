@@ -57,10 +57,10 @@ const EntryTicketList = ({ apiService, adapter }) => {
     setTotalAmount(total);
 
     // Update global state
-    dispatch({
-      type: ActionTypes.UPDATE_SELECTIONS,
-      payload: selections,
-    });
+    // dispatch({
+    //   type: ActionTypes.UPDATE_SELECTIONS,
+    //   payload: selections,
+    // });
 
     dispatch({
       type: ActionTypes.CALCULATE_TOTAL,
@@ -443,7 +443,7 @@ const EntryTicketList = ({ apiService, adapter }) => {
                 <div
                   key={type.id}
                   onClick={() => handleTypeSelect(type)}
-                  className="bg-white border-2 border-gray-200 rounded-xl p-6 cursor-pointer hover:border-orange-300 hover:shadow-md transition-all duration-200"
+                  className="bg-white border-2 border-gray-200 rounded-xl p-3 cursor-pointer hover:border-orange-300 hover:shadow-md transition-all duration-200"
                 >
                   <div className="flex items-start space-x-4">
                     <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
@@ -453,6 +453,7 @@ const EntryTicketList = ({ apiService, adapter }) => {
                       <h3 className="text-lg font-semibold text-gray-900 mb-1">
                         {type.name}
                       </h3>
+
                       <p className="text-gray-600 text-sm mb-3">
                         {type.description}
                       </p>
@@ -522,7 +523,7 @@ const EntryTicketList = ({ apiService, adapter }) => {
                   Select Tickets
                 </h3>
 
-                <div className="space-y-4 mb-6">
+                <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
                   {tickets.map((ticket) => {
                     const quantity = selections[ticket.id] || 0;
                     const maxQty = ticket.max_per_guest || 10;
@@ -530,55 +531,54 @@ const EntryTicketList = ({ apiService, adapter }) => {
                     return (
                       <div
                         key={ticket.id}
-                        className={`bg-white border-2 rounded-xl p-6 transition-all duration-200 ${
+                        className={`bg-white rounded-xl p-4 sm:p-6 transition-all duration-200 border sm:border-2 ${
                           quantity > 0
                             ? "border-orange-200 bg-orange-50"
                             : "border-gray-200 hover:border-gray-300"
                         }`}
                       >
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between gap-3 sm:gap-4">
                           {/* Ticket Info */}
                           <div className="flex-1">
-                            <div className="flex items-start space-x-4">
+                            <div className="flex items-start gap-3 sm:gap-4">
                               <div
-                                className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                                className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center ${
                                   quantity > 0 ? "bg-orange-500" : "bg-gray-100"
                                 }`}
                               >
                                 <Ticket
-                                  className={
+                                  className={`w-5 h-5 sm:w-6 sm:h-6 ${
                                     quantity > 0
                                       ? "text-white"
                                       : "text-gray-400"
-                                  }
-                                  size={20}
+                                  }`}
                                 />
                               </div>
 
-                              <div className="flex-1">
-                                <h4 className="text-lg font-semibold text-gray-900 mb-1">
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-base sm:text-lg font-semibold text-gray-900 mb-0.5 sm:mb-1">
                                   {ticket.name}
                                 </h4>
 
                                 {ticket.description && (
-                                  <p className="text-gray-600 text-sm mb-2">
+                                  <p className="text-gray-600 text-xs sm:text-sm mb-1.5 sm:mb-2 line-clamp-2">
                                     {ticket.description}
                                   </p>
                                 )}
 
-                                <div className="flex items-center space-x-3">
-                                  <span className="text-2xl font-bold text-gray-900">
+                                <div className="flex items-center flex-wrap gap-x-2 gap-y-1">
+                                  <span className="text-xl sm:text-2xl font-bold text-gray-900">
                                     {formatCurrency(ticket.price)}
                                   </span>
 
                                   {ticket.type && (
-                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-medium bg-blue-100 text-blue-800">
                                       {ticket.type}
                                     </span>
                                   )}
 
                                   {maxQty < 10 && (
-                                    <span className="text-xs text-gray-500">
+                                    <span className="text-[11px] sm:text-xs text-gray-500">
                                       Max {maxQty} per order
                                     </span>
                                   )}
@@ -588,17 +588,17 @@ const EntryTicketList = ({ apiService, adapter }) => {
                           </div>
 
                           {/* Quantity Controls */}
-                          <div className="flex items-center space-x-3">
+                          <div className="flex items-center gap-2 sm:gap-3">
                             <button
                               onClick={() => updateQuantity(ticket.id, -1)}
                               disabled={quantity === 0}
-                              className="w-10 h-10 rounded-full border-2 border-orange-300 text-orange-600 flex items-center justify-center hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 border-orange-300 text-orange-600 flex items-center justify-center hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                             >
-                              <Minus size={18} />
+                              <Minus className="w-4 h-4 sm:w-5 sm:h-5" />
                             </button>
 
                             <div
-                              className={`w-16 h-10 rounded-lg border-2 flex items-center justify-center font-bold text-lg transition-all duration-200 ${
+                              className={`w-14 h-9 sm:w-16 sm:h-10 rounded-lg border-2 flex items-center justify-center font-bold text-base sm:text-lg transition-all duration-200 ${
                                 quantity > 0
                                   ? "border-orange-300 bg-orange-100 text-orange-700"
                                   : "border-gray-200 bg-gray-50 text-gray-600"
@@ -610,17 +610,17 @@ const EntryTicketList = ({ apiService, adapter }) => {
                             <button
                               onClick={() => updateQuantity(ticket.id, 1)}
                               disabled={quantity >= maxQty}
-                              className="w-10 h-10 rounded-full border-2 border-orange-300 text-orange-600 flex items-center justify-center hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 border-orange-300 text-orange-600 flex items-center justify-center hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                             >
-                              <Plus size={18} />
+                              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
                             </button>
                           </div>
                         </div>
 
                         {/* Subtotal for this ticket */}
-                        {quantity > 0 && (
-                          <div className="mt-4 pt-4 border-t border-orange-200">
-                            <div className="flex justify-between items-center text-sm">
+                        {/* {quantity > 0 && (
+                          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-orange-200">
+                            <div className="flex justify-between items-center text-xs sm:text-sm">
                               <span className="text-orange-700 font-medium">
                                 ✓ Added to booking
                               </span>
@@ -630,7 +630,7 @@ const EntryTicketList = ({ apiService, adapter }) => {
                               </span>
                             </div>
                           </div>
-                        )}
+                        )} */}
                       </div>
                     );
                   })}
@@ -638,8 +638,8 @@ const EntryTicketList = ({ apiService, adapter }) => {
 
                 {/* Total & Next Button */}
                 {totalAmount > 0 && (
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-                    <div className="flex items-center justify-between mb-4">
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    {/* <div className="flex items-center justify-between mb-4">
                       <div>
                         <span className="text-lg font-medium text-gray-900">
                           Total
@@ -655,7 +655,7 @@ const EntryTicketList = ({ apiService, adapter }) => {
                       <span className="text-2xl font-bold text-orange-600">
                         {formatCurrency(totalAmount)}
                       </span>
-                    </div>
+                    </div> */}
 
                     <button
                       onClick={handleNext}
@@ -666,9 +666,7 @@ const EntryTicketList = ({ apiService, adapter }) => {
                           : "bg-gray-300 text-gray-500 cursor-not-allowed"
                       }`}
                     >
-                      {isLoading
-                        ? "Processing..."
-                        : "Continue to Personal Details"}
+                      {isLoading ? "Processing..." : "Next"}
                     </button>
                   </div>
                 )}

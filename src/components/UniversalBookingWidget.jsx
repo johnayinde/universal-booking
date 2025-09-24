@@ -1,22 +1,15 @@
-// src/components/UniversalBookingWidget.jsx - FIXED Modal Rendering
+// src/components/UniversalBookingWidget.jsx - MOBILE RESPONSIVE
 import React, { useEffect } from "react";
 import { X } from "lucide-react";
 import { useUniversalBooking } from "../core/UniversalStateManager";
 import { ActionTypes } from "../core/UniversalStateManager";
 
 /**
- * Fixed Universal Booking Widget - No Nested Modals
+ * Universal Booking Widget - Responsive
  */
 const UniversalBookingWidget = () => {
-  const {
-    state,
-    dispatch,
-    adapter,
-    apiService,
-    currentStep,
-    closeWidget,
-    getLabels,
-  } = useUniversalBooking();
+  const { state, dispatch, adapter, apiService, currentStep, closeWidget } =
+    useUniversalBooking();
 
   const { isWidgetOpen, config } = state;
 
@@ -34,7 +27,6 @@ const UniversalBookingWidget = () => {
       }
     };
 
-    // Listen for custom events from the widget API
     document.addEventListener("ubw:open-widget", handleOpenWidget);
     document.addEventListener("ubw:close-widget", handleCloseWidget);
 
@@ -42,34 +34,29 @@ const UniversalBookingWidget = () => {
       document.removeEventListener("ubw:open-widget", handleOpenWidget);
       document.removeEventListener("ubw:close-widget", handleCloseWidget);
     };
-  }, [state.isWidgetOpen]);
+  }, [state.isWidgetOpen, dispatch]);
 
   // Auto-open widget if autoShow is enabled
   useEffect(() => {
     if (config.autoShow && !isWidgetOpen) {
-      setTimeout(() => {
+      const t = setTimeout(() => {
         dispatch({ type: ActionTypes.SET_WIDGET_OPEN, payload: true });
       }, 500);
+      return () => clearTimeout(t);
     }
-  }, [config.autoShow]);
+  }, [config.autoShow, isWidgetOpen, dispatch]);
 
-  // Don't render if widget is not open
-  if (!isWidgetOpen) {
-    return null;
-  }
+  if (!isWidgetOpen) return null;
 
-  // Get components from adapter
+  // Adapter pieces
   const components = adapter.getComponents();
   const bookingSteps = adapter.getBookingSteps();
-  const labels = adapter.getLabels();
-
-  // Get current step component
   const CurrentStepComponent = components[currentStep];
 
   if (!CurrentStepComponent) {
     console.error(`No component found for step: ${currentStep}`);
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
         <div className="bg-white rounded-lg p-6 max-w-md mx-4">
           <h3 className="text-lg font-medium text-gray-900 mb-2">Error</h3>
           <p className="text-gray-600 mb-4">Unable to load this step.</p>
@@ -84,24 +71,43 @@ const UniversalBookingWidget = () => {
     );
   }
 
-  // Apply custom branding
-  const primaryColor = config.branding?.primaryColor || "#f97316";
-
   return (
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-      {/* Single Modal Container - No Nesting */}
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-7xl h-[90vh] flex flex-col overflow-hidden">
+    <div
+      className={[
+        "fixed inset-0 z-50 bg-black/50",
+        // safe area on mobile
+        "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
+        "px-0 sm:px-4",
+        "flex items-stretch sm:items-center justify-center",
+      ].join(" ")}
+    >
+      {/* Modal container: full-screen on mobile, card on larger screens */}
+      <div
+        className={[
+          "bg-white shadow-2xl w-full",
+          "h-dvh sm:h-[90vh]",
+          "rounded-none sm:rounded-2xl",
+          "flex flex-col overflow-hidden",
+          "max-w-none sm:max-w-7xl",
+        ].join(" ")}
+        role="dialog"
+        aria-modal="true"
+      >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
-          <div className="flex items-center space-x-4">
-            <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-orange-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">N</span>
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+          <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-orange-400 to-orange-600 rounded-lg flex items-center justify-center shrink-0">
+              <span className="text-white font-bold text-base sm:text-lg">
+                N
+              </span>
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-xl font-bold text-gray-900 truncate">
                 {config.branding?.companyName || "Nike Lake Resort"}
               </h1>
-              <p className="text-sm text-gray-600">Secure booking portal</p>
+              <p className="text-xs sm:text-sm text-gray-600 truncate">
+                Secure booking portal
+              </p>
             </div>
           </div>
           <button
@@ -113,28 +119,77 @@ const UniversalBookingWidget = () => {
           </button>
         </div>
 
-        {/* Three-Column Layout Container */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* Left Sidebar - Navigation & Progress */}
-          <LeftSidebar
-            currentStep={currentStep}
-            bookingSteps={bookingSteps}
-            config={config}
-            state={state}
-          />
+        {/* Mobile progress (hidden on lg+) */}
+        <MobileProgress currentStep={currentStep} bookingSteps={bookingSteps} />
 
-          {/* Center Content - Main Component */}
-          <div className="flex-1 flex flex-col overflow-hidden bg-gray-50">
-            <CurrentStepComponent apiService={apiService} adapter={adapter} />
+        {/* Body: columns on lg+, stacked on smaller */}
+        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+          {/* Left Sidebar: hidden on small; shows from lg */}
+          <div className="hidden lg:block lg:w-80 bg-gray-50 border-r border-gray-200 overflow-y-auto">
+            <div className="p-6">
+              <LeftSidebar
+                currentStep={currentStep}
+                bookingSteps={bookingSteps}
+                config={config}
+                state={state}
+              />
+            </div>
           </div>
 
-          {/* Right Sidebar - Ticket Details & Summary */}
-          <RightSidebar
-            state={state}
-            currentStep={currentStep}
-            config={config}
-          />
+          {/* Center Content */}
+          <div className="flex-1 order-1 lg:order-none bg-gray-50 overflow-y-auto">
+            <div className="p-4 sm:p-6">
+              <CurrentStepComponent apiService={apiService} adapter={adapter} />
+            </div>
+          </div>
+
+          {/* Right Sidebar: becomes bottom section on small screens */}
+          <div className="order-2 lg:order-none w-full lg:w-96 bg-white border-t lg:border-t-0 lg:border-l border-gray-200 overflow-y-auto">
+            <RightSidebar
+              state={state}
+              currentStep={currentStep}
+              config={config}
+            />
+          </div>
         </div>
+      </div>
+    </div>
+  );
+};
+
+/** Mobile progress bar (horizontal, scrollable) */
+const MobileProgress = ({ currentStep, bookingSteps }) => {
+  // show only on small/medium
+  return (
+    <div className="lg:hidden border-b border-gray-200 bg-white">
+      <div className="px-4 py-2 overflow-x-auto no-scrollbar">
+        <ol className="flex items-center gap-3 min-w-max">
+          {bookingSteps.map((step, idx) => {
+            const isActive = currentStep === step.key;
+            return (
+              <li key={step.key} className="flex items-center gap-2">
+                <span
+                  className={[
+                    "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
+                    isActive
+                      ? "bg-orange-500 text-white"
+                      : "bg-gray-200 text-gray-700",
+                  ].join(" ")}
+                >
+                  {idx + 1}
+                </span>
+                <span
+                  className={[
+                    "text-xs font-medium whitespace-nowrap",
+                    isActive ? "text-gray-900" : "text-gray-600",
+                  ].join(" ")}
+                >
+                  {step.label || step.name}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
       </div>
     </div>
   );
@@ -143,8 +198,10 @@ const UniversalBookingWidget = () => {
 /**
  * Left Sidebar Component - Navigation & Progress
  */
-const LeftSidebar = ({ currentStep, bookingSteps, config, state }) => {
-  const getStepIcon = (step, index, isActive, isCompleted) => {
+const LeftSidebar = ({ currentStep, bookingSteps, config }) => {
+  const currentStepIndex = bookingSteps.findIndex((s) => s.key === currentStep);
+
+  const getStepIcon = (index, isActive, isCompleted) => {
     if (isCompleted) {
       return (
         <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-sm font-bold">
@@ -152,7 +209,6 @@ const LeftSidebar = ({ currentStep, bookingSteps, config, state }) => {
         </div>
       );
     }
-
     if (isActive) {
       return (
         <div className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold">
@@ -160,7 +216,6 @@ const LeftSidebar = ({ currentStep, bookingSteps, config, state }) => {
         </div>
       );
     }
-
     return (
       <div className="w-8 h-8 rounded-full border-2 border-gray-300 bg-white flex items-center justify-center text-sm font-medium text-gray-500">
         {index + 1}
@@ -168,12 +223,8 @@ const LeftSidebar = ({ currentStep, bookingSteps, config, state }) => {
     );
   };
 
-  const currentStepIndex = bookingSteps.findIndex(
-    (step) => step.key === currentStep
-  );
-
   return (
-    <div className="w-80 bg-gray-50 border-r border-gray-200 p-6 overflow-y-auto">
+    <div>
       {/* Location Header */}
       <div className="mb-8">
         <div className="w-20 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg mb-4 flex items-center justify-center">
@@ -210,7 +261,7 @@ const LeftSidebar = ({ currentStep, bookingSteps, config, state }) => {
                     : "bg-white border border-gray-200"
                 }`}
               >
-                {getStepIcon(step, index, isActive, isCompleted)}
+                {getStepIcon(index, isActive, isCompleted)}
                 <div className="flex-1">
                   <span
                     className={`font-medium ${
@@ -255,25 +306,18 @@ const LeftSidebar = ({ currentStep, bookingSteps, config, state }) => {
 
 /**
  * Right Sidebar Component - Ticket Details & Summary
+ * On mobile, this renders beneath the main content.
  */
-const RightSidebar = ({ state, currentStep, config }) => {
+const RightSidebar = ({ state, currentStep }) => {
   const { selections, totalAmount, selectedItem, customerInfo } = state;
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-NG", {
+  const formatCurrency = (amount) =>
+    new Intl.NumberFormat("en-NG", {
       style: "currency",
       currency: "NGN",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const getTotalTickets = () => {
-    if (!selections) return 0;
-    return Object.values(selections).reduce((total, selection) => {
-      return total + (selection.quantity || 0);
-    }, 0);
-  };
+    }).format(amount || 0);
 
   const getSelectedTickets = () => {
     if (!selections || typeof selections !== "object") return [];
@@ -284,93 +328,86 @@ const RightSidebar = ({ state, currentStep, config }) => {
   };
 
   const selectedTickets = getSelectedTickets();
-  const totalTickets = getTotalTickets();
+  const totalTickets = selectedTickets.reduce(
+    (acc, t) => acc + (t.quantity || 0),
+    0
+  );
 
   return (
-    <div className="w-96 bg-white border-l border-gray-200 flex flex-col">
+    <div className="flex flex-col">
       {/* Header */}
-      <div className="p-6 border-b border-gray-200 bg-gray-50">
-        <h3 className="text-lg font-semibold text-gray-900 mb-1">
+      {/* <div className="p-4 sm:p-6 border-b border-gray-200 bg-gray-50">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">
           Booking Details
         </h3>
-        <p className="text-sm text-gray-600">Review your selection</p>
-      </div>
+        <p className="text-xs sm:text-sm text-gray-600">
+          Review your selection
+        </p>
+      </div> */}
 
       {/* Content */}
-      <div className="flex-1 p-6 overflow-y-auto">
-        {/* Selected Service */}
-        {selectedItem && (
-          <div className="mb-6">
-            <h4 className="font-medium text-gray-900 mb-2">Selected Service</h4>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h5 className="font-medium text-blue-900">{selectedItem.name}</h5>
-              {selectedItem.description && (
-                <p className="text-sm text-blue-700 mt-1">
-                  {selectedItem.description}
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-
+      <div className="flex-1 p-3 sm:p-6 overflow-y-auto">
         {/* Selected Tickets */}
         {selectedTickets.length > 0 ? (
-          <div className="mb-6">
-            <h4 className="font-medium text-gray-900 mb-3">
+          <div className="mb-4 sm:mb-6">
+            <h4 className="font-medium text-gray-900 mb-2 sm:mb-3 text-sm sm:text-base">
               Selected Tickets ({totalTickets})
             </h4>
-            <div className="space-y-3">
+            <div className="space-y-2.5 sm:space-y-3">
               {selectedTickets.map((ticket) => (
                 <div
                   key={ticket.id}
-                  className="bg-gray-50 border border-gray-200 rounded-lg p-4"
+                  className="bg-gray-50 border border-gray-200 rounded-lg p-3 sm:p-4"
                 >
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex-1">
-                      <h5 className="font-medium text-gray-900 text-sm">
+                  <div className="flex justify-between items-start mb-1.5 sm:mb-2 gap-2.5 sm:gap-3">
+                    <div className="flex-1 min-w-0">
+                      <h5 className="font-medium text-gray-900 text-sm sm:text-base truncate">
                         {ticket.name}
                       </h5>
                       {ticket.type && (
-                        <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded mt-1 inline-block">
+                        <span className="text-[10px] sm:text-[11px] text-gray-600 bg-gray-200 px-1.5 py-0.5 rounded mt-1 inline-block">
                           {ticket.type}
                         </span>
                       )}
                     </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-gray-900">
+                    <div className="text-right shrink-0">
+                      <p className="font-semibold text-gray-900 text-sm sm:text-base">
                         {formatCurrency(ticket.price)}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex justify-between items-center text-sm">
+                  <div className="flex justify-between items-center text-xs sm:text-sm">
                     <span className="text-gray-600">
-                      Quantity: {ticket.quantity}
+                      Qty: {ticket.quantity}
                     </span>
                     <span className="font-medium text-gray-900">
                       {formatCurrency(ticket.price * ticket.quantity)}
                     </span>
                   </div>
 
-                  {ticket.description && (
-                    <p className="text-xs text-gray-500 mt-2">
+                  {/* {ticket.description && (
+                    <p className="text-[11px] sm:text-xs text-gray-500 mt-2 line-clamp-2">
                       {ticket.description}
                     </p>
-                  )}
+                  )} */}
                 </div>
               ))}
             </div>
           </div>
         ) : (
-          <div className="mb-6">
-            <h4 className="font-medium text-gray-900 mb-3">Ticket Details</h4>
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+          <div className="mb-4 sm:mb-6">
+            <h4 className="font-medium text-gray-900 mb-2 sm:mb-3 text-sm sm:text-base">
+              Ticket Details
+            </h4>
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 sm:p-6 text-center">
               <div className="text-gray-400 mb-2">
                 <svg
-                  className="w-8 h-8 mx-auto"
+                  className="w-6 h-6 sm:w-8 sm:h-8 mx-auto"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
                   <path
                     strokeLinecap="round"
@@ -380,8 +417,10 @@ const RightSidebar = ({ state, currentStep, config }) => {
                   />
                 </svg>
               </div>
-              <p className="text-sm text-gray-600">No tickets selected</p>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs sm:text-sm text-gray-600">
+                No tickets selected
+              </p>
+              <p className="text-[11px] sm:text-xs text-gray-500 mt-1">
                 Select tickets to see details here
               </p>
             </div>
@@ -389,17 +428,17 @@ const RightSidebar = ({ state, currentStep, config }) => {
         )}
 
         {/* Customer Information */}
-        {currentStep === "booking" &&
+        {/* {currentStep === "booking" &&
           customerInfo &&
           Object.keys(customerInfo).length > 0 && (
-            <div className="mb-6">
-              <h4 className="font-medium text-gray-900 mb-3">
+            <div className="mb-4 sm:mb-6">
+              <h4 className="font-medium text-gray-900 mb-2 sm:mb-3 text-sm sm:text-base">
                 Customer Information
               </h4>
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <div className="space-y-2 text-sm">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4">
+                <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
                   {customerInfo.firstName && customerInfo.lastName && (
-                    <div>
+                    <div className="truncate">
                       <span className="text-gray-600">Name: </span>
                       <span className="text-gray-900 font-medium">
                         {customerInfo.firstName} {customerInfo.lastName}
@@ -407,7 +446,7 @@ const RightSidebar = ({ state, currentStep, config }) => {
                     </div>
                   )}
                   {customerInfo.email && (
-                    <div>
+                    <div className="truncate">
                       <span className="text-gray-600">Email: </span>
                       <span className="text-gray-900">
                         {customerInfo.email}
@@ -415,7 +454,7 @@ const RightSidebar = ({ state, currentStep, config }) => {
                     </div>
                   )}
                   {customerInfo.phone && (
-                    <div>
+                    <div className="truncate">
                       <span className="text-gray-600">Phone: </span>
                       <span className="text-gray-900">
                         {customerInfo.phone}
@@ -425,11 +464,11 @@ const RightSidebar = ({ state, currentStep, config }) => {
                 </div>
               </div>
             </div>
-          )}
+          )} */}
       </div>
 
       {/* Footer - Total & Actions */}
-      <div className="border-t border-gray-200 p-6 bg-gray-50">
+      <div className="border-t border-gray-200 p-4 sm:p-6 bg-gray-50">
         {totalAmount > 0 ? (
           <div className="space-y-4">
             {/* Subtotal Breakdown */}
@@ -445,9 +484,9 @@ const RightSidebar = ({ state, currentStep, config }) => {
                 <span className="text-gray-900">₦0</span>
               </div>
               <div className="border-t border-gray-300 pt-2">
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="font-semibold text-gray-900">Total</span>
-                  <span className="font-bold text-xl text-orange-600">
+                  <span className="font-bold text-lg sm:text-xl text-orange-600">
                     {formatCurrency(totalAmount)}
                   </span>
                 </div>

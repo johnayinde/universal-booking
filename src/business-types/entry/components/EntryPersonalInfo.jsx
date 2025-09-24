@@ -30,9 +30,9 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
     lastName: customerInfo.lastName || "",
     email: customerInfo.email || "",
     phone: customerInfo.phone || "",
-    specialRequests: customerInfo.specialRequests || "",
-    agreeToTerms: false,
-    agreeToMarketing: false,
+    // specialRequests: customerInfo.specialRequests || "",
+    // agreeToTerms: false,
+    // agreeToMarketing: false,
   });
 
   const [formErrors, setFormErrors] = useState({});
@@ -112,9 +112,9 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
       errors.phone = "Please enter a valid phone number";
     }
 
-    if (!formData.agreeToTerms) {
-      errors.agreeToTerms = "You must agree to the terms and conditions";
-    }
+    // if (!formData.agreeToTerms) {
+    //   errors.agreeToTerms = "You must agree to the terms and conditions";
+    // }
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -150,8 +150,8 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
           last_name: formData.lastName,
           email: formData.email,
           phone: formData.phone,
-          special_requests: formData.specialRequests,
-          marketing_consent: formData.agreeToMarketing,
+          // special_requests: formData.specialRequests,
+          // marketing_consent: formData.agreeToMarketing,
         },
         tickets: selectedTickets.map((ticket) => ({
           ticket_id: ticket.id,
@@ -480,22 +480,6 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
                   )}
                 </div>
               </div>
-
-              {/* Special Requests */}
-              <div className="mt-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Special Requests (Optional)
-                </label>
-                <textarea
-                  value={formData.specialRequests}
-                  onChange={(e) =>
-                    handleInputChange("specialRequests", e.target.value)
-                  }
-                  rows={3}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors"
-                  placeholder="Any special requirements or requests..."
-                />
-              </div>
             </div>
 
             {/* Payment Information Section */}
@@ -514,8 +498,7 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
                 </div>
                 <p className="text-sm text-blue-700">
                   You will be redirected to Paystack's secure payment page to
-                  complete your transaction. We accept Visa, Mastercard, Verve,
-                  and bank transfers.
+                  complete your transaction. We accept Cards and bank transfers.
                 </p>
               </div>
 
@@ -544,7 +527,7 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
             </div>
 
             {/* Terms and Conditions */}
-            <div className="bg-white border border-gray-200 rounded-xl p-6">
+            {/* <div className="bg-white border border-gray-200 rounded-xl p-6">
               <div className="space-y-4">
                 <div className="flex items-start space-x-3">
                   <input
@@ -596,7 +579,7 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
                   </label>
                 </div>
               </div>
-            </div>
+            </div> */}
           </form>
         </div>
       </div>
