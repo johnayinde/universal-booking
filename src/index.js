@@ -14,7 +14,7 @@ if (process.env.NODE_ENV === "development") {
       primaryColor: "#3b82f6",
       companyName: "Universal Booking Demo",
     },
-    autoShow: true, // Auto-open for development
+    autoShow: false, // Auto-open for development
   };
 
   root.render(

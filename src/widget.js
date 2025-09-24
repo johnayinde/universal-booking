@@ -133,9 +133,12 @@ class UniversalBookingWidgetAPI {
    * Close a specific widget instance - FIXED VERSION
    * @param {string} widgetId
    */
+
   closeWidget(widgetId) {
     const instance = this.instances.get(widgetId);
     if (instance) {
+      // Clear session storage and reset to main list
+      sessionStorage.removeItem("selectedBusinessType");
       // Dispatch custom event on DOCUMENT instead of container
       const event = new CustomEvent("ubw:close-widget", {
         detail: { widgetId },

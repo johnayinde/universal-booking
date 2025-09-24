@@ -121,7 +121,28 @@ const UniversalBookablesList = ({ config = {} }) => {
   const handleClose = () => {
     console.log("Closing widget>>>>>>>>");
 
-    if (window.parent) window.parent.postMessage({ type: "close-widget" }, "*");
+    // Clear sessionStorage
+    sessionStorage.removeItem("selectedBusinessType");
+    sessionStorage.removeItem("isReloading");
+
+    // Reset the widget config to remove businessType
+    if (window.UniversalBookingWidget) {
+      // Destroy current instance
+      window.UniversalBookingWidget.destroyAll?.();
+
+      // Reinitialize without businessType
+      setTimeout(() => {
+        const newConfig = {
+          ...config,
+          businessType: null, // or undefined
+        };
+        window.UniversalBookingWidget.init(newConfig).open();
+      }, 100);
+    }
+
+    if (window.parent) {
+      window.parent.postMessage({ type: "close-widget" }, "*");
+    }
   };
 
   // Location & branding

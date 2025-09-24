@@ -489,16 +489,16 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
                 Payment Information
               </h3>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 mb-4">
                 <div className="flex items-center space-x-2 mb-2">
                   <Shield className="text-blue-600" size={16} />
                   <span className="text-sm font-medium text-blue-900">
                     Secure Payment with Paystack
                   </span>
                 </div>
-                <p className="text-sm text-blue-700">
-                  You will be redirected to Paystack's secure payment page to
-                  complete your transaction. We accept Cards and bank transfers.
+                <p className="text-xs text-blue-700">
+                  You will be redirected to Paystack's secure payment page. We
+                  accept Cards and bank transfers.
                 </p>
               </div>
 
@@ -526,60 +526,7 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
               </div>
             </div>
 
-            {/* Terms and Conditions */}
-            {/* <div className="bg-white border border-gray-200 rounded-xl p-6">
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <input
-                    type="checkbox"
-                    id="agreeToTerms"
-                    checked={formData.agreeToTerms}
-                    onChange={(e) =>
-                      handleInputChange("agreeToTerms", e.target.checked)
-                    }
-                    className="mt-1 w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
-                  />
-                  <label
-                    htmlFor="agreeToTerms"
-                    className="text-sm text-gray-700"
-                  >
-                    I agree to the{" "}
-                    <a href="#" className="text-orange-600 hover:underline">
-                      Terms and Conditions
-                    </a>{" "}
-                    and{" "}
-                    <a href="#" className="text-orange-600 hover:underline">
-                      Privacy Policy
-                    </a>{" "}
-                    *
-                  </label>
-                </div>
-                {formErrors.agreeToTerms && (
-                  <p className="text-sm text-red-600">
-                    {formErrors.agreeToTerms}
-                  </p>
-                )}
-
-                <div className="flex items-start space-x-3">
-                  <input
-                    type="checkbox"
-                    id="agreeToMarketing"
-                    checked={formData.agreeToMarketing}
-                    onChange={(e) =>
-                      handleInputChange("agreeToMarketing", e.target.checked)
-                    }
-                    className="mt-1 w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
-                  />
-                  <label
-                    htmlFor="agreeToMarketing"
-                    className="text-sm text-gray-700"
-                  >
-                    I would like to receive updates and promotional offers via
-                    email
-                  </label>
-                </div>
-              </div>
-            </div> */}
+          
           </form>
         </div>
       </div>
@@ -596,15 +543,7 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
           </button>
 
           <div className="flex items-center space-x-4">
-            <div className="text-right">
-              <p className="text-sm text-gray-600">
-                {totalTickets} ticket{totalTickets !== 1 ? "s" : ""}
-              </p>
-              <p className="text-lg font-bold text-orange-600">
-                {formatCurrency(totalAmount)}
-              </p>
-            </div>
-
+         
             <button
               onClick={handleSubmit}
               disabled={isSubmitting || selectedTickets.length === 0}

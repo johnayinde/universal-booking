@@ -46,6 +46,39 @@ const UniversalBookingWidget = () => {
     }
   }, [config.autoShow, isWidgetOpen, dispatch]);
 
+  // Listen for close widget messages and reset to main list
+  useEffect(() => {
+    const handleMessage = (event) => {
+      if (event.data.type === "close-widget") {
+        sessionStorage.removeItem("selectedBusinessType");
+        closeWidget();
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [closeWidget]);
+
+  // Handle proper widget cleanup on close
+  useEffect(() => {
+    const handleCloseWidget = () => {
+      // Clear any stored state
+      sessionStorage.removeItem("selectedBusinessType");
+
+      // Destroy widget instances
+      if (window.UniversalBookingWidget) {
+        window.UniversalBookingWidget.destroyAll();
+      }
+    };
+
+    // Listen for close events
+    document.addEventListener("ubw:close-widget", handleCloseWidget);
+
+    return () => {
+      document.removeEventListener("ubw:close-widget", handleCloseWidget);
+    };
+  }, []);
+
   if (!isWidgetOpen) return null;
 
   // Adapter pieces
@@ -61,7 +94,18 @@ const UniversalBookingWidget = () => {
           <h3 className="text-lg font-medium text-gray-900 mb-2">Error</h3>
           <p className="text-gray-600 mb-4">Unable to load this step.</p>
           <button
-            onClick={closeWidget}
+            // onClick={closeWidget}
+            onClick={() => {
+              sessionStorage.removeItem("selectedBusinessType");
+              setTimeout(() => {
+                const newConfig = {
+                  ...config,
+                  businessType: null, // or undefined
+                };
+                window.UniversalBookingWidget.init(newConfig).open();
+              }, 100);
+              closeWidget();
+            }}
             className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors"
           >
             Close
@@ -111,7 +155,17 @@ const UniversalBookingWidget = () => {
             </div>
           </div>
           <button
-            onClick={closeWidget}
+            onClick={() => {
+              sessionStorage.removeItem("selectedBusinessType");
+              setTimeout(() => {
+                const newConfig = {
+                  ...config,
+                  businessType: null, // or undefined
+                };
+                window.UniversalBookingWidget.init(newConfig).open();
+              }, 100);
+              closeWidget();
+            }}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             aria-label="Close booking widget"
           >
@@ -335,16 +389,6 @@ const RightSidebar = ({ state, currentStep }) => {
 
   return (
     <div className="flex flex-col">
-      {/* Header */}
-      {/* <div className="p-4 sm:p-6 border-b border-gray-200 bg-gray-50">
-        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">
-          Booking Details
-        </h3>
-        <p className="text-xs sm:text-sm text-gray-600">
-          Review your selection
-        </p>
-      </div> */}
-
       {/* Content */}
       <div className="flex-1 p-3 sm:p-6 overflow-y-auto">
         {/* Selected Tickets */}
@@ -385,12 +429,6 @@ const RightSidebar = ({ state, currentStep }) => {
                       {formatCurrency(ticket.price * ticket.quantity)}
                     </span>
                   </div>
-
-                  {/* {ticket.description && (
-                    <p className="text-[11px] sm:text-xs text-gray-500 mt-2 line-clamp-2">
-                      {ticket.description}
-                    </p>
-                  )} */}
                 </div>
               ))}
             </div>
@@ -426,45 +464,6 @@ const RightSidebar = ({ state, currentStep }) => {
             </div>
           </div>
         )}
-
-        {/* Customer Information */}
-        {/* {currentStep === "booking" &&
-          customerInfo &&
-          Object.keys(customerInfo).length > 0 && (
-            <div className="mb-4 sm:mb-6">
-              <h4 className="font-medium text-gray-900 mb-2 sm:mb-3 text-sm sm:text-base">
-                Customer Information
-              </h4>
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4">
-                <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
-                  {customerInfo.firstName && customerInfo.lastName && (
-                    <div className="truncate">
-                      <span className="text-gray-600">Name: </span>
-                      <span className="text-gray-900 font-medium">
-                        {customerInfo.firstName} {customerInfo.lastName}
-                      </span>
-                    </div>
-                  )}
-                  {customerInfo.email && (
-                    <div className="truncate">
-                      <span className="text-gray-600">Email: </span>
-                      <span className="text-gray-900">
-                        {customerInfo.email}
-                      </span>
-                    </div>
-                  )}
-                  {customerInfo.phone && (
-                    <div className="truncate">
-                      <span className="text-gray-600">Phone: </span>
-                      <span className="text-gray-900">
-                        {customerInfo.phone}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )} */}
       </div>
 
       {/* Footer - Total & Actions */}
