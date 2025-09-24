@@ -1,7 +1,7 @@
-// src/core/BookingEngine.js - FIXED for singleton UniversalAPIService
+// src/core/BookingEngine.js - FIXED Integration
 import React, { useReducer, useMemo } from "react";
 import AdapterFactory from "./AdapterFactory";
-import UniversalAPIService from "./UniversalAPIService"; // This is now a singleton
+import { getAPIService } from "./UniversalAPIService";
 import UniversalBookingContext, {
   universalBookingReducer,
   initialState,
@@ -9,8 +9,7 @@ import UniversalBookingContext, {
 } from "./UniversalStateManager";
 
 /**
- * Main Booking Engine Component
- * Orchestrates the entire booking flow using business adapters
+ * Fixed Booking Engine Component with proper API integration
  */
 const BookingEngine = ({ businessType = "", config = {}, children }) => {
   console.log("🚀 BookingEngine initialized:", { businessType, config });
@@ -25,133 +24,223 @@ const BookingEngine = ({ businessType = "", config = {}, children }) => {
   const adapter = useMemo(() => {
     try {
       console.log(`🔧 Creating adapter for business type: ${businessType}`);
-      return AdapterFactory.createAdapter(businessType, config);
+
+      // Enhanced config for entry business type
+      const enhancedConfig = {
+        ...config,
+        locationId: config.locationId || config.location || 2, // Default to Enugu
+        apiBaseUrl: config.apiBaseUrl || "http://127.0.0.1:8000/api",
+      };
+
+      return AdapterFactory.createAdapter(businessType, enhancedConfig);
     } catch (error) {
       console.error(`❌ Failed to create adapter for ${businessType}:`, error);
-      // Fallback to events adapter if entry fails
+
+      // Try fallback to events adapter
       try {
         console.log("🔄 Attempting fallback to events adapter...");
         return AdapterFactory.createAdapter("events", config);
       } catch (fallbackError) {
         console.error("❌ Fallback adapter also failed:", fallbackError);
-        throw new Error(`No valid adapter found for ${businessType}`);
+        throw new Error(
+          `No valid adapter found for business type: ${businessType}`
+        );
       }
     }
   }, [businessType, config]);
 
-  // FIXED: Use the singleton UniversalAPIService directly
+  // Create API service instance with proper configuration
   const apiService = useMemo(() => {
-    try {
-      console.log("🌐 Using singleton UniversalAPIService...");
+    const apiConfig = {
+      apiBaseUrl: config.apiBaseUrl || "http://127.0.0.1:8000/api",
+      timeout: config.timeout || 30000,
+      headers: config.headers || {},
+    };
 
-      // The UniversalAPIService is already instantiated as a singleton
-      // We just need to configure it for this session if needed
-      if (config.apiBaseUrl) {
-        console.log(`📍 API Base URL: ${config.apiBaseUrl}`);
-      }
+    console.log("🔧 Creating API service with config:", apiConfig);
 
-      console.log("✅ UniversalAPIService ready");
-      return UniversalAPIService; // Return the singleton instance
-    } catch (error) {
-      console.error("❌ Failed to access UniversalAPIService:", error);
-      return null;
+    const service = getAPIService(apiConfig);
+
+    // Add entry-specific methods for backward compatibility
+    if (businessType === "entry") {
+      // Override generic methods to use entry-specific endpoints
+      service.getSubItems = async (itemId) => {
+        console.log(`🔍 Getting sub-items (entry tickets) for type: ${itemId}`);
+        const locationId = config.locationId || config.location || 2;
+        return service.getEntryTicketItems(itemId, locationId);
+      };
+
+      service.getItems = async (params = {}) => {
+        console.log("🔍 Getting items (entry ticket types)");
+        const locationId = config.locationId || config.location || 2;
+        return service.getEntryTicketTypes(locationId);
+      };
+
+      service.createBooking = async (bookingData) => {
+        console.log("🎫 Creating entry booking via API service");
+        return service.createEntryBooking({
+          ...bookingData,
+          landmark_location_id: config.locationId || config.location || 2,
+        });
+      };
     }
-  }, [config.apiBaseUrl]); // FIXED: Only depend on config changes
 
-  // Enhanced dispatch with adapter-specific logic
-  const enhancedDispatch = (action) => {
-    console.log("📨 Dispatching action:", action.type);
+    return service;
+  }, [businessType, config]);
 
-    // Pre-process certain actions with adapter-specific logic
-    switch (action.type) {
-      case ActionTypes.UPDATE_SELECTIONS:
-        // Use adapter's calculation method if available
-        const updatedState = universalBookingReducer(state, action);
-        if (
-          adapter &&
-          adapter.calculateTotal &&
-          typeof adapter.calculateTotal === "function"
-        ) {
-          try {
-            const newTotal = adapter.calculateTotal(
-              updatedState.selections,
-              updatedState.items
-            );
-            console.log("💰 Calculated total:", newTotal);
-            // Prevent infinite loops
-            dispatch({ type: ActionTypes.SET_LOADING, payload: false });
-            return dispatch({
-              type: ActionTypes.CALCULATE_TOTAL,
-              payload: newTotal,
-            });
-          } catch (error) {
-            console.error("❌ Error calculating total:", error);
-          }
-        }
-        break;
+  // Prepare context value with all necessary methods
+  const contextValue = useMemo(() => {
+    // Helper methods
+    const helpers = {
+      // Step navigation
+      setCurrentStep: (step) => {
+        console.log(`📍 Setting current step: ${step}`);
+        dispatch({ type: ActionTypes.SET_CURRENT_STEP, payload: step });
+      },
 
-      case ActionTypes.SET_BUSINESS_TYPE:
-        // Clear adapter-specific data when switching business types
-        console.log("🔄 Resetting booking data for business type change");
+      // Loading and error handling
+      setLoading: (loading) => {
+        dispatch({ type: ActionTypes.SET_LOADING, payload: loading });
+      },
+
+      setError: (error) => {
+        console.error("❌ Setting error:", error);
+        dispatch({ type: ActionTypes.SET_ERROR, payload: error });
+      },
+
+      clearError: () => {
+        dispatch({ type: ActionTypes.CLEAR_ERROR });
+      },
+
+      // Widget control
+      closeWidget: () => {
+        console.log("🔐 Closing widget");
+        dispatch({ type: ActionTypes.SET_WIDGET_OPEN, payload: false });
+      },
+
+      openWidget: () => {
+        console.log("🔓 Opening widget");
+        dispatch({ type: ActionTypes.SET_WIDGET_OPEN, payload: true });
+      },
+
+      // Selection management
+      updateSelections: (selections) => {
+        console.log("🛒 Updating selections:", selections);
+        dispatch({ type: ActionTypes.UPDATE_SELECTIONS, payload: selections });
+      },
+
+      clearSelections: () => {
+        console.log("🗑️ Clearing selections");
+        dispatch({ type: ActionTypes.CLEAR_SELECTIONS });
+      },
+
+      // Customer info
+      updateCustomerInfo: (info) => {
+        console.log("👤 Updating customer info:", info);
+        dispatch({ type: ActionTypes.UPDATE_CUSTOMER_INFO, payload: info });
+      },
+
+      // Payment handling
+      setPaymentStatus: (status) => {
+        console.log("💳 Setting payment status:", status);
+        dispatch({ type: ActionTypes.SET_PAYMENT_STATUS, payload: status });
+      },
+
+      setPaymentUrl: (url) => {
+        console.log("🔗 Setting payment URL:", url);
+        dispatch({ type: ActionTypes.SET_PAYMENT_URL, payload: url });
+      },
+
+      // Booking reference
+      setBookingReference: (reference) => {
+        console.log("📝 Setting booking reference:", reference);
+        dispatch({
+          type: ActionTypes.SET_BOOKING_REFERENCE,
+          payload: reference,
+        });
+      },
+
+      // Reset functions
+      resetBooking: () => {
+        console.log("🔄 Resetting booking");
         dispatch({ type: ActionTypes.RESET_BOOKING });
-        break;
-    }
+      },
 
-    return dispatch(action);
-  };
+      resetAll: () => {
+        console.log("🔄 Resetting all");
+        dispatch({ type: ActionTypes.RESET_ALL });
+      },
 
-  // Helper functions
-  const setCurrentStep = (step) => {
-    console.log(`📍 Setting current step: ${step}`);
-    dispatch({ type: ActionTypes.SET_CURRENT_STEP, payload: step });
-  };
+      // Utility functions
+      getSelectedTickets: () => {
+        if (!state.selections) return [];
+        return Object.values(state.selections).filter(
+          (selection) => selection.quantity > 0
+        );
+      },
 
-  const setError = (error) => {
-    console.log(`❌ Setting error: ${error}`);
-    dispatch({ type: ActionTypes.SET_ERROR, payload: error });
-  };
+      getTotalTickets: () => {
+        if (!state.selections) return 0;
+        return Object.values(state.selections).reduce(
+          (total, selection) => total + (selection.quantity || 0),
+          0
+        );
+      },
 
-  const setLoading = (loading) => {
-    console.log(`⏳ Setting loading: ${loading}`);
-    dispatch({ type: ActionTypes.SET_LOADING, payload: loading });
-  };
+      formatCurrency: (amount) => {
+        if (adapter && typeof adapter.formatCurrency === "function") {
+          return adapter.formatCurrency(amount, state.config);
+        }
+        return new Intl.NumberFormat("en-NG", {
+          style: "currency",
+          currency: "NGN",
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        }).format(amount);
+      },
 
-  // Context value with all necessary data and functions
-  const contextValue = {
-    state,
-    dispatch: enhancedDispatch,
-    adapter,
-    apiService,
-    businessType,
+      // Labels and configuration
+      getLabels: () => adapter.getLabels(),
 
-    // Helper functions
-    setCurrentStep,
-    setError,
-    setLoading,
+      // Debug info
+      getDebugInfo: () => ({
+        businessType,
+        currentStep: state.currentStep,
+        hasAdapter: !!adapter,
+        hasApiService: !!apiService,
+        isLoading: state.loading,
+        hasError: !!state.error,
+        totalAmount: state.totalAmount,
+        totalTickets: helpers.getTotalTickets(),
+        paymentStatus: state.paymentStatus,
+        bookingReference: state.bookingReference,
+        config: {
+          locationId: config.locationId || config.location,
+          apiBaseUrl: config.apiBaseUrl,
+        },
+      }),
+    };
 
-    // Convenience properties
-    isLoading: state.loading,
-    hasError: !!state.error,
-    currentStep: state.currentStep,
-    totalAmount: state.totalAmount,
+    const contextValue = {
+      state,
+      dispatch,
+      adapter,
+      apiService,
+      currentStep: state.currentStep,
+      ...helpers,
+    };
 
-    // State shortcuts
-    items: state.items,
-    categories: state.categories,
-    selectedItem: state.selectedItem,
-    subItems: state.subItems,
-    selections: state.selections,
-    customerInfo: state.customerInfo,
-    bookingReference: state.bookingReference,
-  };
+    console.log("🎯 BookingEngine context value prepared:", {
+      hasAdapter: !!adapter,
+      hasApiService: !!apiService,
+      currentStep: state.currentStep,
+      isLoading: state.loading,
+      businessType,
+      locationId: config.locationId || config.location,
+    });
 
-  console.log("🎯 BookingEngine context value prepared:", {
-    hasAdapter: !!adapter,
-    hasApiService: !!apiService,
-    currentStep: state.currentStep,
-    isLoading: state.loading,
-    businessType,
-  });
+    return contextValue;
+  }, [state, adapter, apiService, businessType, config]);
 
   return (
     <UniversalBookingContext.Provider value={contextValue}>

@@ -1,19 +1,22 @@
-// src/business-types/entry/EntryAdapter.js - UPDATED for singleton UniversalAPIService
+// src/business-types/entry/EntryAdapter.js - FIXED with Working API Calls
 import BusinessAdapter from "../../core/BusinessAdapter";
-import UniversalAPIService from "../../core/UniversalAPIService"; // Singleton
 
-// Import your existing components
+// Import components
 import EntryTicketList from "./components/EntryTicketList";
 import EntryPersonalInfo from "./components/EntryPersonalInfo";
 import EntryConfirmation from "./components/EntryConfirmation";
 
 /**
- * Entry Ticket business type adapter with singleton API service support
+ * Fixed Entry Adapter with working API integration
  */
 class EntryAdapter extends BusinessAdapter {
   constructor(config = {}) {
     super(config);
     console.log("🎫 EntryAdapter initialized with config:", config);
+
+    // Set up API base URL
+    this.apiBaseUrl = config.apiBaseUrl || "http://127.0.0.1:8000/api";
+    this.locationId = config.locationId || config.location || 2; // Default to Enugu (ID: 2)
   }
 
   getBusinessType() {
@@ -30,48 +33,46 @@ class EntryAdapter extends BusinessAdapter {
   }
 
   getAPIConfig() {
-    const locationId = this.config.locationId || this.config.location || 1;
     console.log(
-      `🔧 EntryAdapter: Getting API config for location ${locationId}`
+      `🔧 EntryAdapter: Getting API config for location ${this.locationId}`
     );
 
     return {
       endpoints: {
-        // These endpoints are now handled by the singleton UniversalAPIService
-        // through ConfigManager
-        types: `dynamic_location_${locationId}`,
-        items: `dynamic_location_${locationId}`,
-        booking: `dynamic_location_${locationId}`,
+        types: `/booking/entry/type?landmark_location_id=${this.locationId}`,
+        items: `/booking/entry/items`,
+        booking: `/booking/entry/create`,
       },
-      dataFields: {
-        id: "id",
-        name: "name",
-        description: "description",
-        price: "price",
-        maxQuantity: "max_per_guest",
-        available: "available",
-        image: "image_url",
-        type: "type",
-        category: "category",
-        features: "features",
-      },
+      baseUrl: this.apiBaseUrl,
+      locationId: this.locationId,
     };
   }
 
   getBookingSteps() {
     return [
-      { key: "list", label: "Tickets", component: "list", icon: "ticket" },
+      {
+        key: "list",
+        label: "Booking Type",
+        name: "Booking Type",
+        component: "list",
+        icon: "ticket",
+        description: "Select entry type and quantity",
+      },
       {
         key: "booking",
         label: "Personal Details",
+        name: "Personal Details",
         component: "booking",
         icon: "user",
+        description: "Enter your information",
       },
       {
         key: "confirmation",
         label: "Confirmation",
+        name: "Confirmation",
         component: "confirmation",
         icon: "check",
+        description: "Review and confirm",
       },
     ];
   }
@@ -82,11 +83,11 @@ class EntryAdapter extends BusinessAdapter {
       branding: {
         primaryColor: "#f97316",
         companyName: "Nike Lake Resort",
-        logoUrl: "/api/branding/logo",
+        logoUrl: "",
       },
       currency: "NGN",
       currencySymbol: "₦",
-      locationId: 1, // Default to Lagos
+      locationId: this.locationId,
     };
   }
 
@@ -94,83 +95,76 @@ class EntryAdapter extends BusinessAdapter {
     return {
       ...super.getLabels(),
       title: "Entry Tickets",
-      subtitle: "Select entry type and quantity",
-      bookingTitle: "Booking Information",
-      ticketDetails: "Ticket Details",
-      total: "Total",
-      next: "Next",
-      back: "Back",
-      makePayment: "Make Payment",
-      processingPayment: "Processing Payment...",
+      subtitle: "Select your ticket type and quantity",
+      bookingTitle: "Complete Your Booking",
+      bookingSubtitle: "Enter your details to proceed",
     };
   }
 
-  /**
-   * Calculate total amount from selections
-   */
-  calculateTotal(selections, tickets) {
-    let total = 0;
-
-    Object.keys(selections).forEach((ticketId) => {
-      const quantity = selections[ticketId];
-      const ticket = (tickets || []).find((t) => t.id.toString() === ticketId);
-
-      if (ticket && quantity > 0) {
-        total += parseFloat(ticket.price || 0) * quantity;
-      }
-    });
-
-    console.log("💰 Calculated total:", total, "from selections:", selections);
-    return total;
-  }
+  // =============================================
+  // API METHODS - FIXED IMPLEMENTATION
+  // =============================================
 
   /**
-   * Get selected tickets from selections
-   */
-  getSelectedTickets(selections, availableTickets) {
-    const selected = Object.keys(selections)
-      .filter((ticketId) => selections[ticketId] > 0)
-      .map((ticketId) => {
-        const ticket = availableTickets.find(
-          (t) => t.id.toString() === ticketId
-        );
-        return {
-          ...ticket,
-          quantity: selections[ticketId],
-          totalPrice: parseFloat(ticket.price || 0) * selections[ticketId],
-        };
-      });
-
-    console.log("🎫 Selected tickets:", selected);
-    return selected;
-  }
-
-  /**
-   * Format currency for display
-   */
-  formatCurrency(amount, config) {
-    const symbol = config?.currencySymbol || "₦";
-    return `${symbol}${parseFloat(amount).toLocaleString()}`;
-  }
-
-  /**
-   * Fetch ticket types using singleton UniversalAPIService
+   * Fetch ticket types with proper error handling
    */
   async fetchTicketTypes() {
-    const locationId = this.config.locationId || this.config.location || 1;
-
-    console.log(`🔍 Fetching ticket types for location ${locationId}...`);
+    console.log(`🔍 Fetching ticket types for location ${this.locationId}...`);
 
     try {
-      // Use the singleton UniversalAPIService
-      const types = await UniversalAPIService.getTicketTypes(locationId);
-      console.log("✅ Ticket types loaded:", types);
+      const url = `${this.apiBaseUrl}/booking/entry/type?landmark_location_id=${this.locationId}`;
+      console.log("📡 API URL:", url);
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log("📦 Raw ticket types response:", data);
+
+      // Transform the response data
+      let types = [];
+      if (Array.isArray(data)) {
+        types = data.map((type) => ({
+          id: type.id,
+          name: type.name || "Entry Ticket",
+          description: type.description || "Standard entry access",
+          features: type.features || {},
+          is_active: type.is_active !== false,
+          fast_track: type.features?.fast_track || false,
+          created_at: type.created_at,
+          updated_at: type.updated_at,
+        }));
+      } else if (data.data && Array.isArray(data.data)) {
+        // Handle wrapped response
+        types = data.data.map((type) => ({
+          id: type.id,
+          name: type.name || "Entry Ticket",
+          description: type.description || "Standard entry access",
+          features: type.features || {},
+          is_active: type.is_active !== false,
+        }));
+      } else {
+        throw new Error(
+          "Invalid response format - expected array or {data: array}"
+        );
+      }
+
+      console.log("✅ Processed ticket types:", types);
       return types;
     } catch (error) {
       console.error("❌ Error fetching ticket types:", error);
 
-      // Fallback to sample data
-      console.log("🔄 Using sample data as fallback");
+      // Return fallback data
+      console.log("🔄 Using fallback ticket types");
       return [
         {
           id: 1,
@@ -191,213 +185,257 @@ class EntryAdapter extends BusinessAdapter {
   }
 
   /**
-   * Fetch ticket items using singleton UniversalAPIService
+   * Fetch ticket items for a specific type
    */
   async fetchTicketItems(typeId) {
-    const locationId = this.config.locationId || this.config.location || 1;
-
     console.log(`🔍 Fetching ticket items for type ${typeId}...`);
 
     try {
-      // Use the singleton UniversalAPIService
-      const items = await UniversalAPIService.getTicketItems(
-        locationId,
-        typeId
-      );
-      console.log("✅ Ticket items loaded:", items);
+      const url = `${this.apiBaseUrl}/booking/entry/items?type_id=${typeId}&platform=web&landmark_location_id=${this.locationId}`;
+      console.log("📡 API URL:", url);
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log("📦 Raw ticket items response:", data);
+
+      // Transform the response data
+      let items = [];
+      if (Array.isArray(data)) {
+        items = data.map((item) => ({
+          id: item.id,
+          name: item.name || "Adult Ticket",
+          description: item.description || "Standard entry ticket",
+          price: parseFloat(item.price) || 0,
+          max_per_guest: item.max_per_guest || 10,
+          image_url: item.image_url,
+          type: item.type || "Regular",
+          category: item.category || "Individual",
+          benefits: item.benefits || [],
+          terms_conditions: item.terms_conditions || {},
+          available: item.available !== false,
+        }));
+      } else if (data.data && Array.isArray(data.data)) {
+        // Handle wrapped response
+        items = data.data.map((item) => ({
+          id: item.id,
+          name: item.name || "Adult Ticket",
+          description: item.description || "Standard entry ticket",
+          price: parseFloat(item.price) || 0,
+          max_per_guest: item.max_per_guest || 10,
+          available: item.available !== false,
+        }));
+      } else {
+        throw new Error(
+          "Invalid response format - expected array or {data: array}"
+        );
+      }
+
+      console.log("✅ Processed ticket items:", items);
       return items;
     } catch (error) {
       console.error("❌ Error fetching ticket items:", error);
 
-      // Fallback to sample data based on type
-      console.log("🔄 Using sample data as fallback");
-      const sampleData = {
-        1: [
-          // Regular Entry
-          {
-            id: 1,
-            name: "Adult Ticket",
-            description: "Standard entry for adults",
-            price: 3000,
-            max_per_guest: 10,
-            available: true,
-            type: "Regular",
-            category: "Individual",
-          },
-          {
-            id: 2,
-            name: "Child Ticket",
-            description: "Entry for children (5-12 years)",
-            price: 2000,
-            max_per_guest: 5,
-            available: true,
-            type: "Regular",
-            category: "Individual",
-          },
-        ],
-        2: [
-          // VIP Entry
-          {
-            id: 3,
-            name: "VIP Adult",
-            description: "Premium entry with exclusive access",
-            price: 5000,
-            max_per_guest: 5,
-            available: true,
-            type: "VIP",
-            category: "Premium",
-          },
-          {
-            id: 4,
-            name: "VIP Child",
-            description: "Premium entry for children",
-            price: 3500,
-            max_per_guest: 3,
-            available: true,
-            type: "VIP",
-            category: "Premium",
-          },
-        ],
-      };
-
-      return sampleData[typeId] || sampleData[1]; // Default to regular if type not found
+      // Return fallback data based on type
+      console.log("🔄 Using fallback ticket items");
+      return this.getFallbackTicketItems(typeId);
     }
   }
 
   /**
-   * Transform booking data for API submission
+   * Get fallback ticket items for testing
    */
-  transformBookingData(bookingData) {
-    const { selections, customerInfo, selectedTickets, totalAmount } =
-      bookingData;
-    const locationId = this.config.locationId || this.config.location || 1;
-
-    // Transform selections into the expected API format
-    const tickets = Object.keys(selections)
-      .filter((ticketId) => selections[ticketId] > 0)
-      .map((ticketId) => {
-        const ticket = (selectedTickets || []).find(
-          (t) => t.id.toString() === ticketId
-        );
-        return {
-          id: parseInt(ticketId),
-          name: ticket?.name,
-          count: selections[ticketId],
-          price: parseFloat(ticket?.price || 0),
-          total_price: parseFloat(ticket?.price || 0) * selections[ticketId],
-          type: ticket?.type || "entry",
-        };
-      });
-
-    const transformed = {
-      location_id: locationId,
-      ticket_type_id: bookingData.selectedItem?.id,
-      first_name: customerInfo.firstName,
-      last_name: customerInfo.lastName,
-      email: customerInfo.email,
-      phone: customerInfo.phone,
-      selected_tickets: tickets,
-      total_amount: totalAmount,
-      currency: "NGN",
-      payment_type: totalAmount > 0 ? "online" : "free",
-      payment_method: "paystack",
-      payment_status: totalAmount > 0 ? "pending" : "completed",
+  getFallbackTicketItems(typeId) {
+    const fallbackData = {
+      1: [
+        // Regular Entry
+        {
+          id: 1,
+          name: "Adult Ticket",
+          description: "Standard entry for adults",
+          price: 3000,
+          max_per_guest: 10,
+          available: true,
+          type: "Regular",
+          category: "Individual",
+        },
+        {
+          id: 2,
+          name: "Child Ticket",
+          description: "Entry for children (5-12 years)",
+          price: 2000,
+          max_per_guest: 5,
+          available: true,
+          type: "Regular",
+          category: "Individual",
+        },
+      ],
+      2: [
+        // VIP Entry
+        {
+          id: 3,
+          name: "VIP Adult Ticket",
+          description: "Premium entry with exclusive access",
+          price: 5000,
+          max_per_guest: 8,
+          available: true,
+          type: "VIP",
+          category: "Premium",
+        },
+        {
+          id: 4,
+          name: "VIP Child Ticket",
+          description: "Premium entry for children with benefits",
+          price: 3500,
+          max_per_guest: 4,
+          available: true,
+          type: "VIP",
+          category: "Premium",
+        },
+      ],
     };
 
-    console.log("🔄 Transformed booking data:", transformed);
-    return transformed;
+    return fallbackData[typeId] || fallbackData[1];
   }
 
   /**
-   * Create booking using singleton UniversalAPIService
+   * Create booking with proper payload structure
    */
   async createBooking(bookingData) {
-    const locationId = this.config.locationId || this.config.location || 1;
-    const transformedData = this.transformBookingData(bookingData);
-
-    console.log("📝 Creating booking...");
+    console.log("🎫 Creating entry booking:", bookingData);
 
     try {
-      // Use the singleton UniversalAPIService
-      const result = await UniversalAPIService.createBooking(
-        locationId,
-        "entry",
-        transformedData
-      );
-      console.log("✅ Booking created successfully:", result);
-      return result;
-    } catch (error) {
-      console.error("❌ Error creating booking:", error);
+      const url = `${this.apiBaseUrl}/booking/entry/create`;
+      console.log("📡 Booking API URL:", url);
 
-      // Fallback - simulate successful booking for demo
-      console.log("🔄 Simulating successful booking for demo purposes");
+      // Transform booking data for entry-specific format
+      const payload = {
+        landmark_location_id: this.locationId,
+        customer_info: bookingData.customer_info,
+        entry_tickets: bookingData.tickets || [],
+        total_amount: bookingData.total_amount,
+        currency: bookingData.currency || "NGN",
+        payment_method: bookingData.payment_method || "paystack",
+        metadata: {
+          source: "universal_widget",
+          business_type: "entry",
+          ...bookingData.metadata,
+        },
+      };
+
+      console.log("📤 Sending booking payload:", payload);
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorData}`);
+      }
+
+      const result = await response.json();
+      console.log("✅ Booking created successfully:", result);
+
       return {
         success: true,
-        booking_id: `DEMO_${Date.now()}`,
-        reference: `NLR${Date.now()}`,
-        total_amount: transformedData.total_amount,
-        payment_status: transformedData.payment_status,
-        message: "Booking created successfully (Demo Mode)",
-        customer_info: {
-          name: `${transformedData.first_name} ${transformedData.last_name}`,
-          email: transformedData.email,
-          phone: transformedData.phone,
+        data: {
+          booking_reference: result.booking_reference || result.reference,
+          booking_id: result.booking_id || result.id,
+          payment_url: result.payment_url,
+          amount: result.amount || result.total_amount,
+          currency: result.currency || "NGN",
+          ...result,
         },
-        tickets: transformedData.selected_tickets,
-        location_id: transformedData.location_id,
-        created_at: new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error("❌ Booking creation failed:", error);
+      return {
+        success: false,
+        error: error.message || "Failed to create booking",
+        data: null,
       };
     }
+  }
+
+  /**
+   * Calculate total amount with proper formatting
+   */
+  calculateTotal(selections, items) {
+    if (!selections || !items) return 0;
+
+    let total = 0;
+    Object.keys(selections).forEach((itemId) => {
+      const quantity = selections[itemId];
+      const item = items.find((i) => i.id.toString() === itemId.toString());
+
+      if (item && quantity > 0) {
+        total += parseFloat(item.price || 0) * quantity;
+      }
+    });
+
+    return total;
+  }
+
+  /**
+   * Format currency for display
+   */
+  formatCurrency(amount, config = {}) {
+    const currency = config.currency || this.getDefaultConfig().currency;
+
+    if (currency === "NGN") {
+      return new Intl.NumberFormat("en-NG", {
+        style: "currency",
+        currency: "NGN",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(amount);
+    }
+
+    return `${currency} ${parseFloat(amount).toLocaleString()}`;
   }
 
   /**
    * Validate booking data before submission
    */
-  validateBookingData(bookingData) {
-    const errors = {};
-    const { selections, customerInfo } = bookingData;
+  validateBookingData(data) {
+    const errors = [];
 
-    console.log("🔍 Validating booking data:", bookingData);
+    // Check customer info
+    if (!data.customer_info?.first_name) errors.push("First name is required");
+    if (!data.customer_info?.last_name) errors.push("Last name is required");
+    if (!data.customer_info?.email) errors.push("Email is required");
+    if (!data.customer_info?.phone) errors.push("Phone number is required");
 
-    // Validate ticket selections
-    const hasSelections =
-      selections && Object.values(selections).some((qty) => qty > 0);
-    if (!hasSelections) {
-      errors.selections = "Please select at least one ticket";
+    // Check tickets
+    if (!data.tickets || data.tickets.length === 0) {
+      errors.push("At least one ticket must be selected");
     }
 
-    // Validate customer info
-    if (!customerInfo) {
-      errors.customerInfo = "Customer information is required";
-      return { isValid: false, errors };
+    // Check total amount
+    if (!data.total_amount || data.total_amount <= 0) {
+      errors.push("Total amount must be greater than zero");
     }
 
-    if (!customerInfo.firstName?.trim()) {
-      errors.firstName = "First name is required";
-    }
-
-    if (!customerInfo.lastName?.trim()) {
-      errors.lastName = "Last name is required";
-    }
-
-    if (!customerInfo.email?.trim()) {
-      errors.email = "Email address is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerInfo.email)) {
-      errors.email = "Please enter a valid email address";
-    }
-
-    if (!customerInfo.phone?.trim()) {
-      errors.phone = "Phone number is required";
-    } else if (
-      !/^[\d\+\-\s\(\)]{10,}$/.test(customerInfo.phone.replace(/\s/g, ""))
-    ) {
-      errors.phone = "Please enter a valid phone number";
-    }
-
-    const isValid = Object.keys(errors).length === 0;
-    console.log("✅ Validation result:", { isValid, errors });
-
-    return { isValid, errors };
+    return {
+      isValid: errors.length === 0,
+      errors,
+    };
   }
 }
 

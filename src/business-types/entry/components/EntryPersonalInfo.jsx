@@ -1,452 +1,649 @@
-// src/business-types/entry/components/EntryPersonalInfo.jsx - COMPLETE UI MATCH
+// src/business-types/entry/components/EntryPersonalInfo.jsx - FIXED for Three-Column Layout
 import React, { useState, useEffect } from "react";
-import { useUniversalBooking } from "../../../core/UniversalStateManager";
-import { ActionTypes } from "../../../core/UniversalStateManager";
 import {
+  ArrowLeft,
   User,
   Mail,
   Phone,
-  Ticket,
+  CreditCard,
+  Shield,
   CheckCircle,
-  ArrowLeft,
+  AlertCircle,
+  Loader,
 } from "lucide-react";
+import { useUniversalBooking } from "../../../core/UniversalStateManager";
+import { ActionTypes } from "../../../core/UniversalStateManager";
 
-const EntryPersonalInfo = () => {
+const EntryPersonalInfo = ({ apiService, adapter }) => {
+  const { state, dispatch } = useUniversalBooking();
   const {
-    state,
-    dispatch,
-    adapter,
-    apiService,
-    setCurrentStep,
-    setError,
-    setLoading,
-  } = useUniversalBooking();
+    selectedItem,
+    selections,
+    customerInfo,
+    totalAmount,
+    loading,
+    error,
+  } = state;
 
-  const [customerInfo, setCustomerInfo] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
+  const [formData, setFormData] = useState({
+    firstName: customerInfo.firstName || "",
+    lastName: customerInfo.lastName || "",
+    email: customerInfo.email || "",
+    phone: customerInfo.phone || "",
+    specialRequests: customerInfo.specialRequests || "",
+    agreeToTerms: false,
+    agreeToMarketing: false,
   });
 
-  const [errors, setErrors] = useState({});
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [formErrors, setFormErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentStep, setPaymentStep] = useState("form"); // "form", "processing", "success", "error"
 
-  // Load existing customer info if available
-  useEffect(() => {
-    if (state.customerInfo) {
-      setCustomerInfo(state.customerInfo);
-    }
-  }, [state.customerInfo]);
+  // Format currency
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat("en-NG", {
+      style: "currency",
+      currency: "NGN",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+  console.log({ state });
 
-  const updateField = (field, value) => {
-    setCustomerInfo((prev) => ({
+  // Get selected tickets
+  const selectedTickets = React.useMemo(() => {
+    if (!state.selections) return [];
+    return Object.values(state.selections).filter(
+      (selection) => selection && selection.quantity > 0
+    );
+  }, [state.selections]);
+
+  // FIX: Calculate total from global state
+  const totalTickets = React.useMemo(() => {
+    return selectedTickets.reduce(
+      (total, ticket) => total + ticket.quantity,
+      0
+    );
+  }, [selectedTickets]);
+
+  // Handle input changes
+  const handleInputChange = (field, value) => {
+    setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
 
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors((prev) => ({
+    // Clear error for this field
+    if (formErrors[field]) {
+      setFormErrors((prev) => ({
         ...prev,
         [field]: "",
       }));
     }
 
-    // Update global state
+    // Update customer info in global state
     dispatch({
       type: ActionTypes.UPDATE_CUSTOMER_INFO,
-      payload: { ...customerInfo, [field]: value },
+      payload: { [field]: value },
     });
   };
 
-  const validateAndProceed = async () => {
-    console.log("🔄 Starting booking process...");
+  // Validate form
+  const validateForm = () => {
+    const errors = {};
 
-    // Validate form data
-    const validation = adapter.validateBookingData({
-      selections: state.selections,
-      customerInfo,
-      selectedTickets: state.selectedItem?.selectedTickets || [],
-      totalAmount: state.totalAmount,
-    });
+    if (!formData.firstName.trim()) {
+      errors.firstName = "First name is required";
+    }
 
-    setErrors(validation.errors || {});
+    if (!formData.lastName.trim()) {
+      errors.lastName = "Last name is required";
+    }
 
-    if (!validation.isValid) {
-      console.log("❌ Validation failed:", validation.errors);
+    if (!formData.email.trim()) {
+      errors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      errors.email = "Please enter a valid email address";
+    }
+
+    if (!formData.phone.trim()) {
+      errors.phone = "Phone number is required";
+    } else if (!/^[+]?[\d\s\-\(\)]{10,}$/.test(formData.phone)) {
+      errors.phone = "Please enter a valid phone number";
+    }
+
+    if (!formData.agreeToTerms) {
+      errors.agreeToTerms = "You must agree to the terms and conditions";
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Handle form submission and payment processing
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
       return;
     }
 
-    setIsProcessing(true);
-    setError(null);
+    if (selectedTickets.length === 0) {
+      dispatch({
+        type: ActionTypes.SET_ERROR,
+        payload: "No tickets selected",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    setPaymentStep("processing");
+    dispatch({ type: ActionTypes.SET_LOADING, payload: true });
+    dispatch({ type: ActionTypes.CLEAR_ERROR });
 
     try {
-      // Transform booking data for API
-      const bookingData = adapter.transformBookingData({
-        selections: state.selections,
-        customerInfo,
-        selectedTickets: state.selectedItem?.selectedTickets || [],
-        totalAmount: state.totalAmount,
-      });
+      // Prepare booking data
+      const bookingData = {
+        landmark_location_id: 2, // Enugu location
+        customer_info: {
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          special_requests: formData.specialRequests,
+          marketing_consent: formData.agreeToMarketing,
+        },
+        tickets: selectedTickets.map((ticket) => ({
+          ticket_id: ticket.id,
+          quantity: ticket.quantity,
+          price: ticket.price,
+        })),
+        total_amount: totalAmount,
+        currency: "NGN",
+        payment_method: "paystack",
+      };
 
-      console.log("📦 Submitting booking data:", bookingData);
+      console.log("🎫 Submitting entry booking data:", bookingData);
 
-      // Try API submission first
-      try {
-        const response = await apiService.post(
-          "/api/entry/booking/create",
-          bookingData
-        );
+      // Submit booking and get payment URL
+      let result;
+      if (adapter && typeof adapter.createBooking === "function") {
+        result = await adapter.createBooking(bookingData);
+      } else if (apiService && typeof apiService.createBooking === "function") {
+        result = await apiService.createBooking(bookingData);
+      } else {
+        throw new Error("No booking service available");
+      }
 
-        if (response.success) {
-          const bookingRef =
-            response.data.booking_ref || response.data.id || `ENT${Date.now()}`;
+      if (result.success) {
+        const { booking_reference, payment_url, booking_id } = result.data;
 
-          dispatch({
-            type: ActionTypes.SET_BOOKING_REFERENCE,
-            payload: bookingRef,
-          });
-
-          // Check if payment URL is provided
-          if (response.data.payment_url) {
-            console.log("💳 Redirecting to Paystack payment...");
-            window.location.href = response.data.payment_url;
-            return;
-          } else {
-            // Move to confirmation step
-            setCurrentStep("confirmation");
-          }
-        } else {
-          setError(
-            response.message || "Failed to create booking. Please try again."
-          );
-        }
-      } catch (apiError) {
-        console.warn(
-          "⚠️ API not available, simulating booking...",
-          apiError.message
-        );
-
-        // Simulate successful booking for demo
-        const bookingRef = `ENT${Date.now()}`;
+        // Store booking reference
         dispatch({
           type: ActionTypes.SET_BOOKING_REFERENCE,
-          payload: bookingRef,
+          payload: booking_reference,
         });
 
-        console.log("✅ Demo booking created:", bookingRef);
+        console.log("✅ Entry booking created successfully:", {
+          booking_reference,
+          payment_url,
+          booking_id,
+        });
 
-        // Simulate payment redirect or go to confirmation
-        setTimeout(() => {
-          alert(
-            `🎉 Demo Booking Created!\n\nReference: ${bookingRef}\n\nIn production, you would be redirected to Paystack for payment.`
-          );
-          setCurrentStep("confirmation");
-        }, 1000);
+        // Redirect to Paystack payment page
+        if (payment_url) {
+          console.log("🔄 Redirecting to Paystack payment page...");
+          setPaymentStep("redirecting");
+
+          // Add a small delay for user feedback
+          setTimeout(() => {
+            window.location.href = payment_url;
+          }, 1500);
+        } else {
+          throw new Error("No payment URL received from server");
+        }
+      } else {
+        throw new Error(result.error || "Failed to create booking");
       }
     } catch (error) {
-      console.error("💥 Booking submission error:", error);
-      setError(
-        "Failed to create booking. Please check your connection and try again."
-      );
+      console.error("❌ Entry booking submission failed:", error);
+      setPaymentStep("error");
+      dispatch({
+        type: ActionTypes.SET_ERROR,
+        payload:
+          error.message || "Failed to process booking. Please try again.",
+      });
     } finally {
-      setIsProcessing(false);
+      setIsSubmitting(false);
+      dispatch({ type: ActionTypes.SET_LOADING, payload: false });
     }
   };
 
   const handleBack = () => {
-    setCurrentStep("list");
+    dispatch({ type: ActionTypes.SET_CURRENT_STEP, payload: "list" });
   };
-
-  const formatCurrency = (amount) => {
-    return `₦${parseFloat(amount).toLocaleString()}`;
-  };
-
-  const selectedTickets = state.selectedItem?.selectedTickets || [];
-
-  return (
-    <div className="h-screen flex bg-gray-50">
-      {/* Left Sidebar */}
-      <div className="w-80 bg-white border-r border-gray-200 p-6">
-        <div className="mb-8">
-          {/* <img
-            src="/api/placeholder/80/60"
-            alt="Nike Lake Resort"
-            className="w-20 h-16 rounded-lg object-cover mb-4"
-            onError={(e) => {
-              e.target.src =
-                "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA4MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjRjNGNEY2Ii8+CjxyZWN0IHg9IjIwIiB5PSIxNSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjMwIiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPgo=";
-            }}
-          /> */}
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">
-            Nike Lake
-            <br />
-            Resort,
-            <br />
-            Enugu
-          </h2>
-          <p className="text-gray-600 text-sm leading-relaxed">
-            Welcome to Nike Lake Resort
+  console.log(
+    "🚀 Form data validated, proceeding to booking submission...",
+    selectedTickets
+  );
+  // Don't render if no tickets selected
+  if (!selectedTickets || selectedTickets.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <div className="text-gray-400 mb-4">
+            <AlertCircle size={48} className="mx-auto" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            No Tickets Selected
+          </h3>
+          <p className="text-gray-600 mb-4">
+            Please go back and select tickets to continue.
           </p>
-          <p className="text-gray-500 text-xs mt-2">
-            Enjoy the perfect blend of business and leisure with breath-taking
-            views in a very secure and tranquil setting.
+          <button
+            onClick={handleBack}
+            className="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700 transition-colors"
+          >
+            Select Tickets
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Payment processing states
+  if (paymentStep === "processing") {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Processing Your Booking
+          </h3>
+          <p className="text-gray-600">
+            Please wait while we prepare your payment...
           </p>
         </div>
+      </div>
+    );
+  }
 
-        {/* Progress Steps */}
-        <div className="space-y-2">
-          <div className="flex items-center space-x-3 px-4 py-3 rounded-lg bg-green-50 text-green-700">
-            <div className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center text-sm font-bold">
-              ✓
-            </div>
-            <span className="font-medium">Booking Type</span>
+  if (paymentStep === "redirecting") {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="text-green-600" size={32} />
           </div>
-
-          <div className="flex items-center space-x-3 px-4 py-3 rounded-lg bg-green-50 text-green-700">
-            <div className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center text-sm font-bold">
-              ✓
-            </div>
-            <span className="font-medium">Tickets</span>
-          </div>
-
-          <div className="flex items-center space-x-3 px-4 py-3 rounded-lg bg-orange-100 text-orange-700 border-l-4 border-orange-500">
-            <div className="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold">
-              3
-            </div>
-            <span className="font-medium text-orange-800">
-              Personal Details
-            </span>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Booking Created Successfully!
+          </h3>
+          <p className="text-gray-600 mb-4">
+            Redirecting you to secure payment page...
+          </p>
+          <div className="flex items-center justify-center space-x-2 text-orange-600">
+            <Loader className="animate-spin" size={20} />
+            <span>Redirecting to Paystack...</span>
           </div>
         </div>
       </div>
+    );
+  }
 
-      {/* Main Content */}
-      <div className="flex-1 flex">
-        {/* Center Content */}
-        <div className="flex-1 p-8">
-          <div className="max-w-2xl">
-            {/* Header */}
-            <div className="mb-8">
-              <div className="flex items-center space-x-2 text-orange-600 mb-2">
-                <User size={20} />
-                <span className="text-sm font-medium">
-                  Personal Information
-                </span>
-              </div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                Enter your personal information
-              </h1>
-            </div>
+  if (paymentStep === "error") {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center max-w-md mx-4">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="text-red-600" size={32} />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Booking Failed
+          </h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={() => setPaymentStep("form")}
+            className="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-            {/* Personal Information Form */}
-            <div className="bg-white rounded-xl border border-gray-200 p-8">
-              <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
-                {/* Name Fields */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      First Name
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={customerInfo.firstName}
-                        onChange={(e) =>
-                          updateField("firstName", e.target.value)
-                        }
-                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
-                          errors.firstName
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        }`}
-                        placeholder="Enter your first name"
-                      />
-                    </div>
-                    {errors.firstName && (
-                      <p className="mt-1 text-sm text-red-600">
-                        {errors.firstName}
-                      </p>
-                    )}
-                  </div>
+  return (
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="p-6 border-b border-gray-200">
+        <button
+          onClick={handleBack}
+          className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors mb-4"
+        >
+          <ArrowLeft size={20} />
+          <span>Back to Tickets</span>
+        </button>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Last Name
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={customerInfo.lastName}
-                        onChange={(e) =>
-                          updateField("lastName", e.target.value)
-                        }
-                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
-                          errors.lastName ? "border-red-500" : "border-gray-300"
-                        }`}
-                        placeholder="Enter your last name"
-                      />
-                    </div>
-                    {errors.lastName && (
-                      <p className="mt-1 text-sm text-red-600">
-                        {errors.lastName}
-                      </p>
-                    )}
-                  </div>
+        <div className="mb-4">
+          <div className="flex items-center space-x-2 text-orange-600 mb-2">
+            <User size={20} />
+            <span className="text-sm font-medium">Personal Information</span>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            Enter your personal information
+          </h1>
+          <p className="text-gray-600">
+            Please provide your details to complete the booking
+          </p>
+        </div>
+      </div>
+
+      {/* Form Content */}
+      <div className="flex-1 p-6 overflow-y-auto">
+        <div className="max-w-2xl">
+          {/* Error Display */}
+          {error && (
+            <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+              <div className="flex items-center">
+                <AlertCircle
+                  className="text-red-400 mr-2 flex-shrink-0"
+                  size={20}
+                />
+                <div>
+                  <h3 className="text-sm font-medium text-red-800">
+                    Booking Error
+                  </h3>
+                  <p className="mt-1 text-sm text-red-700">{error}</p>
                 </div>
+              </div>
+            </div>
+          )}
 
-                {/* Email Field */}
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Personal Information Section */}
+            <div className="bg-white border border-gray-200 rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <User className="mr-2" size={20} />
+                Personal Information
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {/* First Name */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email Address
+                    First Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.firstName}
+                    onChange={(e) =>
+                      handleInputChange("firstName", e.target.value)
+                    }
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
+                      formErrors.firstName
+                        ? "border-red-500 bg-red-50"
+                        : "border-gray-300"
+                    }`}
+                    placeholder="Enter your first name"
+                  />
+                  {formErrors.firstName && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {formErrors.firstName}
+                    </p>
+                  )}
+                </div>
+
+                {/* Last Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Last Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.lastName}
+                    onChange={(e) =>
+                      handleInputChange("lastName", e.target.value)
+                    }
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
+                      formErrors.lastName
+                        ? "border-red-500 bg-red-50"
+                        : "border-gray-300"
+                    }`}
+                    placeholder="Enter your last name"
+                  />
+                  {formErrors.lastName && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {formErrors.lastName}
+                    </p>
+                  )}
+                </div>
+
+                {/* Email */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email Address *
                   </label>
                   <div className="relative">
+                    <Mail
+                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                      size={18}
+                    />
                     <input
                       type="email"
-                      value={customerInfo.email}
-                      onChange={(e) => updateField("email", e.target.value)}
-                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
-                        errors.email ? "border-red-500" : "border-gray-300"
+                      value={formData.email}
+                      onChange={(e) =>
+                        handleInputChange("email", e.target.value)
+                      }
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
+                        formErrors.email
+                          ? "border-red-500 bg-red-50"
+                          : "border-gray-300"
                       }`}
                       placeholder="Enter your email address"
                     />
                   </div>
-                  {errors.email && (
-                    <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                  {formErrors.email && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {formErrors.email}
+                    </p>
                   )}
                 </div>
 
-                {/* Phone Field */}
+                {/* Phone */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number
+                    Phone Number *
                   </label>
                   <div className="relative">
+                    <Phone
+                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                      size={18}
+                    />
                     <input
                       type="tel"
-                      value={customerInfo.phone}
-                      onChange={(e) => updateField("phone", e.target.value)}
-                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
-                        errors.phone ? "border-red-500" : "border-gray-300"
+                      value={formData.phone}
+                      onChange={(e) =>
+                        handleInputChange("phone", e.target.value)
+                      }
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
+                        formErrors.phone
+                          ? "border-red-500 bg-red-50"
+                          : "border-gray-300"
                       }`}
                       placeholder="Enter your phone number"
                     />
                   </div>
-                  {errors.phone && (
-                    <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
+                  {formErrors.phone && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {formErrors.phone}
+                    </p>
                   )}
                 </div>
-              </form>
+              </div>
 
-              {/* Error Display */}
-              {state.error && (
-                <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <svg
-                        className="h-5 w-5 text-red-400"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-red-800">
-                        Booking Error
-                      </h3>
-                      <p className="mt-1 text-sm text-red-700">{state.error}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
+              {/* Special Requests */}
+              <div className="mt-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Special Requests (Optional)
+                </label>
+                <textarea
+                  value={formData.specialRequests}
+                  onChange={(e) =>
+                    handleInputChange("specialRequests", e.target.value)
+                  }
+                  rows={3}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors"
+                  placeholder="Any special requirements or requests..."
+                />
+              </div>
             </div>
-          </div>
-        </div>
 
-        {/* Right Sidebar */}
-        <div className="w-80 bg-white border-l border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-6">
-            Ticket Details
-          </h3>
+            {/* Payment Information Section */}
+            <div className="bg-white border border-gray-200 rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <CreditCard className="mr-2" size={20} />
+                Payment Information
+              </h3>
 
-          <div className="space-y-4 mb-8">
-            {selectedTickets.map((ticket) => (
-              <div key={ticket.id} className="space-y-1">
-                <div className="flex justify-between items-start">
-                  <div className="text-sm font-medium text-gray-900">
-                    {ticket.name}
-                  </div>
-                  <div className="text-sm font-bold text-gray-900">
-                    {formatCurrency(ticket.price)}
-                  </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Shield className="text-blue-600" size={16} />
+                  <span className="text-sm font-medium text-blue-900">
+                    Secure Payment with Paystack
+                  </span>
                 </div>
-                <div className="flex justify-between items-start">
-                  <div className="text-sm text-gray-500">
-                    {ticket.name?.includes("VIP")
-                      ? "XMAS30 VIFID"
-                      : `Quantity: ${ticket.quantity}`}
+                <p className="text-sm text-blue-700">
+                  You will be redirected to Paystack's secure payment page to
+                  complete your transaction. We accept Visa, Mastercard, Verve,
+                  and bank transfers.
+                </p>
+              </div>
+
+              {/* Order Summary */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-gray-900">Order Summary</h4>
+                {selectedTickets.map((ticket) => (
+                  <div key={ticket.id} className="flex justify-between text-sm">
+                    <span className="text-gray-600">
+                      {ticket.name} × {ticket.quantity}
+                    </span>
+                    <span className="text-gray-900 font-medium">
+                      {formatCurrency(ticket.price * ticket.quantity)}
+                    </span>
                   </div>
-                  <div className="text-sm text-red-600">
-                    {ticket.name?.includes("VIP") ? "₦1,000" : ""}
+                ))}
+                <div className="pt-3 border-t border-gray-200">
+                  <div className="flex justify-between">
+                    <span className="font-semibold text-gray-900">Total</span>
+                    <span className="font-bold text-xl text-orange-600">
+                      {formatCurrency(totalAmount)}
+                    </span>
                   </div>
                 </div>
               </div>
-            ))}
+            </div>
 
-            {selectedTickets.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                <div className="text-sm">No Data</div>
-                <div className="text-xs mt-1">
-                  No item has been added to cart
+            {/* Terms and Conditions */}
+            <div className="bg-white border border-gray-200 rounded-xl p-6">
+              <div className="space-y-4">
+                <div className="flex items-start space-x-3">
+                  <input
+                    type="checkbox"
+                    id="agreeToTerms"
+                    checked={formData.agreeToTerms}
+                    onChange={(e) =>
+                      handleInputChange("agreeToTerms", e.target.checked)
+                    }
+                    className="mt-1 w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                  />
+                  <label
+                    htmlFor="agreeToTerms"
+                    className="text-sm text-gray-700"
+                  >
+                    I agree to the{" "}
+                    <a href="#" className="text-orange-600 hover:underline">
+                      Terms and Conditions
+                    </a>{" "}
+                    and{" "}
+                    <a href="#" className="text-orange-600 hover:underline">
+                      Privacy Policy
+                    </a>{" "}
+                    *
+                  </label>
+                </div>
+                {formErrors.agreeToTerms && (
+                  <p className="text-sm text-red-600">
+                    {formErrors.agreeToTerms}
+                  </p>
+                )}
+
+                <div className="flex items-start space-x-3">
+                  <input
+                    type="checkbox"
+                    id="agreeToMarketing"
+                    checked={formData.agreeToMarketing}
+                    onChange={(e) =>
+                      handleInputChange("agreeToMarketing", e.target.checked)
+                    }
+                    className="mt-1 w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                  />
+                  <label
+                    htmlFor="agreeToMarketing"
+                    className="text-sm text-gray-700"
+                  >
+                    I would like to receive updates and promotional offers via
+                    email
+                  </label>
                 </div>
               </div>
-            )}
-          </div>
-
-          {/* Total */}
-          <div className="border-t border-gray-200 pt-4 mb-6">
-            <div className="flex justify-between items-center">
-              <span className="text-lg font-semibold text-gray-900">Total</span>
-              <span className="text-xl font-bold text-gray-900">
-                {formatCurrency(state.totalAmount || 0)}
-              </span>
             </div>
-          </div>
+          </form>
         </div>
       </div>
 
-      {/* Bottom Navigation */}
-      <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
+      {/* Footer Actions */}
+      <div className="p-6 border-t border-gray-200 bg-gray-50">
+        <div className="flex items-center justify-between max-w-2xl">
           <button
             onClick={handleBack}
-            disabled={isProcessing}
-            className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-              isProcessing
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "text-gray-600 bg-gray-100 hover:bg-gray-200"
-            }`}
+            disabled={isSubmitting}
+            className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors disabled:opacity-50"
           >
             Back
           </button>
 
-          <button
-            onClick={validateAndProceed}
-            disabled={isProcessing}
-            className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-              isProcessing
-                ? "bg-gray-400 text-white cursor-not-allowed"
-                : "bg-orange-500 text-white hover:bg-orange-600"
-            }`}
-          >
-            {isProcessing ? "Processing..." : "Make Payment"}
-          </button>
+          <div className="flex items-center space-x-4">
+            <div className="text-right">
+              <p className="text-sm text-gray-600">
+                {totalTickets} ticket{totalTickets !== 1 ? "s" : ""}
+              </p>
+              <p className="text-lg font-bold text-orange-600">
+                {formatCurrency(totalAmount)}
+              </p>
+            </div>
+
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting || selectedTickets.length === 0}
+              className={`px-8 py-3 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2 ${
+                isSubmitting || selectedTickets.length === 0
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-orange-600 text-white hover:bg-orange-700 shadow-lg hover:shadow-xl"
+              }`}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader className="animate-spin" size={18} />
+                  <span>Processing...</span>
+                </>
+              ) : (
+                <>
+                  <CreditCard size={18} />
+                  <span>Make Payment</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

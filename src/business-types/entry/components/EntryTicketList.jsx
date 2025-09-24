@@ -1,51 +1,75 @@
-// src/business-types/entry/components/EntryTicketList.jsx - FIXED with better error handling
+// src/business-types/entry/components/EntryTicketList.jsx - FIXED with Working API
 import React, { useState, useEffect } from "react";
-import { useUniversalBooking } from "../../../core/UniversalStateManager";
-import { ActionTypes } from "../../../core/UniversalStateManager";
 import {
-  Minus,
-  Plus,
   Ticket,
-  User,
-  CheckCircle,
+  Plus,
+  Minus,
   AlertCircle,
   RefreshCw,
+  Loader,
+  CheckCircle,
 } from "lucide-react";
+import { useUniversalBooking } from "../../../core/UniversalStateManager";
+import { ActionTypes } from "../../../core/UniversalStateManager";
 
-const EntryTicketList = () => {
-  const {
-    state,
-    dispatch,
-    adapter,
-    apiService,
-    setCurrentStep,
-    setError,
-    setLoading,
-  } = useUniversalBooking();
+const EntryTicketList = ({ apiService, adapter }) => {
+  const { state, dispatch } = useUniversalBooking();
 
-  // State management
+  // Component state
   const [ticketTypes, setTicketTypes] = useState([]);
   const [selectedType, setSelectedType] = useState(null);
   const [tickets, setTickets] = useState([]);
   const [selections, setSelections] = useState({});
   const [totalAmount, setTotalAmount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState("none"); // "types", "items", "none"
   const [apiError, setApiError] = useState(null);
-  const [loadingStep, setLoadingStep] = useState("none"); // 'types', 'items', 'none'
   const [retryCount, setRetryCount] = useState(0);
 
-  console.log("🎫 EntryTicketList component rendered with state:", {
-    adapterExists: !!adapter,
+  // Debug info
+  console.log("🎫 EntryTicketList rendered with:", {
+    hasAdapter: !!adapter,
+    hasApiService: !!apiService,
     locationId: state.config?.locationId || state.config?.location,
     currentStep: state.currentStep,
+    loadingStep,
+    selectedType: selectedType?.name,
+    ticketCount: tickets.length,
+    totalAmount,
   });
 
-  // Load ticket types on component mount
+  // Load ticket types on mount
   useEffect(() => {
     loadTicketTypes();
   }, []);
 
-  // Load ticket types with robust error handling
+  // useEffect(() => {
+  //   console.log("🔄 EntryPersonalInfo selections changed:", {
+  //     stateSelections: state.selections,
+  //     selectedTickets: selectedTickets.length,
+  //     totalTickets,
+  //   });
+  // }, [state.selections, selectedTickets, totalTickets]);
+
+  // Update total when selections change
+  useEffect(() => {
+    const total = calculateTotal(selections, tickets);
+    setTotalAmount(total);
+
+    // Update global state
+    dispatch({
+      type: ActionTypes.UPDATE_SELECTIONS,
+      payload: selections,
+    });
+
+    dispatch({
+      type: ActionTypes.CALCULATE_TOTAL,
+    });
+  }, [selections, tickets]);
+
+  /**
+   * Load ticket types with robust error handling
+   */
   const loadTicketTypes = async () => {
     setIsLoading(true);
     setLoadingStep("types");
@@ -54,63 +78,26 @@ const EntryTicketList = () => {
     try {
       console.log("🔄 Loading ticket types...");
 
-      // Get location ID from config
-      const locationId =
-        state.config?.locationId || state.config?.location || 1;
-      console.log("📍 Using location ID:", locationId);
-
       let types = [];
 
-      // Try using the adapter's method first
+      // Use adapter method if available
       if (adapter && typeof adapter.fetchTicketTypes === "function") {
         console.log("🔧 Using adapter.fetchTicketTypes...");
         types = await adapter.fetchTicketTypes();
       } else {
-        // Direct API call fallback
-        console.log("🌐 Fallback to direct API call...");
-        const url = `http://127.0.0.1:8000/api/booking/entry/type?landmark_location_id=${locationId}`;
-        console.log("📡 API URL:", url);
-
-        const response = await fetch(url, {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        console.log("📦 Raw API response:", data);
-
-        if (Array.isArray(data)) {
-          types = data.map((type) => ({
-            id: type.id,
-            name: type.name || "Regular",
-            description: type.description || "Standard entry type",
-            features: type.features || {},
-            is_active: type.is_active !== false,
-            fast_track: type.features?.fast_track || false,
-            created_at: type.created_at,
-            updated_at: type.updated_at,
-          }));
-        } else {
-          throw new Error("Invalid response format - expected array");
-        }
+        console.log("❌ No adapter.fetchTicketTypes method found");
+        throw new Error("Adapter method not available");
       }
 
       console.log("✅ Ticket types loaded:", types);
       setTicketTypes(types);
       setRetryCount(0);
 
-      // Auto-select the first active type if only one exists
+      // Auto-select first active type if available
       const activeTypes = types.filter((t) => t.is_active);
       if (activeTypes.length === 1) {
         console.log("🎯 Auto-selecting single active type:", activeTypes[0]);
-        handleTypeSelect(activeTypes[0]);
+        await handleTypeSelect(activeTypes[0]);
       } else if (activeTypes.length > 0) {
         console.log("📋 Multiple types available, user must select");
       } else {
@@ -122,20 +109,20 @@ const EntryTicketList = () => {
       setApiError(`Failed to load ticket types: ${error.message}`);
       setRetryCount((prev) => prev + 1);
 
-      // After multiple failures, use sample data
+      // Use fallback data after retries
       if (retryCount >= 2) {
-        console.log("🔄 Using sample data after multiple failures");
-        const sampleTypes = [
+        console.log("🔄 Using fallback data after multiple failures");
+        const fallbackTypes = [
           {
             id: 1,
             name: "Regular Entry",
-            description: "Standard entry type for demonstration",
+            description: "Standard entry type (Demo Mode)",
             features: { fast_track: false },
             is_active: true,
           },
         ];
-        setTicketTypes(sampleTypes);
-        handleTypeSelect(sampleTypes[0]);
+        setTicketTypes(fallbackTypes);
+        await handleTypeSelect(fallbackTypes[0]);
       }
     } finally {
       setIsLoading(false);
@@ -143,7 +130,9 @@ const EntryTicketList = () => {
     }
   };
 
-  // Handle ticket type selection
+  /**
+   * Handle ticket type selection
+   */
   const handleTypeSelect = async (type) => {
     if (selectedType?.id === type.id) {
       console.log("🔄 Type already selected:", type.name);
@@ -156,10 +145,23 @@ const EntryTicketList = () => {
     setSelections({});
     setTotalAmount(0);
 
+    // Update global state
+    dispatch({
+      type: ActionTypes.SET_SELECTED_ITEM,
+      payload: {
+        id: type.id,
+        name: type.name,
+        description: type.description,
+        type: "entry_type",
+      },
+    });
+
     await loadTicketItems(type.id);
   };
 
-  // Load ticket items for selected type
+  /**
+   * Load ticket items for selected type
+   */
   const loadTicketItems = async (typeId) => {
     setIsLoading(true);
     setLoadingStep("items");
@@ -170,66 +172,30 @@ const EntryTicketList = () => {
 
       let items = [];
 
-      // Try using the adapter's method first
+      // Use adapter method if available
       if (adapter && typeof adapter.fetchTicketItems === "function") {
         console.log("🔧 Using adapter.fetchTicketItems...");
         items = await adapter.fetchTicketItems(typeId);
       } else {
-        // Direct API call fallback
-        console.log("🌐 Fallback to direct API call...");
-        const url = `http://127.0.0.1:8000/api/booking/entry/items?type_id=${typeId}&platform=web`;
-        console.log("📡 API URL:", url);
-
-        const response = await fetch(url, {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        console.log("📦 Raw API response:", data);
-
-        if (Array.isArray(data)) {
-          items = data.map((item) => ({
-            id: item.id,
-            name: item.name || "Adult",
-            description: item.description || "Access to main event area",
-            price: parseFloat(item.price) || 0,
-            max_per_guest: item.max_per_guest || 2,
-            image_url: item.image_url,
-            type: item.type || "Regular",
-            category: item.category || "Individual",
-            benefits: item.benefits || [],
-            terms_conditions: item.terms_conditions || {},
-            no_refund: item.terms_conditions?.no_refund || true,
-            available: true,
-          }));
-        } else {
-          throw new Error("Invalid response format - expected array");
-        }
+        console.log("❌ No adapter.fetchTicketItems method found");
+        throw new Error("Adapter method not available");
       }
 
       console.log("✅ Ticket items loaded:", items);
       setTickets(items);
 
-      // Update global state
+      // Update global state with ticket items
       dispatch({
-        type: ActionTypes.SET_ITEMS,
+        type: ActionTypes.SET_SUB_ITEMS,
         payload: items,
       });
     } catch (error) {
       console.error("❌ Error loading ticket items:", error);
       setApiError(`Failed to load tickets: ${error.message}`);
 
-      // Fallback to sample data based on type
-      console.log("🔄 Using sample ticket data as fallback");
-      const sampleTickets = [
+      // Use fallback data
+      console.log("🔄 Using fallback ticket data");
+      const fallbackItems = [
         {
           id: 1,
           name: "Adult Ticket",
@@ -252,10 +218,10 @@ const EntryTicketList = () => {
         },
       ];
 
-      setTickets(sampleTickets);
+      setTickets(fallbackItems);
       dispatch({
-        type: ActionTypes.SET_ITEMS,
-        payload: sampleTickets,
+        type: ActionTypes.SET_SUB_ITEMS,
+        payload: fallbackItems,
       });
     } finally {
       setIsLoading(false);
@@ -263,23 +229,9 @@ const EntryTicketList = () => {
     }
   };
 
-  // Calculate total when selections change
-  useEffect(() => {
-    const total = calculateTotal(selections, tickets);
-    setTotalAmount(total);
-
-    // Update global state
-    dispatch({
-      type: ActionTypes.UPDATE_SELECTIONS,
-      payload: selections,
-    });
-
-    dispatch({
-      type: ActionTypes.CALCULATE_TOTAL,
-      payload: total,
-    });
-  }, [selections, tickets]);
-
+  /**
+   * Calculate total amount
+   */
   const calculateTotal = (selections, tickets) => {
     if (adapter && typeof adapter.calculateTotal === "function") {
       return adapter.calculateTotal(selections, tickets);
@@ -297,6 +249,9 @@ const EntryTicketList = () => {
     return total;
   };
 
+  /**
+   * Update ticket quantity
+   */
   const updateQuantity = (ticketId, change) => {
     const ticket = tickets.find((t) => t.id === ticketId);
     if (!ticket) return;
@@ -307,32 +262,80 @@ const EntryTicketList = () => {
       Math.min(ticket.max_per_guest || 10, currentQty + change)
     );
 
-    setSelections((prev) => ({
-      ...prev,
-      [ticketId]: newQty,
-    }));
-  };
+    const newSelections = { ...selections };
 
-  const canProceed = () => {
-    return Object.values(selections).some((qty) => qty > 0) && !isLoading;
-  };
-
-  const handleNext = () => {
-    if (!canProceed()) return;
-
-    // Store selected type and items in global state
-    if (selectedType) {
-      dispatch({
-        type: ActionTypes.SET_SELECTED_ITEM,
-        payload: selectedType,
-      });
+    if (newQty === 0) {
+      delete newSelections[ticketId];
+    } else {
+      newSelections[ticketId] = newQty;
     }
 
-    // Navigate to next step
-    setCurrentStep("booking");
+    setSelections(newSelections);
+
+    // FIX: Update global state with proper selection objects
+    const globalSelections = {};
+    Object.keys(newSelections).forEach((id) => {
+      const qty = newSelections[id];
+      const ticketData = tickets.find((t) => t.id.toString() === id.toString());
+      if (ticketData && qty > 0) {
+        globalSelections[id] = {
+          id: ticketData.id,
+          name: ticketData.name,
+          price: ticketData.price,
+          quantity: qty,
+          type: ticketData.type,
+          description: ticketData.description,
+        };
+      }
+    });
+    console.log(">>>>>>>", globalSelections);
+
+    dispatch({
+      type: ActionTypes.UPDATE_SELECTIONS,
+      payload: globalSelections,
+    });
   };
 
-  const handleRetry = () => {
+  /**
+   * Check if can proceed to next step
+   */
+  const canProceed = () => {
+    const hasLocalSelections = Object.values(selections).some((qty) => qty > 0);
+    const hasGlobalSelections =
+      state.selections &&
+      Object.values(state.selections).some((sel) => sel && sel.quantity > 0);
+
+    console.log("🔍 Can proceed check:", {
+      hasLocalSelections,
+      hasGlobalSelections,
+      isLoading,
+    });
+
+    return (hasLocalSelections || hasGlobalSelections) && !isLoading;
+  };
+
+  /**
+   * Handle next step
+   */
+  const handleNext = () => {
+    if (!canProceed()) {
+      console.warn("Cannot proceed - no tickets selected");
+      return;
+    }
+
+    console.log("▶️ Proceeding to next step with selections:", selections);
+    console.log("📊 Global state selections:", state.selections);
+
+    dispatch({
+      type: ActionTypes.SET_CURRENT_STEP,
+      payload: "booking",
+    });
+  };
+
+  /**
+   * Retry API call
+   */
+  const retryApiCall = () => {
     console.log("🔄 Retrying API call...");
     setRetryCount(0);
     if (selectedType) {
@@ -342,6 +345,9 @@ const EntryTicketList = () => {
     }
   };
 
+  /**
+   * Format currency
+   */
   const formatCurrency = (amount) => {
     if (adapter && typeof adapter.formatCurrency === "function") {
       return adapter.formatCurrency(amount, state.config);
@@ -349,246 +355,348 @@ const EntryTicketList = () => {
     return `₦${parseFloat(amount).toLocaleString()}`;
   };
 
-  // Show loading state
+  // Render loading state
   if (isLoading && loadingStep === "types") {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center py-12">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading ticket types...</p>
+          <Loader className="animate-spin mx-auto mb-4" size={32} />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Loading Ticket Types
+          </h3>
+          <p className="text-gray-600">
+            Please wait while we fetch available options...
+          </p>
         </div>
       </div>
     );
   }
 
+  // Render error state with retry
+  if (apiError && ticketTypes.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-red-400 mb-4">
+          <AlertCircle size={48} className="mx-auto" />
+        </div>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">
+          Unable to Load Ticket Types
+        </h3>
+        <p className="text-gray-600 mb-4">{apiError}</p>
+        <button
+          onClick={retryApiCall}
+          className="inline-flex items-center space-x-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors"
+        >
+          <RefreshCw size={16} />
+          <span>Try Again</span>
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      {/* Error Display with Retry */}
-      {apiError && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="flex items-start space-x-3">
-            <AlertCircle className="text-red-600 flex-shrink-0" size={20} />
-            <div className="flex-1">
-              <h4 className="text-red-800 font-medium">API Error</h4>
-              <p className="text-red-700 text-sm mt-1">{apiError}</p>
-              <p className="text-red-600 text-xs mt-2">
-                {retryCount > 0
-                  ? "Using sample data for demonstration."
-                  : "Click retry to try again."}
-              </p>
-              {retryCount < 3 && (
-                <button
-                  onClick={handleRetry}
-                  className="mt-3 inline-flex items-center px-3 py-1 bg-red-100 text-red-800 text-sm rounded hover:bg-red-200 transition-colors"
-                >
-                  <RefreshCw size={14} className="mr-1" />
-                  Retry
-                </button>
-              )}
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="p-6 border-b border-gray-200">
+        <div className="mb-4">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            Select Ticket Type
+          </h1>
+          <p className="text-gray-600">
+            Choose your entry type and quantity for Nike Lake Resort
+          </p>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 p-6 overflow-y-auto">
+        {/* API Error Display */}
+        {apiError && ticketTypes.length > 0 && (
+          <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <AlertCircle
+                className="text-yellow-400 mr-2 flex-shrink-0"
+                size={20}
+              />
+              <div>
+                <h3 className="text-sm font-medium text-yellow-800">
+                  API Warning
+                </h3>
+                <p className="mt-1 text-sm text-yellow-700">{apiError}</p>
+                <p className="mt-1 text-xs text-yellow-600">
+                  Using fallback data for demonstration
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Ticket Types Selection */}
-      {ticketTypes.length > 1 && (
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">
-            Select Ticket Type
-          </h3>
-          <div className="grid gap-3">
-            {ticketTypes
-              .filter((type) => type.is_active !== false)
-              .map((type) => (
-                <button
+        {/* Ticket Type Selection */}
+        {!selectedType && (
+          <div className="max-w-2xl">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              Available Entry Types
+            </h2>
+
+            <div className="grid grid-cols-1 gap-4">
+              {ticketTypes.map((type) => (
+                <div
                   key={type.id}
                   onClick={() => handleTypeSelect(type)}
-                  disabled={isLoading}
-                  className={`p-4 border-2 rounded-lg text-left transition-all ${
-                    selectedType?.id === type.id
-                      ? "border-orange-500 bg-orange-50"
-                      : "border-gray-200 hover:border-gray-300"
-                  } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+                  className="bg-white border-2 border-gray-200 rounded-xl p-6 cursor-pointer hover:border-orange-300 hover:shadow-md transition-all duration-200"
                 >
-                  <div className="flex items-start space-x-3">
-                    <Ticket
-                      className={`mt-1 ${
-                        selectedType?.id === type.id
-                          ? "text-orange-600"
-                          : "text-gray-400"
-                      }`}
-                      size={20}
-                    />
+                  <div className="flex items-start space-x-4">
+                    <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                      <Ticket className="text-orange-600" size={24} />
+                    </div>
                     <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">{type.name}</h4>
-                      <p className="text-sm text-gray-600 mt-1">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                        {type.name}
+                      </h3>
+                      <p className="text-gray-600 text-sm mb-3">
                         {type.description}
                       </p>
                       {type.features?.fast_track && (
-                        <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full mt-2">
-                          Fast Track
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Fast Track Access
                         </span>
                       )}
                     </div>
+                    <div className="text-orange-600">
+                      <svg
+                        className="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </div>
                   </div>
-                </button>
+                </div>
               ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Loading Items */}
-      {isLoading && loadingStep === "items" && (
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto mb-2"></div>
-            <p className="text-gray-600 text-sm">Loading tickets...</p>
-          </div>
-        </div>
-      )}
+        {/* Ticket Selection */}
+        {selectedType && (
+          <div className="max-w-4xl">
+            {/* Selected Type Header */}
+            <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-blue-900">
+                    {selectedType.name}
+                  </h2>
+                  <p className="text-blue-700 text-sm">
+                    {selectedType.description}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSelectedType(null)}
+                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                >
+                  Change Type
+                </button>
+              </div>
+            </div>
 
-      {/* Ticket Selection */}
-      {tickets.length > 0 && !isLoading && (
-        <>
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">
-              Select Tickets
-            </h3>
-            <div className="space-y-4">
-              {tickets.map((ticket) => {
-                const quantity = selections[ticket.id] || 0;
-                const maxQty = ticket.max_per_guest || 10;
+            {/* Loading Tickets */}
+            {isLoading && loadingStep === "items" && (
+              <div className="text-center py-8">
+                <Loader className="animate-spin mx-auto mb-4" size={24} />
+                <p className="text-gray-600">Loading available tickets...</p>
+              </div>
+            )}
 
-                return (
-                  <div
-                    key={ticket.id}
-                    className="bg-white border border-gray-200 rounded-lg p-4"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h4 className="font-medium text-gray-900">
-                          {ticket.name}
-                        </h4>
-                        <p className="text-sm text-gray-600 mt-1">
-                          {ticket.description}
-                        </p>
-                        <div className="mt-2">
-                          <span className="text-lg font-bold text-orange-600">
-                            {formatCurrency(ticket.price)}
-                          </span>
-                          <span className="text-sm text-gray-500 ml-2">
-                            per person
-                          </span>
-                          {ticket.type && (
-                            <span className="ml-3 text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                              {ticket.type}
-                            </span>
-                          )}
+            {/* Tickets List */}
+            {!isLoading && tickets.length > 0 && (
+              <>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Select Tickets
+                </h3>
+
+                <div className="space-y-4 mb-6">
+                  {tickets.map((ticket) => {
+                    const quantity = selections[ticket.id] || 0;
+                    const maxQty = ticket.max_per_guest || 10;
+
+                    return (
+                      <div
+                        key={ticket.id}
+                        className={`bg-white border-2 rounded-xl p-6 transition-all duration-200 ${
+                          quantity > 0
+                            ? "border-orange-200 bg-orange-50"
+                            : "border-gray-200 hover:border-gray-300"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          {/* Ticket Info */}
+                          <div className="flex-1">
+                            <div className="flex items-start space-x-4">
+                              <div
+                                className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                                  quantity > 0 ? "bg-orange-500" : "bg-gray-100"
+                                }`}
+                              >
+                                <Ticket
+                                  className={
+                                    quantity > 0
+                                      ? "text-white"
+                                      : "text-gray-400"
+                                  }
+                                  size={20}
+                                />
+                              </div>
+
+                              <div className="flex-1">
+                                <h4 className="text-lg font-semibold text-gray-900 mb-1">
+                                  {ticket.name}
+                                </h4>
+
+                                {ticket.description && (
+                                  <p className="text-gray-600 text-sm mb-2">
+                                    {ticket.description}
+                                  </p>
+                                )}
+
+                                <div className="flex items-center space-x-3">
+                                  <span className="text-2xl font-bold text-gray-900">
+                                    {formatCurrency(ticket.price)}
+                                  </span>
+
+                                  {ticket.type && (
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                      {ticket.type}
+                                    </span>
+                                  )}
+
+                                  {maxQty < 10 && (
+                                    <span className="text-xs text-gray-500">
+                                      Max {maxQty} per order
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Quantity Controls */}
+                          <div className="flex items-center space-x-3">
+                            <button
+                              onClick={() => updateQuantity(ticket.id, -1)}
+                              disabled={quantity === 0}
+                              className="w-10 h-10 rounded-full border-2 border-orange-300 text-orange-600 flex items-center justify-center hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                            >
+                              <Minus size={18} />
+                            </button>
+
+                            <div
+                              className={`w-16 h-10 rounded-lg border-2 flex items-center justify-center font-bold text-lg transition-all duration-200 ${
+                                quantity > 0
+                                  ? "border-orange-300 bg-orange-100 text-orange-700"
+                                  : "border-gray-200 bg-gray-50 text-gray-600"
+                              }`}
+                            >
+                              {quantity}
+                            </div>
+
+                            <button
+                              onClick={() => updateQuantity(ticket.id, 1)}
+                              disabled={quantity >= maxQty}
+                              className="w-10 h-10 rounded-full border-2 border-orange-300 text-orange-600 flex items-center justify-center hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                            >
+                              <Plus size={18} />
+                            </button>
+                          </div>
                         </div>
+
+                        {/* Subtotal for this ticket */}
+                        {quantity > 0 && (
+                          <div className="mt-4 pt-4 border-t border-orange-200">
+                            <div className="flex justify-between items-center text-sm">
+                              <span className="text-orange-700 font-medium">
+                                ✓ Added to booking
+                              </span>
+                              <span className="text-orange-600 font-semibold">
+                                {quantity} × {formatCurrency(ticket.price)} ={" "}
+                                {formatCurrency(ticket.price * quantity)}
+                              </span>
+                            </div>
+                          </div>
+                        )}
                       </div>
+                    );
+                  })}
+                </div>
 
-                      <div className="flex items-center space-x-3 ml-4">
-                        <button
-                          onClick={() => updateQuantity(ticket.id, -1)}
-                          disabled={quantity === 0}
-                          className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <Minus size={16} />
-                        </button>
-
-                        <span className="w-8 text-center font-medium">
-                          {quantity}
+                {/* Total & Next Button */}
+                {totalAmount > 0 && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <span className="text-lg font-medium text-gray-900">
+                          Total
                         </span>
-
-                        <button
-                          onClick={() => updateQuantity(ticket.id, 1)}
-                          disabled={quantity >= maxQty}
-                          className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <Plus size={16} />
-                        </button>
+                        <p className="text-sm text-gray-600">
+                          {Object.values(selections).reduce(
+                            (sum, qty) => sum + qty,
+                            0
+                          )}{" "}
+                          ticket(s) selected
+                        </p>
                       </div>
+                      <span className="text-2xl font-bold text-orange-600">
+                        {formatCurrency(totalAmount)}
+                      </span>
                     </div>
 
-                    {quantity > 0 && (
-                      <div className="mt-3 pt-3 border-t border-gray-100">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">
-                            {quantity} × {formatCurrency(ticket.price)}
-                          </span>
-                          <span className="font-medium text-gray-900">
-                            {formatCurrency(ticket.price * quantity)}
-                          </span>
-                        </div>
-                      </div>
-                    )}
+                    <button
+                      onClick={handleNext}
+                      disabled={!canProceed()}
+                      className={`w-full py-3 px-4 rounded-lg font-medium transition-all duration-200 ${
+                        canProceed()
+                          ? "bg-orange-600 text-white hover:bg-orange-700 shadow-lg hover:shadow-xl"
+                          : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      }`}
+                    >
+                      {isLoading
+                        ? "Processing..."
+                        : "Continue to Personal Details"}
+                    </button>
                   </div>
-                );
-              })}
-            </div>
-          </div>
+                )}
+              </>
+            )}
 
-          {/* Total & Next Button */}
-          {totalAmount > 0 && (
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-lg font-medium text-gray-900">Total</span>
-                <span className="text-xl font-bold text-orange-600">
-                  {formatCurrency(totalAmount)}
-                </span>
+            {/* No tickets available */}
+            {!isLoading && tickets.length === 0 && selectedType && (
+              <div className="text-center py-12">
+                <Ticket className="mx-auto text-gray-400 mb-4" size={48} />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No tickets available
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  No tickets are currently available for {selectedType.name}.
+                </p>
+                <button
+                  onClick={retryApiCall}
+                  className="inline-flex items-center space-x-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors"
+                >
+                  <RefreshCw size={16} />
+                  <span>Retry</span>
+                </button>
               </div>
-
-              <button
-                onClick={handleNext}
-                disabled={!canProceed()}
-                className="w-full bg-orange-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {isLoading ? "Processing..." : "Next"}
-              </button>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* No tickets available */}
-      {!isLoading && tickets.length === 0 && selectedType && (
-        <div className="text-center py-12">
-          <Ticket className="mx-auto text-gray-400 mb-4" size={48} />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            No tickets available
-          </h3>
-          <p className="text-gray-600">
-            No tickets are currently available for {selectedType.name}.
-          </p>
-          <button
-            onClick={handleRetry}
-            className="mt-4 inline-flex items-center px-4 py-2 bg-orange-100 text-orange-800 rounded hover:bg-orange-200 transition-colors"
-          >
-            <RefreshCw size={16} className="mr-2" />
-            Try Again
-          </button>
-        </div>
-      )}
-
-      {/* No types available */}
-      {!isLoading && ticketTypes.length === 0 && (
-        <div className="text-center py-12">
-          <AlertCircle className="mx-auto text-gray-400 mb-4" size={48} />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            No ticket types available
-          </h3>
-          <p className="text-gray-600">
-            No ticket types are currently available for this location.
-          </p>
-          <button
-            onClick={handleRetry}
-            className="mt-4 inline-flex items-center px-4 py-2 bg-orange-100 text-orange-800 rounded hover:bg-orange-200 transition-colors"
-          >
-            <RefreshCw size={16} className="mr-2" />
-            Try Again
-          </button>
-        </div>
-      )}
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

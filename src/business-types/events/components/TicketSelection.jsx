@@ -1,5 +1,14 @@
+// src/business-types/events/components/TicketSelection.jsx - Enhanced with Perfect Counter
 import React, { useState, useEffect } from "react";
-import { ArrowLeft, Plus, Minus, Ticket, AlertCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  Plus,
+  Minus,
+  Ticket,
+  AlertCircle,
+  Users,
+  Clock,
+} from "lucide-react";
 import { useUniversalBooking } from "../../../core/UniversalStateManager";
 import { ActionTypes } from "../../../core/UniversalStateManager";
 
@@ -14,6 +23,7 @@ const TicketSelection = ({ apiService, adapter }) => {
   } = state;
 
   const [loadingTickets, setLoadingTickets] = useState(false);
+  const [animatingTickets, setAnimatingTickets] = useState(new Set());
 
   // Load tickets when component mounts
   useEffect(() => {
@@ -52,6 +62,16 @@ const TicketSelection = ({ apiService, adapter }) => {
   const handleQuantityChange = (ticket, newQuantity) => {
     const maxQuantity = Math.min(ticket.ticket_per_order || 10, 10);
     const quantity = Math.max(0, Math.min(newQuantity, maxQuantity));
+
+    // Add animation effect
+    setAnimatingTickets((prev) => new Set(prev).add(ticket.id));
+    setTimeout(() => {
+      setAnimatingTickets((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(ticket.id);
+        return newSet;
+      });
+    }, 300);
 
     const updatedSelection = {
       id: ticket.id,
@@ -101,6 +121,15 @@ const TicketSelection = ({ apiService, adapter }) => {
     dispatch({ type: ActionTypes.SET_CURRENT_STEP, payload: "booking" });
   };
 
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat("en-NG", {
+      style: "currency",
+      currency: "NGN",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
   if (!event) {
     return (
       <div className="text-center py-12">
@@ -111,58 +140,72 @@ const TicketSelection = ({ apiService, adapter }) => {
 
   if (loadingTickets) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
-
-  if (error && !tickets.length) {
-    return (
-      <div className="text-center py-12">
-        <div className="text-red-500 mb-4">
-          <AlertCircle size={48} className="mx-auto mb-2" />
-          <span className="text-lg font-medium">{error}</span>
-        </div>
-        <button
-          onClick={loadTickets}
-          className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors"
-        >
-          Try Again
-        </button>
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+        <span className="ml-3 text-gray-600">Loading tickets...</span>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Back Button */}
-      <button
-        onClick={handleBack}
-        className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
-      >
-        <ArrowLeft size={20} />
-        <span>Back to Details</span>
-      </button>
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="p-6 border-b border-gray-200">
+        <button
+          onClick={handleBack}
+          className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors mb-4"
+        >
+          <ArrowLeft size={20} />
+          <span>Back to Event Details</span>
+        </button>
 
-      {/* Event Summary */}
-      <div className="bg-gray-50 rounded-lg p-4">
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">
-          {event.name}
-        </h2>
-        <div className="text-sm text-gray-600 space-y-1">
-          <p>{event.formattedDate}</p>
-          {event.formattedTime && <p>{event.formattedTime}</p>}
-          {event.address && <p>{event.address}</p>}
+        <div className="mb-4">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            Select Tickets
+          </h1>
+          <p className="text-gray-600">
+            Choose your ticket type and quantity for {event.name}
+          </p>
+        </div>
+
+        {/* Event Summary */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-start space-x-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center">
+              <Ticket className="text-white" size={24} />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-blue-900">{event.name}</h3>
+              {event.date && (
+                <div className="flex items-center space-x-2 text-blue-700 text-sm mt-1">
+                  <Clock size={16} />
+                  <span>{new Date(event.date).toLocaleDateString()}</span>
+                </div>
+              )}
+              {event.location && (
+                <p className="text-blue-600 text-sm mt-1">{event.location}</p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Tickets Section */}
-      <div>
-        <h3 className="text-xl font-semibold text-gray-900 mb-4">
-          Select Tickets
-        </h3>
+      {/* Tickets Content */}
+      <div className="flex-1 p-6 overflow-y-auto">
+        {/* Error Display */}
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <AlertCircle
+                className="text-red-400 mr-2 flex-shrink-0"
+                size={20}
+              />
+              <span className="text-red-700">{error}</span>
+            </div>
+          </div>
+        )}
 
+        {/* Tickets List */}
         {tickets.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-gray-400 mb-4">
@@ -176,78 +219,52 @@ const TicketSelection = ({ apiService, adapter }) => {
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 max-w-4xl">
             {tickets.map((ticket) => (
-              <TicketCard
+              <EnhancedTicketCard
                 key={ticket.id}
                 ticket={ticket}
                 quantity={getSelectedQuantity(ticket.id)}
                 onQuantityChange={handleQuantityChange}
+                isAnimating={animatingTickets.has(ticket.id)}
+                formatCurrency={formatCurrency}
               />
             ))}
           </div>
         )}
       </div>
 
-      {/* Error Display */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="flex items-center">
-            <AlertCircle className="text-red-400 mr-2" size={20} />
-            <span className="text-red-700">{error}</span>
-          </div>
-        </div>
-      )}
-
-      {/* Summary and Continue */}
-      {tickets.length > 0 && (
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h4 className="text-lg font-semibold text-gray-900">
-                Order Summary
-              </h4>
-              <p className="text-sm text-gray-600">
-                {getTotalTickets()} ticket{getTotalTickets() !== 1 ? "s" : ""}{" "}
-                selected
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-2xl font-bold text-gray-900">
-                ${state.totalAmount.toFixed(2)}
-              </p>
-            </div>
-          </div>
-
-          {/* Selected Tickets Summary */}
-          {Object.values(selections).length > 0 && (
-            <div className="mb-4 space-y-2">
-              {Object.values(selections).map((ticket) => (
-                <div key={ticket.id} className="flex justify-between text-sm">
-                  <span className="text-gray-600">
-                    {ticket.name} × {ticket.quantity}
-                  </span>
-                  <span className="text-gray-900">
-                    ${(ticket.price * ticket.quantity).toFixed(2)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="flex flex-col sm:flex-row gap-3">
+      {/* Footer Actions */}
+      <div className="p-6 border-t border-gray-200 bg-gray-50">
+        <div className="flex items-center justify-between max-w-4xl">
+          <div className="flex items-center space-x-4">
             <button
               onClick={handleBack}
-              className="sm:w-auto bg-gray-100 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+              className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
             >
               Back
             </button>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            {getTotalTickets() > 0 && (
+              <div className="text-right">
+                <p className="text-sm text-gray-600">
+                  {getTotalTickets()} ticket{getTotalTickets() !== 1 ? "s" : ""}{" "}
+                  selected
+                </p>
+                <p className="text-lg font-bold text-orange-600">
+                  {formatCurrency(state.totalAmount)}
+                </p>
+              </div>
+            )}
+
             <button
               onClick={handleContinue}
               disabled={getTotalTickets() === 0}
-              className={`flex-1 py-3 px-6 rounded-lg font-medium transition-colors ${
+              className={`px-8 py-3 rounded-lg font-medium transition-all duration-200 ${
                 getTotalTickets() > 0
-                  ? "bg-primary-600 text-white hover:bg-primary-700"
+                  ? "bg-orange-600 text-white hover:bg-orange-700 shadow-lg hover:shadow-xl"
                   : "bg-gray-300 text-gray-500 cursor-not-allowed"
               }`}
             >
@@ -255,69 +272,173 @@ const TicketSelection = ({ apiService, adapter }) => {
             </button>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
 
-// Ticket Card Component
-const TicketCard = ({ ticket, quantity, onQuantityChange }) => {
+// Enhanced Ticket Card Component with Perfect Counter
+const EnhancedTicketCard = ({
+  ticket,
+  quantity,
+  onQuantityChange,
+  isAnimating,
+  formatCurrency,
+}) => {
   const maxQuantity = Math.min(ticket.ticket_per_order || 10, 10);
   const price = parseFloat(ticket.price) || 0;
   const isFree = price === 0;
+  const isSelected = quantity > 0;
+
+  const handleDecrement = () => {
+    if (quantity > 0) {
+      onQuantityChange(ticket, quantity - 1);
+    }
+  };
+
+  const handleIncrement = () => {
+    if (quantity < maxQuantity) {
+      onQuantityChange(ticket, quantity + 1);
+    }
+  };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-6">
-      <div className="flex justify-between items-start">
+    <div
+      className={`bg-white border-2 rounded-xl p-6 transition-all duration-300 ${
+        isSelected
+          ? "border-orange-200 bg-orange-50 shadow-lg"
+          : "border-gray-200 hover:border-gray-300 hover:shadow-md"
+      } ${isAnimating ? "scale-105" : ""}`}
+    >
+      <div className="flex items-start justify-between">
+        {/* Ticket Info */}
         <div className="flex-1">
-          <h4 className="text-lg font-medium text-gray-900 mb-2">
-            {ticket.name}
-          </h4>
-
-          {ticket.description && (
-            <p className="text-gray-600 text-sm mb-3">{ticket.description}</p>
-          )}
-
-          <div className="flex items-center justify-between">
-            <div className="text-lg font-semibold text-gray-900">
-              {isFree ? "Free" : `$${price.toFixed(2)}`}
-              {ticket.type && (
-                <span className="ml-2 text-sm text-gray-500 font-normal">
-                  ({ticket.type})
-                </span>
-              )}
+          <div className="flex items-start space-x-4">
+            {/* Ticket Icon */}
+            <div
+              className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                isSelected ? "bg-orange-500" : "bg-gray-100"
+              }`}
+            >
+              <Ticket
+                className={isSelected ? "text-white" : "text-gray-400"}
+                size={20}
+              />
             </div>
 
-            {/* Quantity Controls */}
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={() => onQuantityChange(ticket, quantity - 1)}
-                disabled={quantity === 0}
-                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-              >
-                <Minus size={16} />
-              </button>
+            {/* Ticket Details */}
+            <div className="flex-1">
+              <h4 className="text-lg font-semibold text-gray-900 mb-1">
+                {ticket.name}
+              </h4>
 
-              <span className="w-8 text-center font-medium">{quantity}</span>
+              {ticket.description && (
+                <p className="text-gray-600 text-sm mb-3 leading-relaxed">
+                  {ticket.description}
+                </p>
+              )}
 
-              <button
-                onClick={() => onQuantityChange(ticket, quantity + 1)}
-                disabled={quantity >= maxQuantity}
-                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-              >
-                <Plus size={16} />
-              </button>
+              {/* Ticket Meta */}
+              <div className="flex flex-wrap items-center gap-3 mb-4">
+                {ticket.type && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    {ticket.type}
+                  </span>
+                )}
+
+                {ticket.category && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                    {ticket.category}
+                  </span>
+                )}
+
+                {maxQuantity < 10 && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    <Users size={12} className="mr-1" />
+                    Max {maxQuantity} per order
+                  </span>
+                )}
+              </div>
+
+              {/* Price */}
+              <div className="flex items-baseline space-x-2">
+                <span className="text-2xl font-bold text-gray-900">
+                  {isFree ? "Free" : formatCurrency(price)}
+                </span>
+                {!isFree && (
+                  <span className="text-sm text-gray-500">per ticket</span>
+                )}
+              </div>
             </div>
           </div>
+        </div>
 
-          {/* Quantity limit info */}
-          {maxQuantity < 10 && (
-            <p className="text-xs text-gray-500 mt-2">
-              Maximum {maxQuantity} per order
-            </p>
+        {/* Quantity Counter */}
+        <div className="flex flex-col items-end space-y-4">
+          {/* Counter Controls */}
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={handleDecrement}
+              disabled={quantity === 0}
+              className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
+                quantity === 0
+                  ? "border-gray-200 text-gray-300 cursor-not-allowed"
+                  : "border-orange-300 text-orange-600 hover:bg-orange-50 hover:border-orange-400 active:scale-95"
+              }`}
+            >
+              <Minus size={18} />
+            </button>
+
+            {/* Quantity Display */}
+            <div
+              className={`w-16 h-10 rounded-lg border-2 flex items-center justify-center font-bold text-lg transition-all duration-200 ${
+                isSelected
+                  ? "border-orange-300 bg-orange-100 text-orange-700"
+                  : "border-gray-200 bg-gray-50 text-gray-600"
+              } ${isAnimating ? "animate-pulse" : ""}`}
+            >
+              {quantity}
+            </div>
+
+            <button
+              onClick={handleIncrement}
+              disabled={quantity >= maxQuantity}
+              className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
+                quantity >= maxQuantity
+                  ? "border-gray-200 text-gray-300 cursor-not-allowed"
+                  : "border-orange-300 text-orange-600 hover:bg-orange-50 hover:border-orange-400 active:scale-95"
+              }`}
+            >
+              <Plus size={18} />
+            </button>
+          </div>
+
+          {/* Subtotal */}
+          {isSelected && (
+            <div className="text-right">
+              <p className="text-sm text-gray-600">Subtotal</p>
+              <p className="text-xl font-bold text-orange-600">
+                {formatCurrency(price * quantity)}
+              </p>
+            </div>
           )}
         </div>
       </div>
+
+      {/* Selection Indicator */}
+      {isSelected && (
+        <div className="mt-4 pt-4 border-t border-orange-200">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-orange-700 font-medium">
+              ✓ Added to booking
+            </span>
+            <span className="text-orange-600">
+              {quantity} × {formatCurrency(price)} ={" "}
+              {formatCurrency(price * quantity)}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
