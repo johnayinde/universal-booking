@@ -1,6 +1,6 @@
 // src/core/AdapterFactory.js
 import EntryAdapter from "../business-types/entry/EntryAdapter";
-// import HotelAdapter from '../business-types/hotel/HotelAdapter';  // Future
+import FurnitureAdapter from "../business-types/furniture/FurnitureAdapter";
 // import UDHAdapter from '../business-types/udh/UDHAdapter';          // Future
 
 /**
@@ -11,6 +11,7 @@ class AdapterFactory {
   static adapters = {
     entry: EntryAdapter,
     events: EntryAdapter, // Backward compatibility
+    furniture: FurnitureAdapter, // ADD THIS LINE
     // hotel: HotelAdapter,     // Coming soon
     // udh: UDHAdapter,         // Coming soon
     // restaurant: RestaurantAdapter, // Future
@@ -39,6 +40,34 @@ class AdapterFactory {
       `✅ AdapterFactory: Created ${businessType} adapter successfully`
     );
     return adapter;
+  }
+
+  // Update the business type configuration
+  static getBusinessTypeConfig() {
+    return {
+      entry: {
+        name: "Entry Tickets",
+        description: "Book entry tickets and passes",
+        icon: "ticket",
+        color: "blue",
+        steps: ["list", "booking", "confirmation"],
+      },
+      furniture: {
+        // Add this configuration
+        name: "Furniture Booking",
+        description: "Reserve furniture and time slots",
+        icon: "armchair",
+        color: "orange",
+        steps: ["dateSelection", "sessionSelection", "booking", "confirmation"],
+      },
+      events: {
+        name: "Event Tickets",
+        description: "Book event tickets and experiences",
+        icon: "calendar",
+        color: "purple",
+        steps: ["list", "details", "selection", "booking", "confirmation"],
+      },
+    };
   }
 
   /**

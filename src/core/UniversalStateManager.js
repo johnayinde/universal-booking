@@ -34,6 +34,12 @@ export const ActionTypes = {
   // Reset actions
   RESET_BOOKING: "RESET_BOOKING",
   RESET_ALL: "RESET_ALL",
+
+  //furniture-specific actions:
+  SET_SELECTED_FURNITURE: "SET_SELECTED_FURNITURE",
+  SET_SELECTED_SESSION: "SET_SELECTED_SESSION",
+  UPDATE_BOOKING_DATA: "UPDATE_BOOKING_DATA",
+  SET_FURNITURE_LOADING: "SET_FURNITURE_LOADING",
 };
 
 // Payment Status Constants
@@ -98,6 +104,17 @@ export const initialState = {
     processingFee: 0,
     metadata: {},
   },
+
+  // furniture-specific fields:
+  selectedFurniture: null,
+  selectedSession: null,
+  bookingData: {
+    date: "",
+    furnitureId: null,
+    sessionId: null,
+    totalAmount: 0,
+  },
+  furnitureLoading: false,
 };
 
 // Enhanced reducer with payment support
@@ -191,6 +208,34 @@ export const universalBookingReducer = (state, action) => {
         paymentInfo: { ...state.paymentInfo, ...action.payload },
       };
 
+    // Add these NEW furniture-specific cases:
+    case ActionTypes.SET_SELECTED_FURNITURE:
+      return {
+        ...state,
+        selectedFurniture: action.payload,
+      };
+
+    case ActionTypes.SET_SELECTED_SESSION:
+      return {
+        ...state,
+        selectedSession: action.payload,
+      };
+
+    case ActionTypes.UPDATE_BOOKING_DATA:
+      return {
+        ...state,
+        bookingData: {
+          ...state.bookingData,
+          ...action.payload,
+        },
+      };
+
+    case ActionTypes.SET_FURNITURE_LOADING:
+      return {
+        ...state,
+        furnitureLoading: action.payload,
+      };
+
     // Reset actions
     case ActionTypes.RESET_BOOKING:
       return {
@@ -204,8 +249,19 @@ export const universalBookingReducer = (state, action) => {
         paymentStatus: PaymentStatus.PENDING,
         paymentUrl: null,
         paymentReference: null,
-        currentStep: "list",
+        currentStep:
+          state.config?.businessType === "furniture" ? "dateSelection" : "list",
         error: null,
+        //
+        isOpen: state.isOpen,
+        businessType: state.businessType,
+        config: state.config,
+        //
+
+        // Clear furniture-specific data:
+        selectedFurniture: null,
+        selectedSession: null,
+        bookingData: initialState.bookingData,
       };
 
     case ActionTypes.RESET_ALL:

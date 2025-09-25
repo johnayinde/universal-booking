@@ -89,6 +89,7 @@ class UniversalBookingWidgetAPI {
     const mapping = {
       entry: "entry",
       udh: "udh",
+      furniture: "furniture",
       hotel: "hotel",
       restaurant: "restaurant",
       tours: "tours",
@@ -204,7 +205,15 @@ class UniversalBookingWidgetAPI {
    * @returns {array}
    */
   getSupportedBusinessTypes() {
-    return ["entry", "hotel", "restaurant", "udh", "tours", "fitness"];
+    return [
+      "entry",
+      "hotel",
+      "restaurant",
+      "udh",
+      "tours",
+      "fitness",
+      "furniture",
+    ];
   }
 
   /**

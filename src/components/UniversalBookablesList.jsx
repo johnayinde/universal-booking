@@ -1,6 +1,15 @@
 // src/components/UniversalBookablesList.jsx - RESPONSIVE
 import React, { useState, useMemo } from "react";
-import { Ticket, Utensils, Hotel, Camera, Users, Ship, X } from "lucide-react";
+import {
+  Ticket,
+  Utensils,
+  Hotel,
+  Camera,
+  RockingChairIcon,
+  Users,
+  Ship,
+  X,
+} from "lucide-react";
 
 const UniversalBookablesList = ({ config = {} }) => {
   const [selectedBookable, setSelectedBookable] = useState(null);
@@ -17,6 +26,15 @@ const UniversalBookablesList = ({ config = {} }) => {
       implemented: true,
     },
     {
+      id: "furniture",
+      type: "furniture",
+      name: "Furniture Rental",
+      icon: RockingChairIcon,
+      description: "Furniture rental and reservations",
+      available: true,
+      implemented: true,
+    },
+    {
       id: "hotel",
       type: "hotel",
       name: "Hotel",
@@ -25,15 +43,7 @@ const UniversalBookablesList = ({ config = {} }) => {
       available: true,
       implemented: false,
     },
-    {
-      id: "udh",
-      type: "udh",
-      name: "Upside Down House",
-      icon: Camera,
-      description: "Unique upside-down house experience",
-      available: true,
-      implemented: false,
-    },
+
     {
       id: "food",
       type: "restaurant",
@@ -49,7 +59,7 @@ const UniversalBookablesList = ({ config = {} }) => {
       name: "Kids Club",
       icon: Users,
       description: "Kids activities and entertainment",
-      available: false,
+      available: true,
       implemented: false,
     },
     {
