@@ -315,22 +315,19 @@ class EntryAdapter extends BusinessAdapter {
     console.log("🎫 Creating entry booking:", bookingData);
 
     try {
-      const url = `${this.apiBaseUrl}/booking/entry/create`;
+      const url = `${this.apiBaseUrl}/booking/entry/create-booking?location_id=${this.locationId}`;
       console.log("📡 Booking API URL:", url);
 
-      // Transform booking data for entry-specific format
       const payload = {
-        landmark_location_id: this.locationId,
-        customer_info: bookingData.customer_info,
-        entry_tickets: bookingData.tickets || [],
-        total_amount: bookingData.total_amount,
-        currency: bookingData.currency || "NGN",
-        payment_method: bookingData.payment_method || "paystack",
-        metadata: {
-          source: "universal_widget",
-          business_type: "entry",
-          ...bookingData.metadata,
-        },
+        date: bookingData.date || new Date().toISOString().split("T")[0],
+        platform: bookingData.platform,
+        ticket_type_id: bookingData.ticket_type_id,
+        ticket_type: bookingData.ticket_type,
+        email: bookingData.email,
+        first_name: bookingData.first_name,
+        last_name: bookingData.last_name,
+        phone: bookingData.phone,
+        items: bookingData.items,
       };
 
       console.log("📤 Sending booking payload:", payload);
@@ -343,6 +340,7 @@ class EntryAdapter extends BusinessAdapter {
         },
         body: JSON.stringify(payload),
       });
+      console.log("📨 Booking API response status:", response);
 
       if (!response.ok) {
         const errorData = await response.text();
@@ -352,17 +350,18 @@ class EntryAdapter extends BusinessAdapter {
       const result = await response.json();
       console.log("✅ Booking created successfully:", result);
 
-      return {
-        success: true,
-        data: {
-          booking_reference: result.booking_reference || result.reference,
-          booking_id: result.booking_id || result.id,
-          payment_url: result.payment_url,
-          amount: result.amount || result.total_amount,
-          currency: result.currency || "NGN",
-          ...result,
-        },
-      };
+      return result;
+      // return {
+      //   success: true,
+      //   data: {
+      //     booking_reference: result.ref,
+      //     booking_id: result.id,
+      //     payment_url: result.payment.payment_url,
+      //     amount: result.booking.total_amount,
+      //     currency: result.currency || "NGN",
+      //     ...result,
+      //   },
+      // };
     } catch (error) {
       console.error("❌ Booking creation failed:", error);
       return {

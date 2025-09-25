@@ -15,7 +15,11 @@ import { useUniversalBooking } from "../../../core/UniversalStateManager";
 import { ActionTypes } from "../../../core/UniversalStateManager";
 
 const EntryPersonalInfo = ({ apiService, adapter }) => {
-  const { state, dispatch } = useUniversalBooking();
+  console.log("🚀🚀🚀🚀🚀 EntryPersonalInfo component rendered", {
+    adapter,
+    apiService,
+  });
+  const { state, dispatch, locationId } = useUniversalBooking();
   const {
     selectedItem,
     selections,
@@ -121,6 +125,12 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
   };
 
   // Handle form submission and payment processing
+  // Update the handleSubmit function in EntryPersonalInfo.jsx
+  console.log("ssssssssssssssssss", {
+    state,
+    locationId,
+    ticket_type_id: selectedItem,
+  });
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -142,68 +152,99 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
     dispatch({ type: ActionTypes.CLEAR_ERROR });
 
     try {
-      // Prepare booking data
+      // Prepare booking data - Updated to match new API structure
       const bookingData = {
-        landmark_location_id: 2, // Enugu location
-        customer_info: {
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
-          // special_requests: formData.specialRequests,
-          // marketing_consent: formData.agreeToMarketing,
-        },
-        tickets: selectedTickets.map((ticket) => ({
-          ticket_id: ticket.id,
+        // date: "2025-10-01", // You might want to make this dynamic
+        platform: "web",
+        ticket_type_id: selectedItem?.id,
+        ticket_type: selectedItem?.name,
+        email: formData.email,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        phone: formData.phone,
+        items: selectedTickets.map((ticket) => ({
+          item_id: ticket.id,
+          item_name: ticket.name,
           quantity: ticket.quantity,
           price: ticket.price,
         })),
-        total_amount: totalAmount,
-        currency: "NGN",
-        payment_method: "paystack",
       };
 
       console.log("🎫 Submitting entry booking data:", bookingData);
 
-      // Submit booking and get payment URL
-      let result;
-      if (adapter && typeof adapter.createBooking === "function") {
-        result = await adapter.createBooking(bookingData);
-      } else if (apiService && typeof apiService.createBooking === "function") {
-        result = await apiService.createBooking(bookingData);
-      } else {
-        throw new Error("No booking service available");
-      }
+      // Submit booking - Updated to use the new endpoint format
+      const result = await adapter.createBooking(bookingData);
 
-      if (result.success) {
-        const { booking_reference, payment_url, booking_id } = result.data;
+      // Handle new response structure
+      if (result.status && result.data) {
+        const { booking, payment, customer } = result.data;
 
-        // Store booking reference
+        // Store booking reference - Updated to use booking_ref
         dispatch({
           type: ActionTypes.SET_BOOKING_REFERENCE,
-          payload: booking_reference,
+          payload: booking.booking_ref,
         });
 
         console.log("✅ Entry booking created successfully:", {
-          booking_reference,
-          payment_url,
-          booking_id,
+          booking_reference: booking.booking_ref,
+          payment_url: payment.payment_url,
+          booking_id: booking.id,
+          payment_reference: payment.reference,
+          customer,
         });
 
+        // Store payment reference for verification later
+        localStorage.setItem("payment_reference", payment.reference);
+        localStorage.setItem("booking_reference", booking.booking_ref);
+
         // Redirect to Paystack payment page
-        if (payment_url) {
-          console.log("🔄 Redirecting to Paystack payment page...");
+        // Replace the redirect section in handleSubmit with:
+        if (payment.payment_url) {
+          console.log("🔄 Opening Paystack payment popup...");
           setPaymentStep("redirecting");
 
-          // Add a small delay for user feedback
+          // Extract access code from payment URL or use the provided access_code
+          const accessCode = payment.access_code;
+          console.log("REACT_APP_PAYSTACK_SECRET", {
+            accessCode,
+            PK: process.env.REACT_APP_PAYSTACK_SECRET,
+          });
+
           setTimeout(() => {
-            window.location.href = payment_url;
-          }, 1500);
+            // Initialize Paystack popup
+            const handler = window.PaystackPop.setup({
+              key: process.env.REACT_APP_PAYSTACK_SECRET, // Replace with your actual Paystack public key
+              email: customer.email, // REQUIRED
+              amount: booking.total_amount * 100, // REQUIRED (NGN * 100)
+              ref: payment.reference,
+              callback: (transaction) => {
+                console.log("✅ Payment successful:", transaction);
+                // Set verification state and reference
+                setPaymentStep("verifying");
+                localStorage.setItem(
+                  "payment_reference",
+                  transaction.reference
+                );
+                // Trigger verification
+                verifyPaymentAndShowSuccess(transaction.reference);
+              },
+              onCancel: () => {
+                console.log("❌ Payment cancelled");
+                setPaymentStep("form");
+              },
+               onClose: () => {
+                console.log("❌ Payment cancelled");
+                setPaymentStep("form");
+              },
+            });
+
+            handler.openIframe();
+          }, 1000);
         } else {
           throw new Error("No payment URL received from server");
         }
       } else {
-        throw new Error(result.error || "Failed to create booking");
+        throw new Error(result.msg || "Failed to create booking");
       }
     } catch (error) {
       console.error("❌ Entry booking submission failed:", error);
@@ -216,6 +257,47 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
     } finally {
       setIsSubmitting(false);
       dispatch({ type: ActionTypes.SET_LOADING, payload: false });
+    }
+  };
+
+  const verifyPaymentAndShowSuccess = async (reference) => {
+    try {
+      console.log("🔍 Verifying payment:", reference);
+
+      const apiBaseUrl =
+        process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:8000/api";
+      const response = await fetch(
+        `${apiBaseUrl}/payment/verify?reference=${reference}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.success && result.data.status === "success") {
+        // Payment verified successfully, show success
+        dispatch({
+          type: ActionTypes.SET_CURRENT_STEP,
+          payload: "confirmation",
+        });
+        setPaymentStep("success");
+      } else {
+        throw new Error(result.message || "Payment verification failed");
+      }
+    } catch (error) {
+      console.error("❌ Payment verification failed:", error);
+      setPaymentStep("error");
+      dispatch({
+        type: ActionTypes.SET_ERROR,
+        payload:
+          error.message ||
+          "Payment verification failed. Please contact support.",
+      });
     }
   };
 
@@ -306,6 +388,35 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
             className="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700 transition-colors"
           >
             Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (paymentStep === "success") {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center max-w-md mx-4">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-10 h-10 text-green-600" />
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Payment Successful!
+          </h1>
+          <p className="text-lg text-gray-600 mb-6">
+            Your booking has been confirmed and payment processed successfully.
+          </p>
+          <button
+            onClick={() =>
+              dispatch({
+                type: ActionTypes.SET_CURRENT_STEP,
+                payload: "confirmation",
+              })
+            }
+            className="w-full bg-orange-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-orange-700 transition-colors"
+          >
+            View Booking Details
           </button>
         </div>
       </div>
@@ -525,8 +636,6 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
                 </div>
               </div>
             </div>
-
-          
           </form>
         </div>
       </div>
@@ -543,7 +652,6 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
           </button>
 
           <div className="flex items-center space-x-4">
-         
             <button
               onClick={handleSubmit}
               disabled={isSubmitting || selectedTickets.length === 0}

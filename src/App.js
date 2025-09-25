@@ -50,6 +50,24 @@ function App({ config = {} }) {
     // Check if we're in development mode
     setIsDevelopment(process.env.NODE_ENV === "development");
 
+    // Check if current URL is the payment callback
+    // const currentUrl = window.location.href;
+    // const urlParams = new URLSearchParams(window.location.search);
+
+    // if (
+    //   currentUrl.includes("/booking/payment/callback") ||
+    //   urlParams.get("reference") ||
+    //   urlParams.get("trxref")
+    // ) {
+    //   console.log("🔄 Payment callback detected in widget");
+    //   setFinalConfig({
+    //     ...defaultConfig,
+    //     showPaymentVerification: true,
+    //     paymentReference: urlParams.get("reference") || urlParams.get("trxref"),
+    //   });
+    //   setIsLoading(false);
+    //   return;
+    // }
     // Function to process configuration and sessionStorage
     const processConfig = () => {
       console.log("🔍 Processing Enhanced App configuration...");
@@ -137,27 +155,14 @@ function App({ config = {} }) {
     return (
       <div className="min-h-screen bg-gray-50">
         <UniversalBookablesList config={finalConfig} />
-
-        {/* Development Test Button */}
-        {/* {isDevelopment && (
-          <div className="fixed top-4 right-4 z-50">
-            <button
-              onClick={() => {
-                console.log(
-                  "🧪 Test button clicked - Loading entry business type"
-                );
-                sessionStorage.setItem("selectedBusinessType", "entry");
-                window.location.reload();
-              }}
-              className="bg-orange-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-orange-700 transition-colors text-sm font-medium"
-            >
-              🧪 Test Entry Widget
-            </button>
-          </div>
-        )} */}
       </div>
     );
   }
+  // if (finalConfig?.showPaymentVerification) {
+  //   return (
+  //     <PaymentVerification paymentReference={finalConfig.paymentReference} />
+  //   );
+  // }
 
   // Render specific business type with BookingEngine
   return (
@@ -178,147 +183,6 @@ function App({ config = {} }) {
 /**
  * Development Debug Panel Component
  */
-const DevelopmentDebugPanel = ({ config }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [debugInfo, setDebugInfo] = useState({});
-
-  useEffect(() => {
-    // Update debug info periodically
-    const interval = setInterval(() => {
-      setDebugInfo({
-        timestamp: new Date().toLocaleTimeString(),
-        config: {
-          businessType: config.businessType,
-          apiBaseUrl: config.apiBaseUrl,
-          features: config.features,
-        },
-        sessionStorage: {
-          selectedBusinessType: sessionStorage.getItem("selectedBusinessType"),
-          isReloading: sessionStorage.getItem("isReloading"),
-        },
-        browser: {
-          userAgent: navigator.userAgent.split(" ")[0],
-          url: window.location.href,
-        },
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [config]);
-
-  const testPaystackIntegration = () => {
-    console.log("🧪 Testing Paystack Integration...");
-
-    // Simulate booking data
-    const testBookingData = {
-      event_id: 1,
-      customer_info: {
-        first_name: "Test",
-        last_name: "User",
-        email: "test@example.com",
-        phone: "+2348012345678",
-      },
-      tickets: [
-        {
-          ticket_id: 1,
-          quantity: 2,
-          price: 5000,
-        },
-      ],
-      total_amount: 10000,
-      currency: "NGN",
-    };
-
-    console.log("📝 Test booking data:", testBookingData);
-    alert("Check console for test booking data structure");
-  };
-
-  const resetWidget = () => {
-    sessionStorage.clear();
-    window.location.reload();
-  };
-
-  return (
-    <div className="fixed bottom-4 right-4 z-50">
-      <div
-        className={`bg-white border border-gray-300 rounded-lg shadow-lg transition-all duration-300 ${
-          isExpanded ? "w-96 h-80" : "w-12 h-12"
-        }`}
-      >
-        {/* Toggle Button */}
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="absolute top-2 right-2 w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center text-sm font-bold hover:bg-orange-700 transition-colors"
-        >
-          {isExpanded ? "×" : "🛠"}
-        </button>
-
-        {/* Debug Content */}
-        {isExpanded && (
-          <div className="p-4 pr-12 h-full overflow-y-auto">
-            <h3 className="font-bold text-gray-900 mb-3">Debug Panel</h3>
-
-            {/* Quick Actions */}
-            <div className="space-y-2 mb-4">
-              <button
-                onClick={testPaystackIntegration}
-                className="w-full bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700 transition-colors"
-              >
-                🧪 Test Paystack
-              </button>
-
-              <button
-                onClick={resetWidget}
-                className="w-full bg-gray-600 text-white px-3 py-2 rounded text-sm hover:bg-gray-700 transition-colors"
-              >
-                🔄 Reset Widget
-              </button>
-            </div>
-
-            {/* Debug Info */}
-            <div className="text-xs space-y-2">
-              <div>
-                <strong>Time:</strong> {debugInfo.timestamp}
-              </div>
-
-              <div>
-                <strong>Business Type:</strong>{" "}
-                {debugInfo.config?.businessType || "None"}
-              </div>
-
-              <div>
-                <strong>API:</strong> {debugInfo.config?.apiBaseUrl}
-              </div>
-
-              <div>
-                <strong>Features:</strong>
-                <ul className="ml-2 mt-1">
-                  {Object.entries(debugInfo.config?.features || {}).map(
-                    ([key, value]) => (
-                      <li
-                        key={key}
-                        className={value ? "text-green-600" : "text-red-600"}
-                      >
-                        {key}: {value ? "✓" : "✗"}
-                      </li>
-                    )
-                  )}
-                </ul>
-              </div>
-
-              <div>
-                <strong>Session:</strong>
-                <pre className="bg-gray-100 p-2 rounded mt-1 text-xs overflow-hidden">
-                  {JSON.stringify(debugInfo.sessionStorage, null, 1)}
-                </pre>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
 
 export default App;
 

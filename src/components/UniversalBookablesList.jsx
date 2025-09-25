@@ -119,8 +119,6 @@ const UniversalBookablesList = ({ config = {} }) => {
   };
 
   const handleClose = () => {
-    console.log("Closing widget>>>>>>>>");
-
     // Clear sessionStorage
     sessionStorage.removeItem("selectedBusinessType");
     sessionStorage.removeItem("isReloading");

@@ -227,6 +227,7 @@ const BookingEngine = ({ businessType = "", config = {}, children }) => {
       adapter,
       apiService,
       currentStep: state.currentStep,
+      locationId: config.locationId || config.location,
       ...helpers,
     };
 
@@ -236,7 +237,6 @@ const BookingEngine = ({ businessType = "", config = {}, children }) => {
       currentStep: state.currentStep,
       isLoading: state.loading,
       businessType,
-      locationId: config.locationId || config.location,
     });
 
     return contextValue;

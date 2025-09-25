@@ -219,61 +219,58 @@ class UniversalAPIService {
         throw new Error("Valid total amount is required");
       }
 
-      // Transform booking data for entry API
+      // Transform booking data for new API structure
       const payload = {
-        landmark_location_id: bookingData.landmark_location_id || 2,
-        customer_info: {
-          first_name: bookingData.customer_info.first_name,
-          last_name: bookingData.customer_info.last_name,
-          email: bookingData.customer_info.email,
-          phone: bookingData.customer_info.phone,
-          special_requests: bookingData.customer_info.special_requests || "",
-          marketing_consent:
-            bookingData.customer_info.marketing_consent || false,
-        },
-        entry_tickets: bookingData.tickets.map((ticket) => ({
-          ticket_id: ticket.ticket_id,
+        date: bookingData.date || new Date().toISOString().split("T")[0],
+        platform: "web",
+        ticket_type_id: bookingData.ticket_type_id || 1,
+        ticket_type: bookingData.ticket_type || "Regular",
+        email: bookingData.customer_info.email,
+        first_name: bookingData.customer_info.first_name,
+        last_name: bookingData.customer_info.last_name,
+        phone: bookingData.customer_info.phone,
+        items: bookingData.tickets.map((ticket) => ({
+          item_id: ticket.ticket_id || ticket.id,
+          item_name: ticket.name || ticket.item_name || "Adult",
           quantity: ticket.quantity,
           price: ticket.price,
         })),
-        total_amount: bookingData.total_amount,
-        currency: bookingData.currency || "NGN",
-        payment_method: bookingData.payment_method || "paystack",
-        callback_url:
-          bookingData.callback_url ||
-          window.location.origin + "/booking/callback",
-        metadata: {
-          source: "universal_widget",
-          business_type: "entry",
-          user_agent: navigator.userAgent,
-          timestamp: new Date().toISOString(),
-          ...bookingData.metadata,
-        },
       };
 
       console.log("📤 Sending entry booking payload:", payload);
 
-      const result = await this.post("/booking/entry/create", payload);
+      // Use the new endpoint structure
+      const result = await this.request(
+        `/booking/entry/create-booking?location_id=${this.locationId}`,
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
+        }
+      );
 
-      if (result.success && result.data) {
-        const response = result.data;
+      if (result.success && result.data && result.data.status) {
+        const response = result.data.data;
 
         console.log("✅ Entry booking created successfully:", response);
 
         return {
           success: true,
           data: {
-            booking_reference: response.booking_reference || response.reference,
-            booking_id: response.booking_id || response.id,
-            payment_url: response.payment_url,
-            amount: response.amount || response.total_amount,
-            currency: response.currency || "NGN",
+            booking_reference: response.booking.booking_ref,
+            booking_id: response.booking.id,
+            payment_url: response.payment.payment_url,
+            payment_reference: response.payment.reference,
+            access_code: response.payment.access_code,
+            amount: response.booking.total_amount,
+            currency: "NGN",
             ...response,
           },
         };
       }
 
-      throw new Error("Invalid response from booking service");
+      throw new Error(
+        result.data?.msg || "Invalid response from booking service"
+      );
     } catch (error) {
       console.error("❌ Entry booking creation failed:", error);
       return {
@@ -378,7 +375,19 @@ class UniversalAPIService {
     try {
       console.log(`🔍 Verifying payment: ${paymentReference}`);
 
-      return await this.get(`/payments/${paymentReference}/verify`);
+      const result = await this.request(
+        `/payment/verify?reference=${paymentReference}`,
+        {
+          method: "POST",
+        }
+      );
+
+      if (result.success && result.data) {
+        console.log("✅ Payment verified successfully:", result.data);
+        return result;
+      }
+
+      throw new Error("Payment verification failed");
     } catch (error) {
       console.error("Failed to verify payment:", error);
       return {

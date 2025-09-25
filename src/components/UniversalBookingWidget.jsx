@@ -132,7 +132,7 @@ const UniversalBookingWidget = () => {
           "h-dvh sm:h-[90vh]",
           "rounded-none sm:rounded-2xl",
           "flex flex-col overflow-hidden",
-          "max-w-none sm:max-w-7xl",
+          "max-w-none sm:max-w-[100rem]",
         ].join(" ")}
         role="dialog"
         aria-modal="true"
