@@ -102,10 +102,10 @@ const FurnitureDateSelection = ({ apiService, adapter }) => {
       return;
     }
 
-    // Navigate to session selection
+    // Navigate to session selection - FIXED to use correct step key
     dispatch({
       type: ActionTypes.SET_CURRENT_STEP,
-      payload: "sessionSelection",
+      payload: "details", // Changed from "sessionSelection" to "details"
     });
   };
 

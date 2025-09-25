@@ -183,11 +183,14 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
     dispatch({ type: ActionTypes.CLEAR_ERROR });
 
     try {
-      // Prepare booking data
+      // Prepare booking data - Updated to match new API format
       const furnitureBookingData = {
         date: bookingData.date,
         furniture_id: selectedFurniture.id,
+        furniture_name: selectedFurniture.name,
         session_id: selectedSession.id,
+        session_name: selectedSession.name,
+        session_price: selectedSession.price,
         customer_info: {
           firstName: formData.firstName,
           lastName: formData.lastName,

@@ -33,6 +33,9 @@ class FurnitureAdapter extends BusinessAdapter {
       selection: FurniturePersonalInfo, // Maps to "selection" step
       booking: FurniturePersonalInfo, // Alternative mapping
       confirmation: FurnitureConfirmation, // Maps to "confirmation" step
+      // Also add the original mappings for compatibility
+      dateSelection: FurnitureDateSelection,
+      sessionSelection: FurnitureSessionSelection,
     };
   }
 
@@ -59,7 +62,7 @@ class FurnitureAdapter extends BusinessAdapter {
         key: "list", // Changed from "dateSelection" to match widget expectations
         label: "Date & Furniture",
         name: "Select Date & Furniture",
-        component: "list", // Component mapping stays the same
+        component: "dateSelection", // Component mapping stays the same
         icon: "calendar",
         description: "Pick date and furniture type",
       },
@@ -67,7 +70,7 @@ class FurnitureAdapter extends BusinessAdapter {
         key: "details", // Changed from "sessionSelection"
         label: "Time Slots",
         name: "Select Sessions",
-        component: "details", // Component mapping stays the same
+        component: "sessionSelection", // Component mapping stays the same
         icon: "clock",
         description: "Choose available time slots",
       },
@@ -184,9 +187,10 @@ class FurnitureAdapter extends BusinessAdapter {
 
       const transformedSessions = sessions.map((session) => ({
         id: session.id,
-        name: session.name || `Session ${session.id}`,
+        name: session.session_name || `Session ${session.id}`,
         start_time: session.start_time,
         end_time: session.end_time,
+        duration_hours: session.duration_hours,
         price: parseFloat(session.price) || 0,
         available_slots: session.available_slots || 0,
         max_capacity: session.max_capacity || 8,

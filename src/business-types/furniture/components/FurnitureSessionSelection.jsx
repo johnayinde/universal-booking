@@ -144,7 +144,7 @@ const FurnitureSessionSelection = ({ apiService, adapter }) => {
   const handleBack = () => {
     dispatch({
       type: ActionTypes.SET_CURRENT_STEP,
-      payload: "dateSelection",
+      payload: "list", // Changed from "dateSelection" to "list"
     });
   };
 
@@ -158,10 +158,10 @@ const FurnitureSessionSelection = ({ apiService, adapter }) => {
       return;
     }
 
-    // Navigate to personal info
+    // Navigate to personal info - using correct step key
     dispatch({
       type: ActionTypes.SET_CURRENT_STEP,
-      payload: "booking",
+      payload: "booking", // This matches the booking step key
     });
   };
 
