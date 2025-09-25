@@ -203,17 +203,11 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
           console.log("🔄 Opening Paystack payment popup...");
           setPaymentStep("redirecting");
 
-          // Extract access code from payment URL or use the provided access_code
-          const accessCode = payment.access_code;
-          console.log("REACT_APP_PAYSTACK_SECRET", {
-            accessCode,
-            PK: process.env.REACT_APP_PAYSTACK_SECRET,
-          });
 
           setTimeout(() => {
             // Initialize Paystack popup
             const handler = window.PaystackPop.setup({
-              key: process.env.REACT_APP_PAYSTACK_SECRET, // Replace with your actual Paystack public key
+              key: process.env.REACT_APP_PAYSTACK_PUBLIC, // Replace with your actual Paystack public key
               email: customer.email, // REQUIRED
               amount: booking.total_amount * 100, // REQUIRED (NGN * 100)
               ref: payment.reference,
@@ -232,7 +226,7 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
                 console.log("❌ Payment cancelled");
                 setPaymentStep("form");
               },
-               onClose: () => {
+              onClose: () => {
                 console.log("❌ Payment cancelled");
                 setPaymentStep("form");
               },
@@ -451,7 +445,7 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
 
       {/* Form Content */}
       <div className="flex-1 p-6 overflow-y-auto">
-        <div className="max-w-2xl">
+        <div className="max-w-3xl">
           {/* Error Display */}
           {error && (
             <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
