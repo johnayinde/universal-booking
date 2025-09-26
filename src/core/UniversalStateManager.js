@@ -40,6 +40,13 @@ export const ActionTypes = {
   SET_SELECTED_SESSION: "SET_SELECTED_SESSION",
   UPDATE_BOOKING_DATA: "UPDATE_BOOKING_DATA",
   SET_FURNITURE_LOADING: "SET_FURNITURE_LOADING",
+
+  // ADD THESE GROUP-SPECIFIC ACTIONS:
+  SET_SELECTED_DATE: "SET_SELECTED_DATE",
+  UPDATE_SELECTION: "UPDATE_SELECTION",
+  SET_PACKAGE_SIZE: "SET_PACKAGE_SIZE",
+  SET_PACKAGE_OPTION: "SET_PACKAGE_OPTION",
+  SET_PACKAGE_DETAILS: "SET_PACKAGE_DETAILS",
 };
 
 // Payment Status Constants
@@ -115,6 +122,10 @@ export const initialState = {
     totalAmount: 0,
   },
   furnitureLoading: false,
+
+  // GROUP-SPECIFIC FIELDS:
+  selectedDate: null,
+  selection: {},
 };
 
 // Enhanced reducer with payment support
@@ -236,6 +247,36 @@ export const universalBookingReducer = (state, action) => {
         furnitureLoading: action.payload,
       };
 
+    // Package cases
+
+    // ADD THESE NEW CASES:
+    case ActionTypes.SET_SELECTED_DATE:
+      return { ...state, selectedDate: action.payload };
+
+    case ActionTypes.UPDATE_SELECTION:
+      return {
+        ...state,
+        selection: { ...state.selection, ...action.payload },
+      };
+
+    case ActionTypes.SET_PACKAGE_SIZE:
+      return {
+        ...state,
+        selection: { ...state.selection, packageSize: action.payload },
+      };
+
+    case ActionTypes.SET_PACKAGE_OPTION:
+      return {
+        ...state,
+        selection: { ...state.selection, packageOption: action.payload },
+      };
+
+    case ActionTypes.SET_PACKAGE_DETAILS:
+      return {
+        ...state,
+        selection: { ...state.selection, packageDetails: action.payload },
+      };
+
     // Reset actions
     case ActionTypes.RESET_BOOKING:
       return {
@@ -249,8 +290,13 @@ export const universalBookingReducer = (state, action) => {
         paymentStatus: PaymentStatus.PENDING,
         paymentUrl: null,
         paymentReference: null,
+
         currentStep:
-          state.config?.businessType === "furniture" ? "dateSelection" : "list",
+          state.config?.businessType === "furniture"
+            ? "dateSelection"
+            : state.config?.businessType === "group"
+            ? "list"
+            : "list",
         error: null,
         //
         isOpen: state.isOpen,

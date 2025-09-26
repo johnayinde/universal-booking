@@ -35,6 +35,15 @@ const UniversalBookablesList = ({ config = {} }) => {
       implemented: true,
     },
     {
+      id: "group",
+      type: "group",
+      name: "Group Booking",
+      icon: Users,
+      description: "Book group packages and experiences",
+      available: true,
+      implemented: true, // Set to true since we just implemented it
+    },
+    {
       id: "hotel",
       type: "hotel",
       name: "Hotel",

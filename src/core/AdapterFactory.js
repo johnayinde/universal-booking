@@ -1,8 +1,7 @@
 // src/core/AdapterFactory.js
 import EntryAdapter from "../business-types/entry/EntryAdapter";
 import FurnitureAdapter from "../business-types/furniture/FurnitureAdapter";
-// import UDHAdapter from '../business-types/udh/UDHAdapter';          // Future
-
+import GroupAdapter from "../business-types/group/GroupAdapter"; // NEW: Import GroupAdapter
 /**
  * AdapterFactory - Creates business-specific adapters
  * Follows the Factory Pattern to provide consistent interface
@@ -12,7 +11,7 @@ class AdapterFactory {
     entry: EntryAdapter,
     events: EntryAdapter, // Backward compatibility
     furniture: FurnitureAdapter, // ADD THIS LINE
-    // hotel: HotelAdapter,     // Coming soon
+    group: GroupAdapter,
     // udh: UDHAdapter,         // Coming soon
     // restaurant: RestaurantAdapter, // Future
     // tours: ToursAdapter,     // Future
@@ -59,6 +58,14 @@ class AdapterFactory {
         icon: "armchair",
         color: "orange",
         steps: ["dateSelection", "sessionSelection", "booking", "confirmation"],
+      },
+      group: {
+        // NEW: Group booking configuration
+        name: "Group Booking",
+        description: "Book group packages and experiences",
+        icon: "users",
+        color: "emerald",
+        steps: ["list", "details", "selection", "booking", "confirmation"],
       },
       events: {
         name: "Event Tickets",
@@ -235,6 +242,65 @@ class AdapterFactory {
     }
 
     return validation;
+  }
+
+  /**
+   * NEW: Get booking flow information for group booking
+   * @param {string} businessType - The business type
+   * @returns {object} Booking flow details
+   */
+  static getBookingFlowInfo(businessType) {
+    const flowInfo = {
+      entry: {
+        title: "Entry Booking Flow",
+        steps: [
+          "Select ticket type and quantity",
+          "Enter personal details and pay",
+          "Receive confirmation",
+        ],
+        features: [
+          "Quick booking",
+          "Multiple ticket types",
+          "Instant confirmation",
+        ],
+      },
+      furniture: {
+        title: "Furniture Booking Flow",
+        steps: [
+          "Select date and furniture type",
+          "Choose available time slot",
+          "Enter personal details and pay",
+          "Receive confirmation",
+        ],
+        features: ["Date selection", "Time slots", "Furniture types"],
+      },
+      group: {
+        // NEW: Group booking flow details
+        title: "Group Booking Flow",
+        steps: [
+          "Select date and package size",
+          "Browse package options (horizontal scroll)",
+          "View detailed package information",
+          "Enter personal details and pay",
+          "Receive confirmation",
+        ],
+        features: [
+          "Package size selection",
+          "Horizontal scrolling options",
+          "Detailed package views",
+          "Group-specific pricing",
+          "Special requirements support",
+        ],
+      },
+    };
+
+    return (
+      flowInfo[businessType] || {
+        title: `${businessType} Booking Flow`,
+        steps: ["Select options", "Enter details", "Complete booking"],
+        features: ["Standard booking flow"],
+      }
+    );
   }
 }
 
