@@ -161,7 +161,6 @@ class GroupAdapter extends BusinessAdapter {
           description: `Package for ${pkg.number_of_people} people`,
           min_people: pkg.number_of_people,
           max_people: pkg.number_of_people,
-          base_price: 0, // No price in this endpoint
           is_active: pkg.is_active === 1,
           created_at: pkg.created_at,
           updated_at: pkg.updated_at,
@@ -279,30 +278,23 @@ class GroupAdapter extends BusinessAdapter {
   async createBooking(bookingData) {
     console.log("👥 Creating group booking:", bookingData);
     try {
-      const url = `${this.apiBaseUrl}/booking/group/bookings?location_id=${this.locationId}`;
+      const url = `${this.apiBaseUrl}/booking/package/bookings?location_id=${this.locationId}`;
       console.log("📡 Booking API URL:", url);
 
-      // Validate booking data
-      if (!bookingData.customer_info?.email) {
+      // basic validation (unchanged) ...
+      if (!bookingData.customer_info?.email)
         throw new Error("Valid email is required");
-      }
-      if (!bookingData.customer_info?.first_name) {
+      if (!bookingData.customer_info?.first_name)
         throw new Error("First name is required");
-      }
-      if (!bookingData.customer_info?.last_name) {
+      if (!bookingData.customer_info?.last_name)
         throw new Error("Last name is required");
-      }
-      if (!bookingData.customer_info?.phone) {
+      if (!bookingData.customer_info?.phone)
         throw new Error("Phone number is required");
-      }
-      if (!bookingData.package_option_id) {
+      if (!bookingData.package_option_id)
         throw new Error("Package option is required");
-      }
-      if (!bookingData.total_amount || bookingData.total_amount <= 0) {
+      if (!bookingData.total_amount || bookingData.total_amount <= 0)
         throw new Error("Valid total amount is required");
-      }
 
-      // Prepare the payload
       const payload = {
         date: bookingData.date,
         platform: "web",
@@ -332,41 +324,44 @@ class GroupAdapter extends BusinessAdapter {
         body: JSON.stringify(payload),
       });
 
-      console.log("📨 Booking API response status:", response);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
-      }
-
-      const result = await response.json();
-      console.log("✅ Group booking created successfully:", result);
-
-      if (result.success && result.data) {
-        const responseData = result.data.data;
-
-        return {
-          success: true,
-          data: {
-            booking_reference: responseData.booking.booking_ref,
-            booking_id: responseData.booking.id,
-            payment_url: responseData.payment.payment_url,
-            payment_reference: responseData.payment.reference,
-            access_code: responseData.payment.access_code,
-            amount: responseData.booking.total_amount,
-            currency: "NGN",
-            ...responseData,
-          },
+      // Try to parse JSON safely
+      let raw;
+      const text = await response.text();
+      try {
+        raw = text ? JSON.parse(text) : {};
+      } catch {
+        raw = {
+          status: response.ok,
+          msg: text || response.statusText,
+          code: response.status,
         };
       }
 
-      return result;
+      // Normalize shape here 👇
+      const normalized = {
+        success: raw?.status === true,
+        data: raw?.data ?? null,
+        message: raw?.msg ?? raw?.message ?? null,
+        code: raw?.code ?? response.status,
+      };
+
+      console.log("✅ Group booking created (normalized):", normalized);
+
+      if (!response.ok || !normalized.success) {
+        throw new Error(
+          normalized.message ||
+            `HTTP ${response.status}${raw?.msg ? `: ${raw.msg}` : ""}`
+        );
+      }
+
+      return normalized;
     } catch (error) {
       console.error("❌ Group booking creation failed:", error);
       return {
         success: false,
         error: error.message || "Failed to create group booking",
         data: null,
+        code: 0,
       };
     }
   }

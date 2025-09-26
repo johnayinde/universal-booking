@@ -22,10 +22,9 @@ import UniversalBookingContext, {
  * Fourth step: Personal information form with payment summary
  * Reuses design patterns from entry and furniture booking
  */
-const GroupPersonalInfo = () => {
+const GroupPersonalInfo = ({ apiService, adapter }) => {
   const { state, dispatch } = useContext(UniversalBookingContext);
-  const { adapter, selectedDate, error, isLoading, selection, customerInfo } =
-    state;
+  const { selectedDate, error, isLoading, selection, customerInfo } = state;
 
   // Local state for form
   const [formData, setFormData] = useState({
@@ -170,6 +169,7 @@ const GroupPersonalInfo = () => {
 
       // Submit booking
       const result = await adapter.createBooking(bookingData);
+      console.log("result", result);
 
       // Handle response
       if (result.success && result.data) {
@@ -181,7 +181,7 @@ const GroupPersonalInfo = () => {
           payload: booking.booking_ref,
         });
 
-        console.log("✅ Group booking created successfully:", {
+        console.log("✅ 1Group booking created successfully:", {
           booking_reference: booking.booking_ref,
           payment_url: payment.payment_url,
           booking_id: booking.id,
@@ -316,9 +316,9 @@ const GroupPersonalInfo = () => {
 
       {/* Form Content */}
       <div className="flex-1 p-6 overflow-y-auto">
-        <div className="max-w-4xl grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="max-w-6xl grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Left Column - Form */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-3">
             {/* Error Display */}
             {error && (
               <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
@@ -464,60 +464,64 @@ const GroupPersonalInfo = () => {
           {/* Right Column - Booking Summary */}
           <div className="lg:col-span-1">
             <div className="bg-white border border-gray-200 rounded-xl p-6 sticky top-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <CreditCard className="mr-2" size={20} />
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Booking Summary
               </h3>
 
               {/* Booking Details */}
-              <div className="space-y-3 mb-6">
-                <div className="flex items-center text-sm">
-                  <Calendar className="mr-2 text-emerald-600" size={16} />
-                  <div>
-                    <div className="font-medium">
-                      {new Date(selectedDate).toLocaleDateString()}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center text-sm">
-                  <Package className="mr-2 text-emerald-600" size={16} />
-                  <div>
-                    <div className="font-medium">{packageDetails?.name}</div>
-                  </div>
-                </div>
-
-                <div className="flex items-center text-sm">
-                  <Users className="mr-2 text-emerald-600" size={16} />
-                  <div>
-                    <div className="font-medium">
-                      {selectedPackageSize?.size} people
-                    </div>
+              {/* Date */}
+              <div className="flex items-center mb-4">
+                <Calendar className="mr-3 text-emerald-600" size={16} />
+                <div>
+                  <div className="text-sm font-medium text-gray-900">
+                    {selectedDate &&
+                      new Date(selectedDate).toLocaleDateString()}
                   </div>
                 </div>
               </div>
 
-              {/* Price Breakdown */}
-              <div className="space-y-3 mb-6 pt-4 border-t border-gray-200">
+              {/* Package */}
+              <div className="flex items-center mb-4">
+                <Package className="mr-3 text-emerald-600" size={16} />
+                <div>
+                  <div className="text-sm font-medium text-gray-900">
+                    {packageDetails?.name}
+                  </div>
+                </div>
+              </div>
+
+              {/* Group Size */}
+              <div className="flex items-center mb-6">
+                <Users className="mr-3 text-emerald-600" size={16} />
+                <div>
+                  <div className="text-sm font-medium text-gray-900">
+                    {selectedPackageSize?.size} people
+                  </div>
+                </div>
+              </div>
+
+              {/* Price Calculation */}
+              <div className="space-y-2 mb-4 pt-4 border-t border-gray-200">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">
-                    {packageDetails?.name} × {selectedPackageSize?.size}
+                    × {selectedPackageSize?.size}
                   </span>
-                  <span className="text-gray-900 font-medium">
-                    {formatCurrency(totalAmount)}
+                  <span className="font-medium text-emerald-600 text-lg">
+                    ₦{parseFloat(packageDetails?.price || 0).toLocaleString()}
                   </span>
-                </div>
-                <div className="pt-3 border-t border-gray-200">
-                  <div className="flex justify-between">
-                    <span className="font-semibold text-gray-900">Total</span>
-                    <span className="font-bold text-xl text-emerald-600">
-                      {formatCurrency(totalAmount)}
-                    </span>
-                  </div>
                 </div>
               </div>
 
-              {/* Payment Info */}
+              <div className="pt-3 border-t border-gray-200 mb-6">
+                <div className="flex justify-between">
+                  <span className="font-semibold text-gray-900">Total</span>
+                  <span className="font-bold text-xl text-emerald-600">
+                    ₦{totalAmount.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              {/* Secure Payment Info */}
               <div className="mb-6 p-4 bg-emerald-50 rounded-lg">
                 <h4 className="font-medium text-emerald-900 mb-2">
                   Secure Payment
@@ -528,6 +532,7 @@ const GroupPersonalInfo = () => {
                 </p>
               </div>
 
+              {/* Payment Button */}
               {/* Payment Button */}
               <button
                 onClick={handleSubmit}
@@ -541,11 +546,7 @@ const GroupPersonalInfo = () => {
                 {isSubmitting ? (
                   <>
                     <Loader className="animate-spin" size={18} />
-                    <span>
-                      {paymentStep === "processing" && "Processing..."}
-                      {paymentStep === "redirecting" && "Opening Payment..."}
-                      {paymentStep === "verifying" && "Verifying Payment..."}
-                    </span>
+                    <span>Processing...</span>
                   </>
                 ) : (
                   <>

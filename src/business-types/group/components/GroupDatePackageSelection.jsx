@@ -180,12 +180,12 @@ const GroupDatePackageSelection = ({ apiService, adapter }) => {
                 : `${packageSize.min_people}-${packageSize.max_people} people`}
             </span>
           </div>
-          <div className="flex justify-between items-center">
+          {/* <div className="flex justify-between items-center">
             <span className="text-gray-600">Starting from:</span>
             <span className="font-bold text-emerald-600 text-lg">
               ₦{parseFloat(packageSize.base_price || 0).toLocaleString()}
             </span>
-          </div>
+          </div> */}
           <div className="flex justify-between items-center">
             <span className="text-gray-600">Status:</span>
             <span
@@ -242,67 +242,84 @@ const GroupDatePackageSelection = ({ apiService, adapter }) => {
 
           {/* Date Selection */}
           <div className="bg-white border border-gray-200 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <Calendar className="mr-2" size={20} />
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Booking Date
             </h3>
-            <div className="max-w-md">
+            <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select Date *
+                Select a booking date
               </label>
-              <input
-                type="date"
-                value={selectedDate || ""}
-                onChange={handleDateChange}
-                min={getMinDate()}
-                max={getMaxDate()}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors"
-              />
-              <p className="mt-2 text-sm text-gray-500">
-                Select a date between today and{" "}
-                {new Date(getMaxDate()).toLocaleDateString()}
-              </p>
+              <div className="relative">
+                <Calendar
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                  size={18}
+                />
+                <input
+                  type="date"
+                  value={selectedDate || ""}
+                  onChange={handleDateChange}
+                  min={getMinDate()}
+                  max={getMaxDate()}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors"
+                />
+              </div>
             </div>
           </div>
 
           {/* Package Size Selection */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <Users className="mr-2" size={20} />
-              Select Package Size
-            </h3>
+          <div className="bg-orange-50 border border-orange-200 rounded-xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                Package Size
+              </h3>
+              <span className="text-sm text-orange-600 font-medium">
+                Pick only one option
+              </span>
+            </div>
 
-            {/* Loading Package Sizes */}
-            {isLoading && loadingStep === "packages" && (
-              <div className="text-center py-8">
-                <Loader className="animate-spin mx-auto mb-4" size={24} />
-                <p className="text-gray-600">Loading available packages...</p>
-              </div>
-            )}
-
-            {/* Package Size List */}
+            {/* Package Size Cards */}
             {!isLoading && packageSizes.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {packageSizes.map(renderPackageSizeCard)}
-              </div>
-            )}
+              <div className="space-y-3">
+                {packageSizes.map((packageSize) => {
+                  const isSelected = selectedPackageSize?.id === packageSize.id;
+                  const isAvailable = packageSize.is_active;
 
-            {/* No Package Sizes Available */}
-            {!isLoading && packageSizes.length === 0 && (
-              <div className="text-center py-8">
-                <Users className="mx-auto text-gray-400 mb-4" size={48} />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  No packages available
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  No group packages are currently available for this location.
-                </p>
-                <button
-                  onClick={fetchPackageSizes}
-                  className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition-colors"
-                >
-                  Refresh Packages
-                </button>
+                  return (
+                    <div
+                      key={packageSize.id}
+                      onClick={() =>
+                        isAvailable && handlePackageSizeSelect(packageSize)
+                      }
+                      className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                        !isAvailable
+                          ? "border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed"
+                          : isSelected
+                          ? "border-emerald-500 bg-white shadow-md"
+                          : "border-gray-200 bg-white hover:border-gray-300"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <Users className="text-emerald-600" size={20} />
+                          <span className="font-medium text-gray-900">
+                            {packageSize.name}
+                          </span>
+                        </div>
+                        <div
+                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                            isSelected
+                              ? "border-emerald-500 bg-emerald-500"
+                              : "border-gray-300"
+                          }`}
+                        >
+                          {isSelected && (
+                            <div className="w-2 h-2 bg-white rounded-full" />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -337,7 +354,7 @@ const GroupDatePackageSelection = ({ apiService, adapter }) => {
                     {selectedPackageSize.size} people
                   </span>
                 </div>
-                <div>
+                {/* <div>
                   <span className="text-emerald-700">Starting Price:</span>
                   <span className="ml-2 font-medium text-emerald-900">
                     ₦
@@ -345,7 +362,7 @@ const GroupDatePackageSelection = ({ apiService, adapter }) => {
                       selectedPackageSize.base_price || 0
                     ).toLocaleString()}
                   </span>
-                </div>
+                </div> */}
               </div>
             </div>
           )}

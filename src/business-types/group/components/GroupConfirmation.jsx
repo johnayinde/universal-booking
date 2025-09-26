@@ -20,7 +20,7 @@ import UniversalBookingContext from "../../../core/UniversalStateManager";
  * Group Confirmation Component
  * Final step: Display booking confirmation and details
  */
-const GroupConfirmation = () => {
+const GroupConfirmation = ({ apiService, adapter }) => {
   const { state } = useContext(UniversalBookingContext);
   const { bookingReference, selectedDate, selection, customerInfo } = state;
 
@@ -323,7 +323,7 @@ const GroupConfirmation = () => {
       <div className="bg-white border-t border-gray-200 p-6">
         <div className="max-w-4xl mx-auto">
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button
+            {/* <button
               onClick={handleDownloadReceipt}
               className="px-6 py-3 bg-emerald-100 text-emerald-700 rounded-lg font-medium hover:bg-emerald-200 transition-colors flex items-center justify-center space-x-2"
             >
@@ -337,14 +337,14 @@ const GroupConfirmation = () => {
             >
               <Share size={18} />
               <span>Share Booking</span>
-            </button>
+            </button> */}
 
-            <button
+            {/* <button
               onClick={() => window.location.reload()}
               className="px-6 py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors"
             >
               Make Another Booking
-            </button>
+            </button> */}
           </div>
 
           {/* Contact Information */}

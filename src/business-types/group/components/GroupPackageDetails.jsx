@@ -22,9 +22,9 @@ import UniversalBookingContext, {
  * Group Package Details Component
  * Third step: Detailed view of selected package
  */
-const GroupPackageDetails = () => {
+const GroupPackageDetails = ({ apiService, adapter }) => {
   const { state, dispatch } = useContext(UniversalBookingContext);
-  const { adapter, selectedDate, error, isLoading, selection } = state;
+  const { error, isLoading, selection } = state;
 
   // Local state
   const [packageDetails, setPackageDetails] = useState(null);
@@ -196,252 +196,81 @@ const GroupPackageDetails = () => {
             <>
               {/* Package Hero */}
               <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-                <div className="relative h-64 bg-gradient-to-br from-emerald-400 to-emerald-600">
-                  {packageDetails.image_url ? (
-                    <img
-                      src={packageDetails.image_url}
-                      alt={packageDetails.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.target.style.display = "none";
-                        e.target.nextSibling.style.display = "flex";
-                      }}
-                    />
-                  ) : null}
-                  <div
-                    className={`absolute inset-0 flex items-center justify-center ${
-                      packageDetails.image_url ? "hidden" : "flex"
-                    }`}
-                    style={{
-                      display: packageDetails.image_url ? "none" : "flex",
-                    }}
-                  >
-                    <Package className="text-white" size={64} />
-                  </div>
-
-                  {/* Price overlay */}
-                  <div className="absolute bottom-6 left-6 bg-white bg-opacity-95 backdrop-blur-sm px-4 py-2 rounded-lg">
-                    <div className="text-sm text-gray-600">
-                      Price per person
-                    </div>
-                    <div className="text-2xl font-bold text-emerald-600">
-                      ₦{parseFloat(packageDetails.price || 0).toLocaleString()}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Package Information Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Left Column - Details */}
-                <div className="space-y-6">
-                  {/* Basic Information */}
-                  <div className="bg-white border border-gray-200 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                      Package Information
-                    </h3>
-                    <div className="space-y-3">
-                      <div className="flex items-center">
-                        <Users className="mr-3 text-emerald-600" size={20} />
-                        <div>
-                          <div className="font-medium">Group Size</div>
-                          <div className="text-sm text-gray-600">
-                            {selectedPackageSize.size} people
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center">
-                        <Calendar className="mr-3 text-emerald-600" size={20} />
-                        <div>
-                          <div className="font-medium">Date</div>
-                          <div className="text-sm text-gray-600">
-                            {new Date(selectedDate).toLocaleDateString(
-                              "en-US",
-                              {
-                                weekday: "long",
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                              }
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {packageDetails.duration && (
-                        <div className="flex items-center">
-                          <Clock className="mr-3 text-emerald-600" size={20} />
-                          <div>
-                            <div className="font-medium">Duration</div>
-                            <div className="text-sm text-gray-600">
-                              {packageDetails.duration}
+                <div className="flex flex-col md:flex-row">
+                  <div className="w-full md:w-64 h-48 md:h-64 relative bg-emerald-500 flex-shrink-0">
+                    {packageDetails.image_url ? (
+                      <img
+                        src={packageDetails.image_url}
+                        alt={packageDetails.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-emerald-500 flex items-center justify-center">
+                        <div className="text-white text-center">
+                          <div className="text-2xl font-bold mb-1">TOODUM</div>
+                          <div className="text-lg">TAKEAWAYS</div>
+                          <div className="mt-2">
+                            <div className="w-8 h-0.5 bg-yellow-400 mx-auto mb-1"></div>
+                            <div className="flex justify-center space-x-1">
+                              <div className="w-1 h-4 bg-red-400"></div>
+                              <div className="w-1 h-4 bg-yellow-400"></div>
                             </div>
                           </div>
                         </div>
-                      )}
-
-                      {packageDetails.location && (
-                        <div className="flex items-center">
-                          <MapPin className="mr-3 text-emerald-600" size={20} />
-                          <div>
-                            <div className="font-medium">Location</div>
-                            <div className="text-sm text-gray-600">
-                              {packageDetails.location}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Description */}
-                  <div className="bg-white border border-gray-200 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                      Description
-                    </h3>
-                    <p className="text-gray-600 leading-relaxed">
-                      {packageDetails.description ||
-                        packageDetails.detailed_description ||
-                        "Experience the perfect group getaway with this carefully curated package."}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Right Column - Features & Pricing */}
-                <div className="space-y-6">
-                  {/* Features/What's Included */}
-                  {(packageDetails.features || packageDetails.benefits) && (
-                    <div className="bg-white border border-gray-200 rounded-xl p-6">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                        <CheckCircle
-                          className="mr-2 text-emerald-600"
-                          size={20}
-                        />
-                        What's Included
-                      </h3>
-                      <div className="space-y-2">
-                        {(
-                          packageDetails.benefits ||
-                          packageDetails.features ||
-                          []
-                        ).map((item, index) => (
-                          <div key={index} className="flex items-start">
-                            <CheckCircle
-                              className="mr-2 mt-0.5 text-emerald-500 flex-shrink-0"
-                              size={16}
-                            />
-                            <span className="text-gray-700">
-                              {item.name || item}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Pricing Breakdown */}
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-emerald-900 mb-4 flex items-center">
-                      <Star className="mr-2 text-emerald-600" size={20} />
-                      Pricing Summary
-                    </h3>
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-emerald-700">
-                          {packageDetails.name} × {selectedPackageSize.size}
-                        </span>
-                        <span className="font-medium text-emerald-900">
-                          ₦
-                          {(
-                            parseFloat(packageDetails.price || 0) *
-                            parseInt(selectedPackageSize.size)
-                          ).toLocaleString()}
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between items-center">
-                        <span className="text-emerald-700">
-                          Price per person
-                        </span>
-                        <span className="font-medium text-emerald-900">
+                  <div className="flex-1 p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                          {packageDetails.name}
+                        </h2>
+                        <div className="text-3xl font-bold text-emerald-600">
                           ₦
                           {parseFloat(
                             packageDetails.price || 0
                           ).toLocaleString()}
-                        </span>
-                      </div>
-
-                      <div className="border-t border-emerald-200 pt-3">
-                        <div className="flex justify-between items-center">
-                          <span className="font-semibold text-emerald-900">
-                            Total Amount
-                          </span>
-                          <span className="font-bold text-xl text-emerald-600">
-                            ₦{calculateTotalPrice().toLocaleString()}
-                          </span>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Additional Information */}
-                  {packageDetails.terms_and_conditions && (
-                    <div className="bg-white border border-gray-200 rounded-xl p-6">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                        Terms & Conditions
-                      </h3>
-                      <div className="text-sm text-gray-600 space-y-2">
-                        {Array.isArray(packageDetails.terms_and_conditions) ? (
-                          packageDetails.terms_and_conditions.map(
-                            (term, index) => (
-                              <div key={index} className="flex items-start">
-                                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full mr-2 mt-2 flex-shrink-0"></div>
-                                <span>{term}</span>
-                              </div>
-                            )
-                          )
-                        ) : (
-                          <p>{packageDetails.terms_and_conditions}</p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Booking Summary */}
-              <div className="bg-white border border-gray-200 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  Booking Summary
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <div className="text-gray-600 mb-1">Date</div>
-                    <div className="font-medium text-gray-900">
-                      {new Date(selectedDate).toLocaleDateString()}
-                    </div>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <div className="text-gray-600 mb-1">Package</div>
-                    <div className="font-medium text-gray-900">
-                      {packageDetails.name}
-                    </div>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <div className="text-gray-600 mb-1">Group Size</div>
-                    <div className="font-medium text-gray-900">
-                      {selectedPackageSize.size} people
-                    </div>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <div className="text-gray-600 mb-1">Total Price</div>
-                    <div className="font-medium text-emerald-600 text-lg">
-                      ₦{calculateTotalPrice().toLocaleString()}
+                    <div>
+                      <h4 className="font-semibold text-gray-900 mb-2">
+                        Package Details
+                      </h4>
+                      <p className="text-gray-600 leading-relaxed">
+                        {packageDetails.description ||
+                          "Dive into our exhilarating activity package designed to provide you with a perfect blend of adventure and relaxation! Experience the thrill of archery as you aim for the bullseye, or test your skills at our state-of-the-art shooting ranges. For those who love the great outdoors, enjoy a scenic horse riding excursion through picturesque trails."}
+                      </p>
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* Benefits */}
+              {(packageDetails.benefits || packageDetails.features) && (
+                <div className="bg-white border border-gray-200 rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Benefits
+                  </h3>
+                  <ul className="space-y-2">
+                    {(
+                      packageDetails.benefits ||
+                      packageDetails.features ||
+                      []
+                    ).map((benefit, index) => (
+                      <li key={index} className="flex items-center">
+                        <div className="w-1.5 h-1.5 bg-gray-400 rounded-full mr-3"></div>
+                        <span className="text-gray-700">
+                          {benefit.name || benefit}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </>
           )}
         </div>

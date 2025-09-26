@@ -19,9 +19,9 @@ import UniversalBookingContext, {
  * Group Package Options Component
  * Second step: Horizontal scrolling list of package options
  */
-const GroupPackageOptions = () => {
+const GroupPackageOptions = ({ apiService, adapter }) => {
   const { state, dispatch } = useContext(UniversalBookingContext);
-  const { adapter, selectedDate, error, isLoading, selection } = state;
+  const { selectedDate, error, isLoading, selection } = state;
 
   // Local state
   const [packageOptions, setPackageOptions] = useState([]);
@@ -62,9 +62,7 @@ const GroupPackageOptions = () => {
           result.data.map((option) => ({
             id: option.id,
             name: option.title,
-            description:
-              option.description ||
-              `${option.title} package with great benefits`,
+            description: option.description,
             price: option.price,
             image_url: option.image,
             features: option.benefits ? option.benefits.map((b) => b.name) : [],
@@ -72,12 +70,6 @@ const GroupPackageOptions = () => {
             included: option.benefits ? option.benefits.map((b) => b.name) : [],
             duration: "Full day", // Default duration
             is_active: true,
-            // ADD: Store all the details we'll need later
-            detailed_description: option.description,
-            terms_and_conditions: [
-              "Booking is non-refundable after 24 hours",
-              "Please arrive 15 minutes early",
-            ],
           }))
         );
         console.log("✅ Package options loaded:", result.data);
@@ -313,25 +305,103 @@ const GroupPackageOptions = () => {
             <div className="flex-1 p-6">
               <div className="mb-4">
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Available Packages ({packageOptions.length})
+                  Package Options
                 </h3>
-                <p className="text-gray-600 text-sm">
-                  Scroll horizontally to browse all available options
-                </p>
               </div>
 
               <div className="relative">
-                <div className="flex space-x-6 overflow-x-auto pb-4 scrollbar-hide">
-                  {packageOptions.map(renderPackageOptionCard)}
-                </div>
+                <div className="flex space-x-4 overflow-x-auto pb-4 scrollbar-hide md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-6 md:space-x-0">
+                  {packageOptions.map((packageOption) => {
+                    const isSelected =
+                      selectedPackageOption?.id === packageOption.id;
+                    const isAvailable = packageOption.is_active;
 
-                {/* Scroll indicators */}
-                <div className="flex items-center justify-center mt-4 space-x-2">
-                  <ChevronLeft className="text-gray-400" size={20} />
-                  <span className="text-sm text-gray-500">
-                    Scroll to see more options
-                  </span>
-                  <ChevronRight className="text-gray-400" size={20} />
+                    return (
+                      <div
+                        key={packageOption.id}
+                        onClick={() =>
+                          isAvailable &&
+                          handlePackageOptionSelect(packageOption)
+                        }
+                        className={`flex-shrink-0 w-72 md:w-auto cursor-pointer rounded-xl transition-all duration-200 border-2 overflow-hidden ${
+                          !isAvailable
+                            ? "border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed"
+                            : isSelected
+                            ? "border-emerald-500 bg-emerald-50 shadow-lg"
+                            : "border-gray-200 hover:border-gray-300 hover:shadow-md"
+                        }`}
+                      >
+                        {/* Package Image */}
+                        <div className="relative h-40 bg-gradient-to-br from-emerald-400 to-emerald-600">
+                          {packageOption.image_url ? (
+                            <img
+                              src={packageOption.image_url}
+                              alt={packageOption.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-emerald-500 flex items-center justify-center">
+                              <div className="text-white text-center">
+                                <div className="text-2xl font-bold mb-1">
+                                  TOODUM
+                                </div>
+                                <div className="text-lg">TAKEAWAYS</div>
+                                <div className="mt-2">
+                                  <div className="w-8 h-0.5 bg-yellow-400 mx-auto mb-1"></div>
+                                  <div className="flex justify-center space-x-1">
+                                    <div className="w-1 h-4 bg-red-400"></div>
+                                    <div className="w-1 h-4 bg-yellow-400"></div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Price badge */}
+                          <div className="absolute top-4 right-4 bg-white bg-opacity-90 backdrop-blur-sm px-3 py-1 rounded-full">
+                            <span className="font-bold text-emerald-600">
+                              ₦
+                              {parseFloat(
+                                packageOption.price || 0
+                              ).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Package Info */}
+                        <div className="p-4">
+                          <h3 className="font-bold text-gray-900 text-lg mb-2">
+                            {packageOption.name}
+                          </h3>
+
+                          {/* Selected indicator */}
+                          <div className="flex items-center justify-between">
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                isAvailable
+                                  ? "bg-emerald-100 text-emerald-700"
+                                  : "bg-red-100 text-red-700"
+                              }`}
+                            >
+                              {isAvailable ? "Available" : "Not Available"}
+                            </span>
+
+                            <div
+                              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                                isSelected
+                                  ? "border-emerald-500 bg-emerald-500"
+                                  : "border-gray-300"
+                              }`}
+                            >
+                              {isSelected && (
+                                <div className="w-2 h-2 bg-white rounded-full" />
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -369,23 +439,26 @@ const GroupPackageOptions = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div>
                   <span className="text-emerald-700">Package:</span>
-                  <span className="ml-2 font-medium text-emerald-900">
-                    {selectedPackageOption.name}
-                  </span>
+                  <h3 className="font-bold text-gray-900 text-lg mb-2">
+                    {selectedPackageOption.name}{" "}
+                    {/* This should show "High Package" from your API */}
+                  </h3>
                 </div>
                 <div>
                   <span className="text-emerald-700">Price:</span>
-                  <span className="ml-2 font-medium text-emerald-900">
-                    ₦
-                    {parseFloat(
-                      selectedPackageOption.price || 0
-                    ).toLocaleString()}
-                  </span>
+                  <div className="mt-2">
+                    <span className="text-lg font-bold text-emerald-600">
+                      ₦
+                      {parseFloat(
+                        selectedPackageOption.price || 0
+                      ).toLocaleString()}
+                    </span>
+                  </div>
                 </div>
                 <div>
                   <span className="text-emerald-700">Duration:</span>
                   <span className="ml-2 font-medium text-emerald-900">
-                    {selectedPackageOption.duration || "Full day"}
+                    Full day
                   </span>
                 </div>
               </div>
