@@ -275,13 +275,6 @@ const FurnitureConfirmation = ({ adapter }) => {
                 {/* Action Buttons */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4">
                   <button
-                    onClick={() => window.print()}
-                    className="flex items-center justify-center space-x-2 bg-orange-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-orange-700 transition-colors"
-                  >
-                    <Printer size={16} />
-                    <span>Print Receipt</span>
-                  </button>
-                  <button
                     onClick={() => (window.location.href = "/")}
                     className="flex items-center justify-center space-x-2 bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors"
                   >

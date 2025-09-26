@@ -295,9 +295,9 @@ class FurnitureAdapter extends BusinessAdapter {
         throw new Error("Customer information is required");
       }
 
-      if (!bookingData.furniture_id) {
-        throw new Error("Furniture selection is required");
-      }
+      //   if (!bookingData.furniture_id) {
+      //     throw new Error("Furniture selection is required");
+      //   }
 
       if (!bookingData.session_id) {
         throw new Error("Session selection is required");

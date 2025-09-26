@@ -1,79 +1,67 @@
-// src/business-types/furniture/components/FurniturePersonalInfo.jsx
-import React, { useState, useEffect } from "react";
+// src/business-types/group/components/GroupPersonalInfo.jsx - Enhanced with Payment Verification
+import React, { useState, useEffect, useContext } from "react";
 import {
   ArrowLeft,
   User,
   Mail,
   Phone,
   CreditCard,
-  Shield,
-  CheckCircle,
   AlertCircle,
+  CheckCircle,
   Loader,
-  MessageSquare,
+  Users,
+  Calendar,
+  Package,
+  Shield,
 } from "lucide-react";
-import { useUniversalBooking } from "../../../core/UniversalStateManager";
-import { ActionTypes } from "../../../core/UniversalStateManager";
+import UniversalBookingContext, {
+  ActionTypes,
+} from "../../../core/UniversalStateManager";
 
-const FurniturePersonalInfo = ({ apiService, adapter }) => {
-  console.log("🪑 FurniturePersonalInfo component rendered", {
-    adapter,
-    apiService,
-  });
+const GroupPersonalInfo = ({ apiService, adapter }) => {
+  const { state, dispatch } = useContext(UniversalBookingContext);
+  const { selectedDate, error, isLoading, selection, customerInfo } = state;
 
-  const { state, dispatch, locationId } = useUniversalBooking();
-  const {
-    selectedFurniture,
-    selectedSession,
-    bookingData,
-    customerInfo,
-    totalAmount,
-    loading,
-    error,
-  } = state;
-
+  // Local state for form
   const [formData, setFormData] = useState({
-    firstName: customerInfo.firstName || "",
-    lastName: customerInfo.lastName || "",
-    email: customerInfo.email || "",
-    phone: customerInfo.phone || "",
+    firstName: customerInfo?.firstName || "",
+    lastName: customerInfo?.lastName || "",
+    email: customerInfo?.email || "",
+    phone: customerInfo?.phone || "",
   });
 
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [paymentStep, setPaymentStep] = useState("form"); // "form", "processing", "success", "error"
+  const [paymentStep, setPaymentStep] = useState("form"); // form, processing, redirecting, verifying, success, error
+
+  // Get selected data from state
+  const selectedPackageSize = selection?.packageSize;
+  const selectedPackageOption = selection?.packageOption;
+  const packageDetails = selection?.packageDetails || selectedPackageOption;
+
+  // Calculate total amount
+  const totalAmount =
+    packageDetails && selectedPackageSize
+      ? parseFloat(packageDetails.price || 0) *
+        parseInt(selectedPackageSize.size || 1)
+      : 0;
 
   // Format currency
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency: "NGN",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
+    return `₦${parseFloat(amount).toLocaleString()}`;
   };
 
-  // Format time
-  const formatTime = (timeString) => {
-    if (!timeString) return "";
-    try {
-      return new Date(`2000-01-01T${timeString}`).toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      });
-    } catch (error) {
-      return timeString;
-    }
+  // Format date
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "Not selected";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
   };
-
-  console.log("🪑 Furniture Personal Info State:", {
-    state,
-    locationId,
-    selectedFurniture,
-    selectedSession,
-    bookingData,
-  });
 
   // Handle input changes
   const handleInputChange = (field, value) => {
@@ -117,18 +105,15 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
 
     if (!formData.phone.trim()) {
       errors.phone = "Phone number is required";
-    } else if (!/^[+]?[\d\s\-\(\)]{10,}$/.test(formData.phone)) {
-      errors.phone = "Please enter a valid phone number";
     }
 
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
+    return errors;
   };
 
   // Verify payment and show success
   const verifyPaymentAndShowSuccess = async (reference) => {
     try {
-      console.log("🔍 Verifying payment:", reference);
+      console.log("🔍 Verifying group booking payment:", reference);
 
       const apiBaseUrl =
         process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:8000/api";
@@ -156,7 +141,7 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
         throw new Error(result.message || "Payment verification failed");
       }
     } catch (error) {
-      console.error("❌ Payment verification failed:", error);
+      console.error("❌ Group booking payment verification failed:", error);
       setPaymentStep("error");
       dispatch({
         type: ActionTypes.SET_ERROR,
@@ -167,19 +152,13 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
     }
   };
 
-  // Handle form submission and payment processing
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!validateForm()) {
-      return;
-    }
-
-    if (!selectedFurniture || !selectedSession) {
-      dispatch({
-        type: ActionTypes.SET_ERROR,
-        payload: "Missing furniture or session selection",
-      });
+    const errors = validateForm();
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
       return;
     }
 
@@ -189,45 +168,38 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
     dispatch({ type: ActionTypes.CLEAR_ERROR });
 
     try {
-      // UPDATED: Prepare booking data for new API format matching expected response
-      const furnitureBookingData = {
-        date: bookingData.date,
-        furniture_id: selectedFurniture.id,
-        furniture_name: selectedFurniture.name,
-        session_id: selectedSession.id,
-        session_name: selectedSession.session_name || selectedSession.name,
-        quantity: 1,
-        customer_info: {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
-          specialRequests: formData.specialRequests,
-        },
-        total_amount:
-          totalAmount ||
-          (selectedFurniture.price || 0) + (selectedSession.price || 0),
+      // Prepare booking data for group/package booking
+      const groupBookingData = {
+        platform: "web",
+        booking_type: "group_package",
+        package_id: packageDetails.id,
+        package_name: packageDetails.name,
+        selected_date: selectedDate,
+        group_size: selectedPackageSize.size,
+        email: formData.email,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        phone: formData.phone,
+        total_amount: totalAmount,
+        location_id: state.locationId,
       };
 
-      console.log(
-        "🪑 Submitting furniture booking data:",
-        furnitureBookingData
-      );
+      console.log("🏕️ Submitting group booking data:", groupBookingData);
 
       // Submit booking using adapter
-      const result = await adapter.createFurnitureBooking(furnitureBookingData);
+      const result = await adapter.createGroupBooking(groupBookingData);
 
-      // UPDATED: Handle new API response format {status, data: {booking, payment, customer}, msg, code}
-      if (result.success && result.data) {
+      // Handle response format {status, data: {booking, payment, customer}, msg}
+      if (result.status && result.data) {
         const { booking, payment, customer } = result.data;
 
-        // Store booking reference using booking_ref
+        // Store booking reference
         dispatch({
           type: ActionTypes.SET_BOOKING_REFERENCE,
           payload: booking.booking_ref,
         });
 
-        console.log("✅ Furniture booking created successfully:", {
+        console.log("✅ Group booking created successfully:", {
           booking_reference: booking.booking_ref,
           payment_url: payment.payment_url,
           booking_id: booking.id,
@@ -241,7 +213,7 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
 
         // Handle Paystack payment
         if (payment.payment_url) {
-          console.log("🔄 Opening Paystack payment popup...");
+          console.log("🔄 Opening Paystack payment popup for group booking...");
           setPaymentStep("redirecting");
 
           setTimeout(() => {
@@ -252,7 +224,10 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
               amount: booking.total_amount * 100, // Convert to kobo
               ref: payment.reference,
               callback: (transaction) => {
-                console.log("✅ Payment successful:", transaction);
+                console.log(
+                  "✅ Group booking payment successful:",
+                  transaction
+                );
                 setPaymentStep("verifying");
                 localStorage.setItem(
                   "payment_reference",
@@ -262,11 +237,11 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
                 verifyPaymentAndShowSuccess(transaction.reference);
               },
               onCancel: () => {
-                console.log("❌ Payment cancelled");
+                console.log("❌ Group booking payment cancelled");
                 setPaymentStep("form");
               },
               onClose: () => {
-                console.log("❌ Payment cancelled");
+                console.log("❌ Group booking payment cancelled");
                 setPaymentStep("form");
               },
             });
@@ -278,16 +253,16 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
         }
       } else {
         throw new Error(
-          result.error || result.msg || "Failed to create booking"
+          result.error || result.msg || "Failed to create group booking"
         );
       }
     } catch (error) {
-      console.error("❌ Furniture booking submission failed:", error);
+      console.error("❌ Group booking submission failed:", error);
       setPaymentStep("error");
       dispatch({
         type: ActionTypes.SET_ERROR,
         payload:
-          error.message || "Failed to process booking. Please try again.",
+          error.message || "Failed to process group booking. Please try again.",
       });
     } finally {
       setIsSubmitting(false);
@@ -295,21 +270,21 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
     }
   };
 
-  // Handle back button
+  // Handle back navigation
   const handleBack = () => {
     dispatch({
       type: ActionTypes.SET_CURRENT_STEP,
-      payload: "sessionSelection",
+      payload: "details",
     });
   };
 
-  // Payment processing overlay
+  // Processing state
   if (paymentStep === "processing") {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-emerald-600 mx-auto mb-6"></div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">
             Processing Your Booking
           </h3>
           <p className="text-gray-600">
@@ -320,20 +295,21 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
     );
   }
 
+  // Redirecting state
   if (paymentStep === "redirecting") {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle className="text-green-600" size={32} />
+          <div className="animate-pulse">
+            <CreditCard className="mx-auto mb-4 text-emerald-600" size={48} />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Booking Created Successfully!
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            Redirecting to Payment
           </h3>
           <p className="text-gray-600 mb-4">
             Redirecting you to secure payment page...
           </p>
-          <div className="flex items-center justify-center space-x-2 text-orange-600">
+          <div className="flex items-center justify-center space-x-2 text-emerald-600">
             <Loader className="animate-spin" size={20} />
             <span>Redirecting to Paystack...</span>
           </div>
@@ -342,6 +318,38 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
     );
   }
 
+  // Verifying payment state
+  if (paymentStep === "verifying") {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <div className="relative">
+            {/* Outer rotating circle */}
+            <div className="animate-spin rounded-full h-20 w-20 border-4 border-gray-200 border-t-emerald-600 mx-auto mb-6"></div>
+            {/* Inner pulsing circle */}
+            <div className="absolute top-2 left-1/2 transform -translate-x-1/2">
+              <div className="animate-pulse w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
+                <Shield className="text-emerald-600" size={24} />
+              </div>
+            </div>
+          </div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            Verifying Payment
+          </h3>
+          <p className="text-gray-600">
+            Please wait while we confirm your payment...
+          </p>
+          <div className="mt-4 bg-emerald-50 border border-emerald-200 rounded-lg p-3 max-w-md mx-auto">
+            <p className="text-sm text-emerald-700">
+              🔒 Your payment is being securely verified
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
   if (paymentStep === "error") {
     return (
       <div className="flex items-center justify-center h-full">
@@ -355,7 +363,7 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
           <p className="text-gray-600 mb-4">{error}</p>
           <button
             onClick={() => setPaymentStep("form")}
-            className="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700 transition-colors"
+            className="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700 transition-colors"
           >
             Try Again
           </button>
@@ -364,21 +372,6 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
     );
   }
 
-  if (paymentStep === "verifying") {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Verifying Payment
-          </h3>
-          <p className="text-gray-600">
-            Please wait while we confirm your payment...
-          </p>
-        </div>
-      </div>
-    );
-  }
   // Success state
   if (paymentStep === "success") {
     return (
@@ -391,7 +384,7 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
             Payment Successful!
           </h1>
           <p className="text-lg text-gray-600 mb-6">
-            Your furniture booking has been confirmed and payment processed
+            Your group booking has been confirmed and payment processed
             successfully.
           </p>
           <button
@@ -401,7 +394,7 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
                 payload: "confirmation",
               })
             }
-            className="w-full bg-orange-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-orange-700 transition-colors"
+            className="w-full bg-emerald-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-emerald-700 transition-colors"
           >
             View Booking Details
           </button>
@@ -411,325 +404,334 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="p-6 border-b border-gray-200">
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
         <button
           onClick={handleBack}
           className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors mb-4"
         >
           <ArrowLeft size={20} />
-          <span>Back to Sessions</span>
+          <span>Back to Package Details</span>
         </button>
 
-        <div className="mb-4">
-          <div className="flex items-center space-x-2 text-orange-600 mb-2">
-            <User size={20} />
-            <span className="text-sm font-medium">Personal Information</span>
-          </div>
+        <div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Enter your personal information
+            Enter your details to proceed with payment
           </h1>
           <p className="text-gray-600">
-            Please provide your details to complete the furniture booking
+            Complete your group booking for {packageDetails?.name}
           </p>
         </div>
       </div>
 
-      {/* Form Content */}
-      <div className="flex-1 p-6 overflow-y-auto">
-        <div className="max-w-3xl space-y-8">
-          {/* Error Display */}
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <div className="flex items-center">
-                <AlertCircle
-                  className="text-red-400 mr-2 flex-shrink-0"
-                  size={20}
-                />
-                <div>
-                  <h3 className="text-sm font-medium text-red-800">
-                    Booking Error
-                  </h3>
-                  <p className="mt-1 text-sm text-red-700">{error}</p>
+      {/* Main Content - THREE COLUMN LAYOUT */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* LEFT COLUMN - Personal Information Form */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Error Display */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex items-center">
+                  <AlertCircle
+                    className="text-red-400 mr-2 flex-shrink-0"
+                    size={20}
+                  />
+                  <div>
+                    <h3 className="text-sm font-medium text-red-800">
+                      Booking Error
+                    </h3>
+                    <p className="mt-1 text-sm text-red-700">{error}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Booking Summary */}
-          {selectedFurniture && selectedSession && bookingData?.date && (
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-              <h3 className="font-medium text-blue-900 mb-4">
-                Booking Summary
-              </h3>
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-blue-700">Date:</span>
-                  <span className="font-medium text-blue-900">
-                    {new Date(bookingData.date).toLocaleDateString("en-US", {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-blue-700">Furniture:</span>
-                  <span className="font-medium text-blue-900">
-                    {selectedFurniture.name}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-blue-700">Session:</span>
-                  <span className="font-medium text-blue-900">
-                    {selectedSession.name} (
-                    {formatTime(selectedSession.start_time)} -{" "}
-                    {formatTime(selectedSession.end_time)})
-                  </span>
-                </div>
-                <div className="flex justify-between border-t border-blue-200 pt-3 mt-3">
-                  <span className="text-blue-700 font-medium">
-                    Total Amount:
-                  </span>
-                  <span className="font-bold text-blue-900">
-                    {formatCurrency(
-                      totalAmount ||
-                        (selectedFurniture.price || 0) +
-                          (selectedSession.price || 0)
-                    )}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Personal Information Section */}
+            {/* Personal Information Form */}
             <div className="bg-white border border-gray-200 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <User className="mr-2" size={20} />
+              <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+                <User className="mr-2 text-emerald-600" size={20} />
                 Personal Information
               </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {/* First Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    First Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.firstName}
-                    onChange={(e) =>
-                      handleInputChange("firstName", e.target.value)
-                    }
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
-                      formErrors.firstName
-                        ? "border-red-500 bg-red-50"
-                        : "border-gray-300"
-                    }`}
-                    placeholder="Enter your first name"
-                  />
-                  {formErrors.firstName && (
-                    <p className="mt-1 text-sm text-red-600">
-                      {formErrors.firstName}
-                    </p>
-                  )}
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {/* First Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      First Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.firstName}
+                      onChange={(e) =>
+                        handleInputChange("firstName", e.target.value)
+                      }
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors ${
+                        formErrors.firstName
+                          ? "border-red-300 bg-red-50"
+                          : "border-gray-300"
+                      }`}
+                      placeholder="Enter your first name"
+                      disabled={isSubmitting}
+                    />
+                    {formErrors.firstName && (
+                      <p className="mt-1 text-sm text-red-600">
+                        {formErrors.firstName}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Last Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Last Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.lastName}
+                      onChange={(e) =>
+                        handleInputChange("lastName", e.target.value)
+                      }
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors ${
+                        formErrors.lastName
+                          ? "border-red-300 bg-red-50"
+                          : "border-gray-300"
+                      }`}
+                      placeholder="Enter your last name"
+                      disabled={isSubmitting}
+                    />
+                    {formErrors.lastName && (
+                      <p className="mt-1 text-sm text-red-600">
+                        {formErrors.lastName}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
-                {/* Last Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Last Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.lastName}
-                    onChange={(e) =>
-                      handleInputChange("lastName", e.target.value)
-                    }
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
-                      formErrors.lastName
-                        ? "border-red-500 bg-red-50"
-                        : "border-gray-300"
-                    }`}
-                    placeholder="Enter your last name"
-                  />
-                  {formErrors.lastName && (
-                    <p className="mt-1 text-sm text-red-600">
-                      {formErrors.lastName}
-                    </p>
-                  )}
-                </div>
-              </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {/* Email */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email Address *
+                    </label>
+                    <div className="relative">
+                      <Mail
+                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                        size={18}
+                      />
+                      <input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) =>
+                          handleInputChange("email", e.target.value)
+                        }
+                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors ${
+                          formErrors.email
+                            ? "border-red-300 bg-red-50"
+                            : "border-gray-300"
+                        }`}
+                        placeholder="Enter your email address"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                    {formErrors.email && (
+                      <p className="mt-1 text-sm text-red-600">
+                        {formErrors.email}
+                      </p>
+                    )}
+                  </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-6">
-                {/* Email */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email Address *
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
-                      formErrors.email
-                        ? "border-red-500 bg-red-50"
-                        : "border-gray-300"
-                    }`}
-                    placeholder="Enter your email address"
-                  />
-                  {formErrors.email && (
-                    <p className="mt-1 text-sm text-red-600">
-                      {formErrors.email}
-                    </p>
-                  )}
+                  {/* Phone */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Phone Number *
+                    </label>
+                    <div className="relative">
+                      <Phone
+                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                        size={18}
+                      />
+                      <input
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) =>
+                          handleInputChange("phone", e.target.value)
+                        }
+                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors ${
+                          formErrors.phone
+                            ? "border-red-300 bg-red-50"
+                            : "border-gray-300"
+                        }`}
+                        placeholder="Enter your phone number"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                    {formErrors.phone && (
+                      <p className="mt-1 text-sm text-red-600">
+                        {formErrors.phone}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
-                {/* Phone */}
+                {/* Submit Button */}
+                <div className="pt-4">
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || paymentStep === "processing"}
+                    className="w-full bg-emerald-600 text-white py-4 px-6 rounded-lg font-semibold hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader className="animate-spin mr-2" size={18} />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="mr-2" size={18} />
+                        Complete Payment
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Secure Payment Notice */}
+            <div className="bg-white border border-gray-200 rounded-xl p-6">
+              <div className="flex items-center">
+                <div className="bg-emerald-100 p-2 rounded-full mr-4">
+                  <CheckCircle className="text-emerald-600" size={20} />
+                </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number *
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => handleInputChange("phone", e.target.value)}
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
-                      formErrors.phone
-                        ? "border-red-500 bg-red-50"
-                        : "border-gray-300"
-                    }`}
-                    placeholder="Enter your phone number"
-                  />
-                  {formErrors.phone && (
-                    <p className="mt-1 text-sm text-red-600">
-                      {formErrors.phone}
-                    </p>
-                  )}
+                  <h4 className="font-medium text-gray-900">Secure Payment</h4>
+                  <p className="text-sm text-gray-600 mt-1">
+                    We accept cards and bank transfers through our secure
+                    payment gateway.
+                  </p>
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Payment Information */}
-            <div className="bg-white border border-gray-200 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <CreditCard className="mr-2" size={20} />
-                Payment Information
+          {/* RIGHT COLUMN - Booking Summary Sidebar */}
+          <div className="lg:col-span-1">
+            <div className="bg-white border border-gray-200 rounded-xl p-6 sticky top-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-6">
+                Booking Summary
               </h3>
 
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
-                <div className="flex items-start">
-                  <Shield
-                    className="text-orange-500 mr-2 flex-shrink-0 mt-0.5"
-                    size={16}
-                  />
-                  <div className="text-sm">
-                    <p className="text-orange-800 font-medium mb-1">
-                      Secure Payment with Paystack
+              {/* Selected Package */}
+              {packageDetails && (
+                <div className="space-y-4 mb-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Package className="mr-2 text-emerald-600" size={16} />
+                      <span className="text-sm font-medium text-gray-700">
+                        Package
+                      </span>
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h4 className="font-semibold text-gray-900 mb-1">
+                      {packageDetails.name}
+                    </h4>
+                    <p className="text-sm text-gray-600 mb-2">
+                      {packageDetails.description?.substring(0, 80)}...
                     </p>
-                    <p className="text-orange-700">
-                      Your payment is processed securely through Paystack. We
-                      accept all major cards and bank transfers.
-                    </p>
+                    <div className="text-emerald-600 font-semibold">
+                      {formatCurrency(packageDetails.price)}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Date */}
+              <div className="space-y-4 mb-6">
+                <div className="flex items-center">
+                  <Calendar className="mr-2 text-emerald-600" size={16} />
+                  <div>
+                    <div className="text-sm font-medium text-gray-700">
+                      Date
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {formatDate(selectedDate)}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Payment Summary */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="font-medium text-gray-900 mb-3">
-                  Payment Summary
-                </h4>
-                <div className="space-y-2 text-sm">
-                  {selectedFurniture && selectedFurniture.price > 0 && (
-                    <div className="flex justify-between">
+              {/* Group Size */}
+              {selectedPackageSize && (
+                <div className="space-y-4 mb-6">
+                  <div className="flex items-center">
+                    <Users className="mr-2 text-emerald-600" size={16} />
+                    <div>
+                      <div className="text-sm font-medium text-gray-700">
+                        Group Size
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {selectedPackageSize.size} people
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Price Breakdown */}
+              <div className="border-t border-gray-200 pt-4 space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Package Cost</span>
+                  <span className="text-gray-900">
+                    {formatCurrency(packageDetails?.price || 0)}
+                  </span>
+                </div>
+
+                {selectedPackageSize &&
+                  parseInt(selectedPackageSize.size) > 1 && (
+                    <div className="flex justify-between text-sm">
                       <span className="text-gray-600">
-                        Furniture ({selectedFurniture.name}):
+                        × {selectedPackageSize.size} people
                       </span>
                       <span className="text-gray-900">
-                        {formatCurrency(selectedFurniture.price)}
+                        {formatCurrency(totalAmount)}
                       </span>
                     </div>
                   )}
-                  {selectedSession && selectedSession.price > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">
-                        Session ({selectedSession.name}):
-                      </span>
-                      <span className="text-gray-900">
-                        {formatCurrency(selectedSession.price)}
-                      </span>
-                    </div>
-                  )}
-                  <div className="border-t border-gray-200 pt-2 mt-2">
-                    <div className="flex justify-between font-semibold">
-                      <span className="text-gray-900">Total Amount:</span>
-                      <span className="text-orange-600 text-lg">
-                        {formatCurrency(
-                          totalAmount ||
-                            (selectedFurniture?.price || 0) +
-                              (selectedSession?.price || 0)
-                        )}
-                      </span>
-                    </div>
+
+                <div className="border-t border-gray-200 pt-3">
+                  <div className="flex justify-between">
+                    <span className="font-semibold text-gray-900">Total</span>
+                    <span className="font-bold text-emerald-600 text-lg">
+                      {formatCurrency(totalAmount)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Methods */}
+              <div className="mt-6 pt-4 border-t border-gray-200">
+                <div className="text-center">
+                  <div className="text-sm text-gray-600 mb-2">
+                    Secure Payment Methods
+                  </div>
+                  <div className="flex justify-center items-center space-x-2 text-xs text-gray-500">
+                    <span>💳 Cards</span>
+                    <span>•</span>
+                    <span>🏦 Bank Transfer</span>
+                    <span>•</span>
+                    <span>📱 Mobile Money</span>
                   </div>
                 </div>
               </div>
             </div>
-
-            {/* Submit Button */}
-            <div className="bg-white border border-gray-200 rounded-xl p-6">
-              <button
-                type="submit"
-                disabled={isSubmitting || loading}
-                className={`w-full py-4 px-6 rounded-lg font-semibold text-lg transition-all duration-200 ${
-                  isSubmitting || loading
-                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    : "bg-orange-600 text-white hover:bg-orange-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                }`}
-              >
-                {isSubmitting || loading ? (
-                  <div className="flex items-center justify-center">
-                    <Loader className="animate-spin mr-2" size={20} />
-                    Processing...
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center">
-                    <CreditCard className="mr-2" size={20} />
-                    Proceed to Payment
-                  </div>
-                )}
-              </button>
-
-              <div className="mt-4 text-center">
-                <p className="text-xs text-gray-500">
-                  By proceeding, you agree to our terms and conditions. Your
-                  booking will be confirmed after successful payment.
-                </p>
-              </div>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="p-6 border-t border-gray-200">
-        <div className="flex justify-between">
-          <button
-            onClick={handleBack}
-            disabled={isSubmitting || loading}
-            className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Previous
-          </button>
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-export default FurniturePersonalInfo;
+export default GroupPersonalInfo;

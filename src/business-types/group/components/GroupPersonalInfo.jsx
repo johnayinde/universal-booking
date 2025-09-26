@@ -46,8 +46,7 @@ const GroupPersonalInfo = ({ apiService, adapter }) => {
   // Calculate total amount
   const totalAmount =
     packageDetails && selectedPackageSize
-      ? parseFloat(packageDetails.price || 0) *
-        parseInt(selectedPackageSize.size || 1)
+      ? parseFloat(packageDetails.price || 0)
       : 0;
 
   // Format currency
@@ -169,7 +168,6 @@ const GroupPersonalInfo = ({ apiService, adapter }) => {
 
       // Submit booking
       const result = await adapter.createBooking(bookingData);
-      console.log("result", result);
 
       // Handle response
       if (result.success && result.data) {
@@ -316,246 +314,231 @@ const GroupPersonalInfo = ({ apiService, adapter }) => {
 
       {/* Form Content */}
       <div className="flex-1 p-6 overflow-y-auto">
-        <div className="max-w-6xl grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Left Column - Form */}
-          <div className="lg:col-span-3">
-            {/* Error Display */}
-            {error && (
-              <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-                <div className="flex items-center">
-                  <AlertCircle
-                    className="text-red-400 mr-2 flex-shrink-0"
-                    size={20}
-                  />
-                  <div>
-                    <h3 className="text-sm font-medium text-red-800">
-                      Booking Error
-                    </h3>
-                    <p className="mt-1 text-sm text-red-700">{error}</p>
-                  </div>
+        <div className="max-w-3xl">
+          {/* Error Display */}
+          {error && (
+            <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+              <div className="flex items-center">
+                <AlertCircle
+                  className="text-red-400 mr-2 flex-shrink-0"
+                  size={20}
+                />
+                <div>
+                  <h3 className="text-sm font-medium text-red-800">
+                    Booking Error
+                  </h3>
+                  <p className="mt-1 text-sm text-red-700">{error}</p>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Personal Information */}
-              <div className="bg-white border border-gray-200 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                  <User className="mr-2" size={20} />
-                  Personal Information
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* First Name */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      First Name *
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.firstName}
-                      onChange={(e) =>
-                        handleInputChange("firstName", e.target.value)
-                      }
-                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors ${
-                        formErrors.firstName
-                          ? "border-red-300 bg-red-50"
-                          : "border-gray-300"
-                      }`}
-                      placeholder="Enter your first name"
-                    />
-                    {formErrors.firstName && (
-                      <p className="mt-1 text-sm text-red-600">
-                        {formErrors.firstName}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Last Name */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Last Name *
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.lastName}
-                      onChange={(e) =>
-                        handleInputChange("lastName", e.target.value)
-                      }
-                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors ${
-                        formErrors.lastName
-                          ? "border-red-300 bg-red-50"
-                          : "border-gray-300"
-                      }`}
-                      placeholder="Enter your last name"
-                    />
-                    {formErrors.lastName && (
-                      <p className="mt-1 text-sm text-red-600">
-                        {formErrors.lastName}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Email */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Email Address *
-                    </label>
-                    <div className="relative">
-                      <Mail
-                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                        size={18}
-                      />
-                      <input
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) =>
-                          handleInputChange("email", e.target.value)
-                        }
-                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors ${
-                          formErrors.email
-                            ? "border-red-300 bg-red-50"
-                            : "border-gray-300"
-                        }`}
-                        placeholder="Enter your email address"
-                      />
-                    </div>
-                    {formErrors.email && (
-                      <p className="mt-1 text-sm text-red-600">
-                        {formErrors.email}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Phone */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Phone Number *
-                    </label>
-                    <div className="relative">
-                      <Phone
-                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                        size={18}
-                      />
-                      <input
-                        type="tel"
-                        value={formData.phone}
-                        onChange={(e) =>
-                          handleInputChange("phone", e.target.value)
-                        }
-                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors ${
-                          formErrors.phone
-                            ? "border-red-300 bg-red-50"
-                            : "border-gray-300"
-                        }`}
-                        placeholder="Enter your phone number"
-                      />
-                    </div>
-                    {formErrors.phone && (
-                      <p className="mt-1 text-sm text-red-600">
-                        {formErrors.phone}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </form>
-          </div>
-
-          {/* Right Column - Booking Summary */}
-          <div className="lg:col-span-1">
-            <div className="bg-white border border-gray-200 rounded-xl p-6 sticky top-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Booking Summary
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Personal Information Section */}
+            <div className="bg-white border border-gray-200 rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <User className="mr-2" size={20} />
+                Personal Information
               </h3>
 
-              {/* Booking Details */}
-              {/* Date */}
-              <div className="flex items-center mb-4">
-                <Calendar className="mr-3 text-emerald-600" size={16} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {/* First Name */}
                 <div>
-                  <div className="text-sm font-medium text-gray-900">
-                    {selectedDate &&
-                      new Date(selectedDate).toLocaleDateString()}
-                  </div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    First Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.firstName}
+                    onChange={(e) =>
+                      handleInputChange("firstName", e.target.value)
+                    }
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors ${
+                      formErrors.firstName
+                        ? "border-red-500 bg-red-50"
+                        : "border-gray-300"
+                    }`}
+                    placeholder="Enter your first name"
+                  />
+                  {formErrors.firstName && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {formErrors.firstName}
+                    </p>
+                  )}
                 </div>
-              </div>
 
-              {/* Package */}
-              <div className="flex items-center mb-4">
-                <Package className="mr-3 text-emerald-600" size={16} />
+                {/* Last Name */}
                 <div>
-                  <div className="text-sm font-medium text-gray-900">
-                    {packageDetails?.name}
-                  </div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Last Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.lastName}
+                    onChange={(e) =>
+                      handleInputChange("lastName", e.target.value)
+                    }
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors ${
+                      formErrors.lastName
+                        ? "border-red-500 bg-red-50"
+                        : "border-gray-300"
+                    }`}
+                    placeholder="Enter your last name"
+                  />
+                  {formErrors.lastName && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {formErrors.lastName}
+                    </p>
+                  )}
                 </div>
-              </div>
 
-              {/* Group Size */}
-              <div className="flex items-center mb-6">
-                <Users className="mr-3 text-emerald-600" size={16} />
+                {/* Email */}
                 <div>
-                  <div className="text-sm font-medium text-gray-900">
-                    {selectedPackageSize?.size} people
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email Address *
+                  </label>
+                  <div className="relative">
+                    <Mail
+                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                      size={18}
+                    />
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) =>
+                        handleInputChange("email", e.target.value)
+                      }
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors ${
+                        formErrors.email
+                          ? "border-red-500 bg-red-50"
+                          : "border-gray-300"
+                      }`}
+                      placeholder="Enter your email address"
+                    />
                   </div>
+                  {formErrors.email && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {formErrors.email}
+                    </p>
+                  )}
+                </div>
+
+                {/* Phone */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Phone Number *
+                  </label>
+                  <div className="relative">
+                    <Phone
+                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                      size={18}
+                    />
+                    <input
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) =>
+                        handleInputChange("phone", e.target.value)
+                      }
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors ${
+                        formErrors.phone
+                          ? "border-red-500 bg-red-50"
+                          : "border-gray-300"
+                      }`}
+                      placeholder="Enter your phone number"
+                    />
+                  </div>
+                  {formErrors.phone && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {formErrors.phone}
+                    </p>
+                  )}
                 </div>
               </div>
-
-              {/* Price Calculation */}
-              <div className="space-y-2 mb-4 pt-4 border-t border-gray-200">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">
-                    × {selectedPackageSize?.size}
-                  </span>
-                  <span className="font-medium text-emerald-600 text-lg">
-                    ₦{parseFloat(packageDetails?.price || 0).toLocaleString()}
-                  </span>
-                </div>
-              </div>
-
-              <div className="pt-3 border-t border-gray-200 mb-6">
-                <div className="flex justify-between">
-                  <span className="font-semibold text-gray-900">Total</span>
-                  <span className="font-bold text-xl text-emerald-600">
-                    ₦{totalAmount.toLocaleString()}
-                  </span>
-                </div>
-              </div>
-
-              {/* Secure Payment Info */}
-              <div className="mb-6 p-4 bg-emerald-50 rounded-lg">
-                <h4 className="font-medium text-emerald-900 mb-2">
-                  Secure Payment
-                </h4>
-                <p className="text-sm text-emerald-700">
-                  We accept cards and bank transfers through our secure payment
-                  gateway.
-                </p>
-              </div>
-
-              {/* Payment Button */}
-              {/* Payment Button */}
-              <button
-                onClick={handleSubmit}
-                disabled={isSubmitting || !packageDetails}
-                className={`w-full py-3 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2 ${
-                  isSubmitting || !packageDetails
-                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg hover:shadow-xl"
-                }`}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader className="animate-spin" size={18} />
-                    <span>Processing...</span>
-                  </>
-                ) : (
-                  <>
-                    <CreditCard size={18} />
-                    <span>Complete Payment</span>
-                  </>
-                )}
-              </button>
             </div>
+
+            {/* Payment Information */}
+            <div className="bg-white border border-gray-200 rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <CreditCard className="mr-2" size={20} />
+                Payment Information
+              </h3>
+
+              {/* Payment Method Notice */}
+              <div className="p-4 bg-emerald-50 rounded-lg mb-4">
+                <div className="flex items-center">
+                  <CheckCircle className="mr-2 text-emerald-600" size={20} />
+                  <div>
+                    <h4 className="font-medium text-emerald-900">
+                      Secure Payment
+                    </h4>
+                    <p className="text-sm text-emerald-700 mt-1">
+                      We accept Cards and bank transfers.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Order Summary */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-gray-900">Order Summary</h4>
+
+                {/* Package Details */}
+                <div className="flex justify-between text-sm py-2">
+                  <span className="text-gray-600">
+                    {packageDetails?.name} × {selectedPackageSize?.size}
+                  </span>
+                  <span className="font-medium text-gray-900">
+                    {formatCurrency(totalAmount)}
+                  </span>
+                </div>
+
+                <div className="pt-3 border-t border-gray-200">
+                  <div className="flex justify-between">
+                    <span className="font-semibold text-gray-900">Total</span>
+                    <span className="font-bold text-xl text-emerald-600">
+                      {formatCurrency(totalAmount)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {/* Footer Actions */}
+      <div className="p-6 border-t border-gray-200 bg-gray-50">
+        <div className="flex items-center justify-between max-w-2xl">
+          <button
+            onClick={handleBack}
+            disabled={isSubmitting}
+            className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors disabled:opacity-50"
+          >
+            Back
+          </button>
+
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting || !packageDetails}
+              className={`px-8 py-3 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2 ${
+                isSubmitting || !packageDetails
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg hover:shadow-xl"
+              }`}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader className="animate-spin" size={18} />
+                  <span>Processing...</span>
+                </>
+              ) : (
+                <>
+                  <CreditCard size={18} />
+                  <span>Make Payment</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
