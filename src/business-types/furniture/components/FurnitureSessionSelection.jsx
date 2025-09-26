@@ -90,7 +90,7 @@ const FurnitureSessionSelection = ({ apiService, adapter }) => {
       setLoadingStep("availability");
       dispatch({ type: ActionTypes.CLEAR_ERROR });
 
-      // Check availability before selecting
+      // UPDATED: Check availability with new API format
       console.log("🪑 Checking availability for session:", session.id);
       const availability = await adapter.checkFurnitureAvailability(
         selectedFurniture.id,
@@ -98,8 +98,18 @@ const FurnitureSessionSelection = ({ apiService, adapter }) => {
         session.id
       );
 
-      if (availability.available) {
-        setSelectedSession(session);
+      // UPDATED: Handle new availability response format
+      console.log("📦 Availability data:", availability);
+
+      if (availability.available > 0) {
+        const updatedSession = {
+          ...session,
+          available_slots: availability.available,
+          total_slots: availability.total,
+          booked_slots: availability.booked,
+        };
+
+        setSelectedSession(updatedSession);
 
         // Calculate total amount
         const totalAmount =
@@ -108,36 +118,140 @@ const FurnitureSessionSelection = ({ apiService, adapter }) => {
         // Update global state
         dispatch({
           type: ActionTypes.SET_SELECTED_SESSION,
-          payload: session,
+          payload: updatedSession,
         });
 
         dispatch({
           type: ActionTypes.UPDATE_BOOKING_DATA,
           payload: {
             sessionId: session.id,
+            session_id: session.id, // ADDED: Include session_id for new API
+            session_name: session.session_name, // ADDED: Include session_name for new API
             totalAmount: totalAmount,
+            availability: {
+              total: availability.total,
+              booked: availability.booked,
+              available: availability.available,
+            },
           },
         });
 
-        console.log("🪑 Selected session:", session);
+        console.log("🪑 Selected session:", updatedSession);
         console.log("💰 Total amount:", totalAmount);
+        console.log("📊 Availability:", {
+          total: availability.total,
+          booked: availability.booked,
+          available: availability.available,
+        });
       } else {
         dispatch({
           type: ActionTypes.SET_ERROR,
-          payload:
-            "This session is no longer available. Please select another time slot.",
+          payload: `This session is fully booked (${availability.booked}/${availability.total} slots taken). Please select another time slot.`,
         });
       }
     } catch (error) {
       console.error("❌ Failed to select session:", error);
       dispatch({
         type: ActionTypes.SET_ERROR,
-        payload: error.message || "Failed to select session",
+        payload:
+          error.message ||
+          "Failed to check session availability. Please try again.",
       });
     } finally {
       setIsLoading(false);
       setLoadingStep("");
     }
+  };
+
+  // UPDATED: Session card rendering with new fields
+  const renderSessionCard = (session) => {
+    console.log("🪑 Rendering session card:", session);
+
+    const isSelected = selectedSession?.id === session.id;
+    // FIXED: Sessions are always clickable initially, availability checked on click
+    const isClickable = true;
+
+    return (
+      <div
+        key={session.id}
+        onClick={() => isClickable && handleSessionSelect(session)}
+        className={`cursor-pointer rounded-xl p-6 transition-all duration-200 border-2 ${
+          isSelected
+            ? "border-orange-500 bg-orange-50 shadow-lg"
+            : "border-gray-200 hover:border-gray-300 hover:shadow-md"
+        }`}
+      >
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Clock className="text-blue-600" size={20} />
+            </div>
+            <div>
+              {/* FIXED: Use session_name from API response */}
+              <h4 className="font-semibold text-gray-900">
+                {session.session_name || session.name}
+              </h4>
+              <p className="text-sm text-gray-600">
+                {formatTime(session.start_time)} -{" "}
+                {formatTime(session.end_time)}
+              </p>
+              {/* FIXED: Show duration_hours from API */}
+              <p className="text-xs text-gray-500">
+                Duration: {session.duration_hours} hours
+              </p>
+
+              {/* FIXED: Only show availability info AFTER it's been checked */}
+              {session.available_slots !== undefined &&
+                session.total_slots !== undefined && (
+                  <p className="text-xs text-gray-500">
+                    Available: {session.available_slots}/{session.total_slots}{" "}
+                    slots
+                  </p>
+                )}
+            </div>
+          </div>
+
+          <div className="text-right">
+            {session.price > 0 && (
+              <p className="font-bold text-lg text-gray-900">
+                {formatCurrency(session.price)}
+              </p>
+            )}
+
+            {/* FIXED: Only show availability badge AFTER availability check */}
+            {session.available_slots !== undefined && (
+              <div className="mt-1">
+                {session.available_slots > 0 ? (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    {session.available_slots} available
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    Fully booked
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* FIXED: Only show "fully booked" message if availability was checked and it's 0 */}
+        {session.available_slots !== undefined &&
+          session.available_slots === 0 && (
+            <div className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
+              Fully Booked - {session.booked_slots || 0}/
+              {session.total_slots || 0} slots taken
+            </div>
+          )}
+
+        {isSelected && (
+          <div className="flex items-center text-orange-600 text-sm">
+            <CheckCircle size={16} className="mr-1" />
+            Selected
+          </div>
+        )}
+      </div>
+    );
   };
 
   // Handle back button
@@ -158,31 +272,25 @@ const FurnitureSessionSelection = ({ apiService, adapter }) => {
       return;
     }
 
-    // Navigate to personal info - using correct step key
+    // FIXED: Check if session was verified as available
+    if (
+      selectedSession.available_slots !== undefined &&
+      selectedSession.available_slots === 0
+    ) {
+      dispatch({
+        type: ActionTypes.SET_ERROR,
+        payload:
+          "Selected session is no longer available. Please choose another time slot.",
+      });
+      return;
+    }
+
+    // Navigate to personal info
     dispatch({
       type: ActionTypes.SET_CURRENT_STEP,
-      payload: "booking", // This matches the booking step key
+      payload: "booking",
     });
   };
-
-  // Get session display class
-  const getSessionClass = (session) => {
-    const baseClass =
-      "cursor-pointer rounded-xl p-4 sm:p-6 transition-all duration-200 border-2 ";
-
-    if (!session.available || session.available_slots <= 0) {
-      return (
-        baseClass + "border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed"
-      );
-    }
-
-    if (selectedSession?.id === session.id) {
-      return baseClass + "border-orange-500 bg-orange-50 shadow-lg";
-    }
-
-    return baseClass + "border-gray-200 hover:border-gray-300 hover:shadow-md";
-  };
-
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
@@ -290,83 +398,7 @@ const FurnitureSessionSelection = ({ apiService, adapter }) => {
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {sessions.map((session) => (
-                  <div
-                    key={session.id}
-                    onClick={() => {
-                      if (session.available && session.available_slots > 0) {
-                        handleSessionSelect(session);
-                      }
-                    }}
-                    className={getSessionClass(session)}
-                  >
-                    {/* Session Header */}
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-semibold text-gray-900">
-                        {session.name}
-                      </h4>
-                      {selectedSession?.id === session.id && (
-                        <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
-                          <CheckCircle className="w-4 h-4 text-white" />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Time Range */}
-                    <div className="space-y-2 mb-4">
-                      <div className="flex items-center text-gray-600">
-                        <Clock size={14} className="mr-2" />
-                        <span className="text-sm">
-                          {formatTime(session.start_time)} -{" "}
-                          {formatTime(session.end_time)}
-                        </span>
-                      </div>
-
-                      {/* Availability Info */}
-                      {session.available_slots !== undefined && (
-                        <div className="flex items-center text-gray-600">
-                          <Users size={14} className="mr-2" />
-                          <span className="text-sm">
-                            {session.available_slots > 0
-                              ? `${session.available_slots} slots available`
-                              : "Fully booked"}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Price */}
-                    {session.price > 0 && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">
-                          Session Fee:
-                        </span>
-                        <span className="font-semibold text-orange-600">
-                          {formatCurrency(session.price)}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Availability Status */}
-                    {!session.available || session.available_slots <= 0 ? (
-                      <div className="mt-3 text-center">
-                        <span className="text-sm text-red-600 font-medium">
-                          {session.available_slots <= 0
-                            ? "Fully Booked"
-                            : "Unavailable"}
-                        </span>
-                      </div>
-                    ) : (
-                      selectedSession?.id === session.id && (
-                        <div className="mt-3 text-center">
-                          <span className="text-sm text-orange-600 font-medium">
-                            Selected
-                          </span>
-                        </div>
-                      )
-                    )}
-                  </div>
-                ))}
+                {sessions.map(renderSessionCard)}
               </div>
             </div>
           )}
@@ -381,7 +413,12 @@ const FurnitureSessionSelection = ({ apiService, adapter }) => {
               <p className="text-gray-600 mb-4">
                 No time slots are available for {selectedFurniture?.name} on{" "}
                 {bookingData?.date
-                  ? new Date(bookingData.date).toLocaleDateString()
+                  ? new Date(bookingData.date).toLocaleDateString("en-US", {
+                      weekday: "long",
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })
                   : "the selected date"}
                 .
               </p>
@@ -406,7 +443,7 @@ const FurnitureSessionSelection = ({ apiService, adapter }) => {
                 <div className="flex justify-between">
                   <span className="text-green-700">Time Slot:</span>
                   <span className="font-medium text-green-900">
-                    {selectedSession.name}
+                    {selectedSession.session_name || selectedSession.name}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -416,6 +453,22 @@ const FurnitureSessionSelection = ({ apiService, adapter }) => {
                     {formatTime(selectedSession.end_time)}
                   </span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-green-700">Duration:</span>
+                  <span className="font-medium text-green-900">
+                    {selectedSession.duration_hours} hours
+                  </span>
+                </div>
+                {/* Show availability if checked */}
+                {selectedSession.available_slots !== undefined && (
+                  <div className="flex justify-between">
+                    <span className="text-green-700">Availability:</span>
+                    <span className="font-medium text-green-900">
+                      {selectedSession.available_slots}/
+                      {selectedSession.total_slots} available
+                    </span>
+                  </div>
+                )}
                 {selectedSession.price > 0 && (
                   <div className="flex justify-between">
                     <span className="text-green-700">Session Fee:</span>

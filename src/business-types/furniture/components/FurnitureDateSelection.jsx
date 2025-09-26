@@ -109,6 +109,88 @@ const FurnitureDateSelection = ({ apiService, adapter }) => {
     });
   };
 
+  const renderFurnitureCard = (furniture) => {
+    const isSelected = selectedFurniture?.id === furniture.id;
+    const isAvailable =
+      furniture.is_active &&
+      furniture.available_number > furniture.reserved_number;
+    const availableSlots =
+      furniture.available_number - furniture.reserved_number;
+
+    return (
+      <div
+        key={furniture.id}
+        onClick={() => isAvailable && handleFurnitureSelect(furniture)}
+        className={`cursor-pointer rounded-xl p-6 transition-all duration-200 border-2 ${
+          !isAvailable
+            ? "border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed"
+            : isSelected
+            ? "border-orange-500 bg-orange-50 shadow-lg"
+            : "border-gray-200 hover:border-gray-300 hover:shadow-md"
+        }`}
+      >
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-orange-100 rounded-lg">
+              <Armchair className="text-orange-600" size={24} />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900 text-lg">
+                {furniture.name}
+              </h3>
+              <p className="text-sm text-gray-600">{furniture.description}</p>
+            </div>
+          </div>
+          {isSelected && (
+            <div className="p-1 bg-orange-500 rounded-full">
+              <ChevronRight className="text-white" size={16} />
+            </div>
+          )}
+        </div>
+
+        {/* UPDATED: Show new API fields */}
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between items-center">
+            <span className="text-gray-600">Available:</span>
+            <span
+              className={`font-medium ${
+                isAvailable ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {availableSlots} / {furniture.available_number}
+            </span>
+          </div>
+
+          {furniture.features && Object.keys(furniture.features).length > 0 && (
+            <div className="space-y-1">
+              <span className="text-gray-600 text-xs">Features:</span>
+              <div className="flex flex-wrap gap-1">
+                {Object.entries(furniture.features).map(([key, value]) => (
+                  <span
+                    key={key}
+                    className="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded"
+                  >
+                    {key}: {value}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!isAvailable && (
+            <div className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
+              Not available - Fully booked
+            </div>
+          )}
+
+          <div className="text-xs text-gray-500">
+            Reserved: {furniture.reserved_number}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Get minimum date (today)
   const getMinDate = () => {
     const today = new Date();
@@ -205,70 +287,17 @@ const FurnitureDateSelection = ({ apiService, adapter }) => {
             {/* Furniture List */}
             {!isLoading && furnitureList.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {furnitureList.map((furniture) => (
-                  <div
-                    key={furniture.id}
-                    onClick={() => handleFurnitureSelect(furniture)}
-                    className={`cursor-pointer rounded-xl p-6 transition-all duration-200 border-2 ${
-                      selectedFurniture?.id === furniture.id
-                        ? "border-orange-500 bg-orange-50 shadow-lg"
-                        : "border-gray-200 hover:border-gray-300 hover:shadow-md"
-                    }`}
-                  >
-                    {/* Furniture Image */}
-                    {furniture.image_url && (
-                      <div className="w-full h-32 mb-4 rounded-lg overflow-hidden bg-gray-100">
-                        <img
-                          src={furniture.image_url}
-                          alt={furniture.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
-
-                    {/* Furniture Info */}
-                    <div className="space-y-2">
-                      <div className="flex items-start justify-between">
-                        <h4 className="font-semibold text-gray-900">
-                          {furniture.name}
-                        </h4>
-                        {selectedFurniture?.id === furniture.id && (
-                          <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
-                            <ChevronRight className="w-3 h-3 text-white" />
-                          </div>
-                        )}
-                      </div>
-
-                      {furniture.description && (
-                        <p className="text-sm text-gray-600">
-                          {furniture.description}
-                        </p>
-                      )}
-
-                      {/* Capacity & Price */}
-                      <div className="flex items-center justify-between">
-                        {furniture.max_capacity && (
-                          <div className="flex items-center text-sm text-gray-500">
-                            <Users size={14} className="mr-1" />
-                            <span>Max {furniture.max_capacity} people</span>
-                          </div>
-                        )}
-
-                        {furniture.price > 0 && (
-                          <div className="text-lg font-semibold text-orange-600">
-                            {formatCurrency(furniture.price)}
-                          </div>
-                        )}
-                      </div>
-
-                      {!furniture.available && (
-                        <div className="text-sm text-red-600 font-medium">
-                          Currently unavailable
-                        </div>
-                      )}
-                    </div>
+                {furnitureList.length > 0 ? (
+                  <div className="grid gap-4">
+                    {furnitureList.map(renderFurnitureCard)}
                   </div>
-                ))}
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">
+                      No furniture available for this location
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 

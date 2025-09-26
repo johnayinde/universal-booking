@@ -1,31 +1,30 @@
 // src/business-types/furniture/components/FurnitureConfirmation.jsx
-import React from "react";
-import { useUniversalBooking } from "../../../core/UniversalStateManager";
+import React, { useEffect, useState } from "react";
 import {
   CheckCircle,
-  Download,
-  Mail,
+  AlertCircle,
+  Loader,
   Calendar,
-  MapPin,
-  Users,
-  Armchair,
-  Phone,
   Clock,
+  Armchair,
+  User,
+  Mail,
+  Phone,
   CreditCard,
+  Download,
+  Printer,
+  Home,
 } from "lucide-react";
-import { ActionTypes } from "../../../core/UniversalStateManager";
+import { useUniversalBooking } from "../../../core/UniversalStateManager";
 
-const FurnitureConfirmation = () => {
-  const { state, dispatch } = useUniversalBooking();
+const FurnitureConfirmation = ({ adapter }) => {
+  const { state } = useUniversalBooking();
+  const { bookingReference, selectedFurniture, selectedSession, bookingData } =
+    state;
 
-  // Get data from state
-  const selectedFurniture = state.selectedFurniture;
-  const selectedSession = state.selectedSession;
-  const bookingData = state.bookingData;
-  const bookingRef =
-    state.bookingReference || "FB-" + Date.now().toString().slice(-8);
-  const customerInfo = state.customerInfo;
-  const totalAmount = state.totalAmount || state.bookingData?.totalAmount;
+  const [verificationStatus, setVerificationStatus] = useState("verifying");
+  const [paymentData, setPaymentData] = useState(null);
+  const [error, setError] = useState("");
 
   // Format currency
   const formatCurrency = (amount) => {
@@ -51,293 +50,290 @@ const FurnitureConfirmation = () => {
     }
   };
 
-  const handleCloseWidget = () => {
-    dispatch({ type: ActionTypes.SET_WIDGET_OPEN, payload: false });
+  // Format date
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    try {
+      return new Date(dateString).toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    } catch (error) {
+      return dateString;
+    }
   };
 
-  const handleNewBooking = () => {
-    dispatch({ type: ActionTypes.RESET_BOOKING });
+  useEffect(() => {
+    verifyPayment();
+  }, []);
+
+  const verifyPayment = async () => {
+    try {
+      // Get payment reference from localStorage (set during payment)
+      const paymentRef = localStorage.getItem("payment_reference");
+
+      if (!paymentRef) {
+        throw new Error("No payment reference found");
+      }
+
+      console.log("🔍 Verifying furniture booking payment:", paymentRef);
+
+      // Call verification endpoint
+      const apiBaseUrl =
+        process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:8000/api";
+      const response = await fetch(
+        `${apiBaseUrl}/payment/verify?reference=${paymentRef}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.success && result.data.status === "success") {
+        setPaymentData(result.data);
+        setVerificationStatus("success");
+
+        // Clear stored payment reference
+        localStorage.removeItem("payment_reference");
+
+        console.log(
+          "✅ Furniture booking payment verified successfully:",
+          result.data
+        );
+      } else {
+        throw new Error(result.message || "Payment verification failed");
+      }
+    } catch (error) {
+      console.error("❌ Furniture booking payment verification failed:", error);
+      setError(error.message);
+      setVerificationStatus("failed");
+    }
   };
 
-  // This component fits into the center column of the three-column layout
-  return (
-    <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="p-6 border-b border-gray-200">
-        <div className="mb-4">
-          <div className="flex items-center space-x-2 text-green-600 mb-2">
-            <CheckCircle size={20} />
-            <span className="text-sm font-medium">Confirmation</span>
+  // Verifying state
+  if (verificationStatus === "verifying") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="max-w-md w-full mx-4">
+          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-600 mx-auto mb-6"></div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Verifying Your Payment
+            </h1>
+            <p className="text-gray-600">
+              Please wait while we confirm your furniture booking payment...
+            </p>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Booking Confirmed!
-          </h1>
-          <p className="text-gray-600">
-            Your furniture booking has been successfully confirmed.
-          </p>
         </div>
       </div>
+    );
+  }
 
-      {/* Content */}
-      <div className="flex-1 p-6 overflow-y-auto">
-        <div className="max-w-4xl space-y-6">
-          {/* Success Icon & Message */}
-          <div className="text-center">
-            <div className="mx-auto w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
-              <CheckCircle className="w-10 h-10 text-green-600" />
-            </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">
-              Booking Confirmed!
-            </h2>
-            <p className="text-gray-600 mb-4">
-              Your furniture booking has been successfully confirmed.
-            </p>
-          </div>
-
-          {/* Booking Reference */}
-          <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
-            <h3 className="text-sm font-medium text-green-800 mb-2">
-              Booking Reference:
-            </h3>
-            <p className="text-2xl font-bold text-green-900 font-mono">
-              {bookingRef}
-            </p>
-          </div>
-
-          {/* Booking Details */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Booking Details
-            </h3>
-
-            {/* Customer Information */}
-            {customerInfo &&
-              (customerInfo.firstName ||
-                customerInfo.lastName ||
-                customerInfo.email) && (
-                <div className="mb-6">
-                  <h4 className="flex items-center text-gray-900 font-medium mb-3">
-                    <Users className="w-4 h-4 mr-2" />
-                    Customer Information
-                  </h4>
-                  <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
-                    {(customerInfo.firstName || customerInfo.lastName) && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Name:</span>
-                        <span className="text-gray-900 font-medium">
-                          {customerInfo.firstName} {customerInfo.lastName}
-                        </span>
-                      </div>
-                    )}
-                    {customerInfo.email && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Email:</span>
-                        <span className="text-gray-900 font-medium">
-                          {customerInfo.email}
-                        </span>
-                      </div>
-                    )}
-                    {customerInfo.phone && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Phone:</span>
-                        <span className="text-gray-900 font-medium">
-                          {customerInfo.phone}
-                        </span>
-                      </div>
-                    )}
-                    {customerInfo.guests && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Guests:</span>
-                        <span className="text-gray-900 font-medium">
-                          {customerInfo.guests}{" "}
-                          {customerInfo.guests === 1 ? "person" : "people"}
-                        </span>
-                      </div>
-                    )}
-                    {customerInfo.specialRequests && (
-                      <div className="mt-3 pt-3 border-t border-gray-200">
-                        <span className="text-gray-600 block mb-1">
-                          Special Requests:
-                        </span>
-                        <span className="text-gray-900">
-                          {customerInfo.specialRequests}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-            {/* Booking Information */}
-            <div className="mb-6">
-              <h4 className="flex items-center text-gray-900 font-medium mb-3">
-                <Calendar className="w-4 h-4 mr-2" />
-                Booking Information
-              </h4>
-              <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
-                {bookingData?.date && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Date:</span>
-                    <span className="text-gray-900 font-medium">
-                      {new Date(bookingData.date).toLocaleDateString("en-US", {
-                        weekday: "long",
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </span>
-                  </div>
-                )}
-                {selectedFurniture && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Furniture:</span>
-                    <span className="text-gray-900 font-medium">
-                      {selectedFurniture.name}
-                    </span>
-                  </div>
-                )}
-                {selectedSession && (
-                  <>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Session:</span>
-                      <span className="text-gray-900 font-medium">
-                        {selectedSession.name}
-                      </span>
-                    </div>
-                    {(selectedSession.start_time ||
-                      selectedSession.end_time) && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Time:</span>
-                        <span className="text-gray-900 font-medium">
-                          {formatTime(selectedSession.start_time)} -{" "}
-                          {formatTime(selectedSession.end_time)}
-                        </span>
-                      </div>
-                    )}
-                  </>
-                )}
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Status:</span>
-                  <span className="text-green-600 font-medium">Confirmed</span>
-                </div>
+  // Success state
+  if (verificationStatus === "success") {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-2xl mx-auto px-4">
+          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+            {/* Success Header */}
+            <div className="bg-green-50 p-6 text-center border-b border-green-200">
+              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-10 h-10 text-green-600" />
               </div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                Furniture Booking Confirmed!
+              </h1>
+              <p className="text-lg text-gray-600">
+                Your payment has been processed successfully
+              </p>
             </div>
 
-            {/* Payment Information */}
-            {totalAmount && (
-              <div className="mb-6">
-                <h4 className="flex items-center text-gray-900 font-medium mb-3">
-                  <CreditCard className="w-4 h-4 mr-2" />
-                  Payment Information
-                </h4>
-                <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
-                  {selectedFurniture?.price > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Furniture Fee:</span>
-                      <span className="text-gray-900 font-medium">
-                        {formatCurrency(selectedFurniture.price)}
-                      </span>
-                    </div>
-                  )}
-                  {selectedSession?.price > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Session Fee:</span>
-                      <span className="text-gray-900 font-medium">
-                        {formatCurrency(selectedSession.price)}
-                      </span>
-                    </div>
-                  )}
-                  <div className="border-t border-gray-200 pt-2 mt-2">
-                    <div className="flex justify-between">
-                      <span className="text-gray-900 font-semibold">
-                        Total Paid:
-                      </span>
-                      <span className="text-green-600 font-bold text-lg">
-                        {formatCurrency(totalAmount)}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Payment Status:</span>
-                    <span className="text-green-600 font-medium">Paid</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Location Information */}
-            <div className="mb-6">
-              <h4 className="flex items-center text-gray-900 font-medium mb-3">
-                <MapPin className="w-4 h-4 mr-2" />
-                Location
-              </h4>
-              <div className="bg-gray-50 rounded-lg p-4 text-sm">
-                <p className="text-gray-900 font-medium">Nike Lake Resort</p>
-                <p className="text-gray-600">Enugu, Nigeria</p>
-                <p className="text-gray-600 mt-2">
-                  Please arrive 15 minutes before your scheduled time.
+            <div className="p-6">
+              {/* Booking Reference */}
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
+                <h3 className="font-semibold text-orange-900 mb-2 flex items-center">
+                  <CreditCard className="mr-2" size={16} />
+                  Booking Reference
+                </h3>
+                <p className="text-orange-800 font-mono text-lg">
+                  {bookingReference ||
+                    localStorage.getItem("booking_reference") ||
+                    "FT-XXXXXXX"}
+                </p>
+                <p className="text-orange-700 text-sm mt-1">
+                  Please save this reference for your records
                 </p>
               </div>
-            </div>
-          </div>
 
-          {/* Action Buttons */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              What's Next?
-            </h3>
+              {/* Booking Details */}
+              <div className="space-y-6">
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
+                    <Calendar className="mr-2" size={16} />
+                    Booking Details
+                  </h3>
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Date:</span>
+                      <span className="font-medium">
+                        {formatDate(bookingData?.date)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Furniture:</span>
+                      <span className="font-medium">
+                        {selectedFurniture?.name}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Session:</span>
+                      <span className="font-medium">
+                        {selectedSession?.session_name || selectedSession?.name}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Time:</span>
+                      <span className="font-medium">
+                        {formatTime(selectedSession?.start_time)} -{" "}
+                        {formatTime(selectedSession?.end_time)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Duration:</span>
+                      <span className="font-medium">
+                        {selectedSession?.duration_hours} hours
+                      </span>
+                    </div>
+                  </div>
+                </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Download/Email Buttons */}
-              <button className="flex items-center justify-center space-x-2 bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors">
-                <Mail size={20} />
-                <span>Email Confirmation</span>
-              </button>
+                {/* Payment Details */}
+                {paymentData && (
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
+                      <CreditCard className="mr-2" size={16} />
+                      Payment Details
+                    </h3>
+                    <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Amount Paid:</span>
+                        <span className="font-bold text-green-600">
+                          {formatCurrency(paymentData.amount / 100)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Payment Method:</span>
+                        <span className="font-medium">
+                          {paymentData.channel} (
+                          {paymentData.authorization?.brand || "Card"})
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Transaction ID:</span>
+                        <span className="font-mono text-sm">
+                          {paymentData.reference}
+                        </span>
+                      </div>
+                      {paymentData.customer && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Customer:</span>
+                          <span className="font-medium">
+                            {paymentData.customer.first_name}{" "}
+                            {paymentData.customer.last_name}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
-              <button className="flex items-center justify-center space-x-2 bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors">
-                <Download size={20} />
-                <span>Download Receipt</span>
-              </button>
-            </div>
+                {/* What's Next */}
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-3">
+                    What's Next?
+                  </h3>
+                  <ul className="text-sm text-gray-600 space-y-1">
+                    <li>
+                      • A confirmation email will be sent to{" "}
+                      {paymentData?.customer?.email}
+                    </li>
+                    <li>• Arrive 15 minutes before your session time</li>
+                    <li>• Present your booking reference at check-in</li>
+                    <li>
+                      • Contact support if you need to modify your booking
+                    </li>
+                  </ul>
+                </div>
 
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <button
-                onClick={handleNewBooking}
-                className="flex items-center justify-center space-x-2 bg-orange-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-orange-700 transition-colors"
-              >
-                <Armchair size={20} />
-                <span>New Booking</span>
-              </button>
-
-              <button
-                onClick={handleCloseWidget}
-                className="flex items-center justify-center py-3 px-4 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-              >
-                <span>Close</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Important Notes */}
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-            <h4 className="flex items-center text-blue-900 font-medium mb-3">
-              <Clock className="w-4 h-4 mr-2" />
-              Important Information
-            </h4>
-            <div className="space-y-2 text-sm text-blue-800">
-              <p>
-                • Please arrive 15 minutes before your scheduled session time
-              </p>
-              <p>• Bring a valid ID for verification</p>
-              <p>• Contact us at least 24 hours in advance for any changes</p>
-              <p>• Late arrivals may result in reduced session time</p>
-              <p>• Full refund available if cancelled 48 hours in advance</p>
+                {/* Action Buttons */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4">
+                  <button
+                    onClick={() => window.print()}
+                    className="flex items-center justify-center space-x-2 bg-orange-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-orange-700 transition-colors"
+                  >
+                    <Printer size={16} />
+                    <span>Print Receipt</span>
+                  </button>
+                  <button
+                    onClick={() => (window.location.href = "/")}
+                    className="flex items-center justify-center space-x-2 bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                  >
+                    <Home size={16} />
+                    <span>Back to Home</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  // Failed state
+  if (verificationStatus === "failed") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="max-w-md w-full mx-4">
+          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertCircle className="w-10 h-10 text-red-600" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Payment Verification Failed
+            </h1>
+            <p className="text-lg text-gray-600 mb-6">
+              {error ||
+                "We couldn't verify your payment. Please contact support."}
+            </p>
+            <div className="space-y-3">
+              <button
+                onClick={() => window.location.reload()}
+                className="w-full bg-orange-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-orange-700 transition-colors"
+              >
+                Try Again
+              </button>
+              <button
+                onClick={() => (window.location.href = "/")}
+                className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+              >
+                Back to Home
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 };
 
 export default FurnitureConfirmation;

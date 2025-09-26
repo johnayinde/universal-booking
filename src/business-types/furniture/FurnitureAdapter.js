@@ -118,44 +118,55 @@ class FurnitureAdapter extends BusinessAdapter {
       const data = await response.json();
       console.log("📦 Raw furniture response:", data);
 
-      // Transform the response data
+      // Handle the new API response format
       let furniture = [];
-      if (Array.isArray(data)) {
-        furniture = data;
-      } else if (data.data && Array.isArray(data.data)) {
+      if (data.status && data.data && Array.isArray(data.data)) {
         furniture = data.data;
+      } else if (Array.isArray(data)) {
+        furniture = data;
       } else {
-        throw new Error("Invalid response format - expected array");
+        throw new Error(
+          "Invalid response format - expected {status, data} structure"
+        );
       }
 
       const transformedFurniture = furniture.map((item) => ({
         id: item.id,
-        name: item.name || "Furniture Item",
-        description: item.description || "Available furniture",
-        price: parseFloat(item.price) || 0,
+        landmark_location_id: item.landmark_location_id,
+        name: item.name || "",
+        description: item.description || "",
+        is_active: item.is_active,
+        available_number: item.available_number || 0,
+        reserved_number: item.reserved_number || 0,
         image_url: item.image_url,
-        max_capacity: item.max_capacity || 8,
-        available: item.available !== false,
+        features: item.features || {},
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+        // For compatibility with existing code
+        // price: 0, // Price comes from sessions
+        // max_capacity: item.available_number || 8,
+        // available:
+        //   item.is_active && item.available_number > item.reserved_number,
       }));
 
       console.log("✅ Furniture list loaded:", transformedFurniture);
       return transformedFurniture;
     } catch (error) {
-      console.error("❌ Failed to fetch furniture list:", error);
+      console.error("❌ Failed to load furniture list:", error);
       throw error;
     }
   }
 
   /**
-   * Get available sessions for selected furniture and date
+   * Get available sessions for furniture and date
    */
-  async getFurnitureSessions(date, furnitureId) {
+  async getFurnitureSessions(date, furnitureId, platform = "web") {
     try {
       console.log(
         `🪑 Fetching sessions for furniture ${furnitureId} on ${date}`
       );
 
-      const url = `${this.apiBaseUrl}/booking/furniture/sessions?date=${date}&furniture_id=${furnitureId}&platform=web`;
+      const url = `${this.apiBaseUrl}/booking/furniture/sessions?date=${date}&furniture_id=${furnitureId}&platform=${platform}`;
       console.log("📡 Sessions API URL:", url);
 
       const response = await fetch(url, {
@@ -173,40 +184,42 @@ class FurnitureAdapter extends BusinessAdapter {
       const data = await response.json();
       console.log("📦 Raw sessions response:", data);
 
-      // Transform the response data
+      // Handle the new API response format
       let sessions = [];
-      if (Array.isArray(data)) {
-        sessions = data;
-      } else if (data.data && Array.isArray(data.data)) {
+      if (data.status && data.data && Array.isArray(data.data)) {
         sessions = data.data;
-      } else if (data.sessions && Array.isArray(data.sessions)) {
-        sessions = data.sessions;
+      } else if (Array.isArray(data)) {
+        sessions = data;
       } else {
-        throw new Error("Invalid response format - expected array");
+        throw new Error("Invalid sessions response format");
       }
 
       const transformedSessions = sessions.map((session) => ({
         id: session.id,
-        name: session.session_name || `Session ${session.id}`,
+        session_name: session.session_name,
         start_time: session.start_time,
         end_time: session.end_time,
         duration_hours: session.duration_hours,
         price: parseFloat(session.price) || 0,
-        available_slots: session.available_slots || 0,
-        max_capacity: session.max_capacity || 8,
-        available: session.available !== false && session.available_slots > 0,
+        // For compatibility with existing code
+        // name: session.session_name,
+        // available: true, // Will be checked separately with availability endpoint
+        // available_slots: 1, // Default, real availability checked separately
       }));
 
-      console.log("✅ Furniture sessions loaded:", transformedSessions);
+      console.log("✅ Sessions loaded:", transformedSessions);
       return transformedSessions;
     } catch (error) {
-      console.error("❌ Failed to fetch furniture sessions:", error);
+      console.error("❌ Failed to load sessions:", error);
       throw error;
     }
   }
 
   /**
-   * Check furniture availability
+   * Check availability for specific furniture, date, and session
+   */
+  /**
+   * Check furniture availability (UPDATED with correct response format)
    */
   async checkFurnitureAvailability(furnitureId, date, sessionId) {
     try {
@@ -237,14 +250,39 @@ class FurnitureAdapter extends BusinessAdapter {
       const data = await response.json();
       console.log("📦 Availability response:", data);
 
-      console.log("✅ Availability check successful:", data);
-      return data;
+      // UPDATED: Handle new API response format
+      if (data.status && data.data && Array.isArray(data.data)) {
+        // Find the session we're checking for
+        const sessionAvailability = data.data.find(
+          (session) => session.session_id === sessionId
+        );
+
+        if (sessionAvailability) {
+          return {
+            session_id: sessionAvailability.session_id,
+            session_name: sessionAvailability.session_name,
+            start_time: sessionAvailability.start_time,
+            end_time: sessionAvailability.end_time,
+            duration_hours: sessionAvailability.duration_hours,
+            total: sessionAvailability.total,
+            booked: sessionAvailability.booked,
+            available: sessionAvailability.available,
+            // For backward compatibility
+            furniture_id: furnitureId,
+            date: date,
+          };
+        } else {
+          // Session not found in availability data
+          throw new Error("Session not found in availability data");
+        }
+      } else {
+        throw new Error("Invalid availability response format");
+      }
     } catch (error) {
       console.error("❌ Failed to check furniture availability:", error);
       throw error;
     }
   }
-
   /**
    * Create furniture booking
    */
@@ -269,19 +307,24 @@ class FurnitureAdapter extends BusinessAdapter {
         throw new Error("Booking date is required");
       }
 
-      // Transform booking data for API
+      // UPDATED: New API payload format matching your specification
       const payload = {
         date: bookingData.date,
         platform: "web",
-        furniture_id: bookingData.furniture_id,
         session_id: bookingData.session_id,
+        session_name: bookingData.session_name || "",
         email: bookingData.customer_info.email,
         first_name: bookingData.customer_info.firstName,
         last_name: bookingData.customer_info.lastName,
         phone: bookingData.customer_info.phone,
-        total_amount: bookingData.total_amount,
-        guests: bookingData.guests || 1,
-        special_requests: bookingData.customer_info.specialRequests || "",
+        items: [
+          {
+            item_id: bookingData.furniture_id,
+            item_name: bookingData.furniture_name || "",
+            quantity: bookingData.quantity || 1,
+            price: bookingData.total_amount || 0,
+          },
+        ],
       };
 
       console.log("🪑 Submitting furniture booking payload:", payload);
@@ -306,13 +349,23 @@ class FurnitureAdapter extends BusinessAdapter {
       const data = await response.json();
       console.log("✅ Furniture booking created successfully:", data);
 
-      return { success: true, data };
+      // UPDATED: Handle expected response format
+      if (data.status && data.data) {
+        return {
+          success: true,
+          data: data.data, // This contains {booking, payment, customer}
+          message: data.msg,
+          code: data.code,
+        };
+      } else {
+        // Fallback for unexpected format
+        return { success: true, data };
+      }
     } catch (error) {
       console.error("❌ Furniture booking creation failed:", error);
       return { success: false, error: error.message, data: null };
     }
   }
-
   /**
    * Transform booking data for API submission
    */

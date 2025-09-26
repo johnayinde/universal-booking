@@ -37,8 +37,6 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
     lastName: customerInfo.lastName || "",
     email: customerInfo.email || "",
     phone: customerInfo.phone || "",
-    specialRequests: customerInfo.specialRequests || "",
-    guests: 1,
   });
 
   const [formErrors, setFormErrors] = useState({});
@@ -123,40 +121,48 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
       errors.phone = "Please enter a valid phone number";
     }
 
-    if (!formData.guests || formData.guests < 1) {
-      errors.guests = "At least 1 guest is required";
-    } else if (
-      selectedFurniture?.max_capacity &&
-      formData.guests > selectedFurniture.max_capacity
-    ) {
-      errors.guests = `Maximum ${selectedFurniture.max_capacity} guests allowed`;
-    }
-
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
   // Verify payment and show success
-  const verifyPaymentAndShowSuccess = async (paymentReference) => {
+  const verifyPaymentAndShowSuccess = async (reference) => {
     try {
-      console.log("🔍 Verifying payment:", paymentReference);
-      setPaymentStep("verifying");
+      console.log("🔍 Verifying payment:", reference);
 
-      // Add verification logic here if needed
-      // For now, we'll assume payment is verified and show success
-      setTimeout(() => {
-        setPaymentStep("success");
+      const apiBaseUrl =
+        process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:8000/api";
+      const response = await fetch(
+        `${apiBaseUrl}/payment/verify?reference=${reference}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.success && result.data.status === "success") {
+        // Payment verified successfully
         dispatch({
           type: ActionTypes.SET_CURRENT_STEP,
           payload: "confirmation",
         });
-      }, 2000);
+        setPaymentStep("success");
+      } else {
+        throw new Error(result.message || "Payment verification failed");
+      }
     } catch (error) {
       console.error("❌ Payment verification failed:", error);
       setPaymentStep("error");
       dispatch({
         type: ActionTypes.SET_ERROR,
-        payload: "Payment verification failed. Please contact support.",
+        payload:
+          error.message ||
+          "Payment verification failed. Please contact support.",
       });
     }
   };
@@ -183,14 +189,14 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
     dispatch({ type: ActionTypes.CLEAR_ERROR });
 
     try {
-      // Prepare booking data - Updated to match new API format
+      // UPDATED: Prepare booking data for new API format matching expected response
       const furnitureBookingData = {
         date: bookingData.date,
         furniture_id: selectedFurniture.id,
         furniture_name: selectedFurniture.name,
         session_id: selectedSession.id,
-        session_name: selectedSession.name,
-        session_price: selectedSession.price,
+        session_name: selectedSession.session_name || selectedSession.name,
+        quantity: 1,
         customer_info: {
           firstName: formData.firstName,
           lastName: formData.lastName,
@@ -201,7 +207,6 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
         total_amount:
           totalAmount ||
           (selectedFurniture.price || 0) + (selectedSession.price || 0),
-        guests: formData.guests,
       };
 
       console.log(
@@ -209,49 +214,42 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
         furnitureBookingData
       );
 
-      // Submit booking
+      // Submit booking using adapter
       const result = await adapter.createFurnitureBooking(furnitureBookingData);
 
-      // Handle response
+      // UPDATED: Handle new API response format {status, data: {booking, payment, customer}, msg, code}
       if (result.success && result.data) {
         const { booking, payment, customer } = result.data;
 
-        // Store booking reference
+        // Store booking reference using booking_ref
         dispatch({
           type: ActionTypes.SET_BOOKING_REFERENCE,
-          payload: booking.booking_ref || booking.reference || booking.id,
+          payload: booking.booking_ref,
         });
 
         console.log("✅ Furniture booking created successfully:", {
-          booking_reference: booking.booking_ref || booking.reference,
-          payment_url: payment?.payment_url,
+          booking_reference: booking.booking_ref,
+          payment_url: payment.payment_url,
           booking_id: booking.id,
-          payment_reference: payment?.reference,
+          payment_reference: payment.reference,
           customer,
         });
 
-        // Store payment reference for verification later
-        if (payment?.reference) {
-          localStorage.setItem("payment_reference", payment.reference);
-          localStorage.setItem(
-            "booking_reference",
-            booking.booking_ref || booking.reference
-          );
-        }
+        // Store payment references for verification
+        localStorage.setItem("payment_reference", payment.reference);
+        localStorage.setItem("booking_reference", booking.booking_ref);
 
-        // Handle payment
-        if (payment?.payment_url) {
+        // Handle Paystack payment
+        if (payment.payment_url) {
           console.log("🔄 Opening Paystack payment popup...");
           setPaymentStep("redirecting");
 
           setTimeout(() => {
             // Initialize Paystack popup
             const handler = window.PaystackPop.setup({
-              key:
-                process.env.REACT_APP_PAYSTACK_PUBLIC ||
-                "pk_test_your_paystack_public_key",
+              key: process.env.REACT_APP_PAYSTACK_PUBLIC,
               email: customer.email,
-              amount: booking.total_amount * 100, // NGN * 100
+              amount: booking.total_amount * 100, // Convert to kobo
               ref: payment.reference,
               callback: (transaction) => {
                 console.log("✅ Payment successful:", transaction);
@@ -260,6 +258,7 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
                   "payment_reference",
                   transaction.reference
                 );
+                // Trigger verification
                 verifyPaymentAndShowSuccess(transaction.reference);
               },
               onCancel: () => {
@@ -275,17 +274,12 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
             handler.openIframe();
           }, 1000);
         } else {
-          // No payment required or payment handled differently
-          setPaymentStep("success");
-          setTimeout(() => {
-            dispatch({
-              type: ActionTypes.SET_CURRENT_STEP,
-              payload: "confirmation",
-            });
-          }, 1000);
+          throw new Error("No payment URL received from server");
         }
       } else {
-        throw new Error(result.message || "Failed to create furniture booking");
+        throw new Error(
+          result.error || result.msg || "Failed to create booking"
+        );
       }
     } catch (error) {
       console.error("❌ Furniture booking submission failed:", error);
@@ -293,8 +287,7 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
       dispatch({
         type: ActionTypes.SET_ERROR,
         payload:
-          error.message ||
-          "Failed to process furniture booking. Please try again.",
+          error.message || "Failed to process booking. Please try again.",
       });
     } finally {
       setIsSubmitting(false);
@@ -311,44 +304,81 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
   };
 
   // Payment processing overlay
-  if (
-    paymentStep === "processing" ||
-    paymentStep === "redirecting" ||
-    paymentStep === "verifying"
-  ) {
+  if (paymentStep === "processing") {
     return (
-      <div className="h-full flex items-center justify-center p-6">
+      <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <div className="mx-auto w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center mb-6">
-            <Loader className="w-10 h-10 text-orange-600 animate-spin" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            {paymentStep === "processing"
-              ? "Processing Booking..."
-              : paymentStep === "redirecting"
-              ? "Opening Payment..."
-              : "Verifying Payment..."}
-          </h1>
-          <p className="text-lg text-gray-600 mb-6">
-            {paymentStep === "processing"
-              ? "Please wait while we process your furniture booking."
-              : paymentStep === "redirecting"
-              ? "Redirecting you to complete payment..."
-              : "Please wait while we verify your payment..."}
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Processing Your Booking
+          </h3>
+          <p className="text-gray-600">
+            Please wait while we prepare your payment...
           </p>
-          {paymentStep === "redirecting" && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
-              <p className="text-sm text-blue-800">
-                A payment window will open shortly. Please complete your payment
-                to confirm your booking.
-              </p>
-            </div>
-          )}
         </div>
       </div>
     );
   }
 
+  if (paymentStep === "redirecting") {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="text-green-600" size={32} />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Booking Created Successfully!
+          </h3>
+          <p className="text-gray-600 mb-4">
+            Redirecting you to secure payment page...
+          </p>
+          <div className="flex items-center justify-center space-x-2 text-orange-600">
+            <Loader className="animate-spin" size={20} />
+            <span>Redirecting to Paystack...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (paymentStep === "error") {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center max-w-md mx-4">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="text-red-600" size={32} />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Booking Failed
+          </h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={() => setPaymentStep("form")}
+            className="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (paymentStep === "verifying") {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Verifying Payment
+          </h3>
+          <p className="text-gray-600">
+            Please wait while we confirm your payment...
+          </p>
+        </div>
+      </div>
+    );
+  }
   // Success state
   if (paymentStep === "success") {
     return (
@@ -581,60 +611,6 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
                     </p>
                   )}
                 </div>
-              </div>
-
-              {/* Number of Guests */}
-              <div className="mt-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Number of Guests *
-                </label>
-                <select
-                  value={formData.guests}
-                  onChange={(e) =>
-                    handleInputChange("guests", parseInt(e.target.value))
-                  }
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
-                    formErrors.guests
-                      ? "border-red-500 bg-red-50"
-                      : "border-gray-300"
-                  }`}
-                >
-                  {Array.from(
-                    { length: selectedFurniture?.max_capacity || 8 },
-                    (_, i) => i + 1
-                  ).map((num) => (
-                    <option key={num} value={num}>
-                      {num} {num === 1 ? "Guest" : "Guests"}
-                    </option>
-                  ))}
-                </select>
-                {formErrors.guests && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {formErrors.guests}
-                  </p>
-                )}
-                {selectedFurniture?.max_capacity && (
-                  <p className="mt-1 text-sm text-gray-500">
-                    Maximum {selectedFurniture.max_capacity} guests allowed for{" "}
-                    {selectedFurniture.name}
-                  </p>
-                )}
-              </div>
-
-              {/* Special Requests */}
-              <div className="mt-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Special Requests (Optional)
-                </label>
-                <textarea
-                  value={formData.specialRequests}
-                  onChange={(e) =>
-                    handleInputChange("specialRequests", e.target.value)
-                  }
-                  rows={3}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors resize-none"
-                  placeholder="Any special requests or notes for your booking..."
-                />
               </div>
             </div>
 
