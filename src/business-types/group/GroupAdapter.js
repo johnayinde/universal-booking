@@ -7,6 +7,16 @@ import GroupPackageOptions from "./components/GroupPackageOptions";
 import GroupPackageDetails from "./components/GroupPackageDetails";
 import GroupPersonalInfo from "./components/GroupPersonalInfo";
 import GroupConfirmation from "./components/GroupConfirmation";
+import {
+  Calendar,
+  Ticket,
+  User,
+  Check,
+  CheckCheck,
+  Clock,
+  Info,
+  Package,
+} from "lucide-react";
 
 /**
  * Group Adapter for group booking system
@@ -65,7 +75,7 @@ class GroupAdapter extends BusinessAdapter {
         label: "Date & Package Size",
         name: "Select Date & Package Size",
         component: "list",
-        icon: "calendar",
+        icon: Calendar,
         description: "Choose your date and group size",
       },
       {
@@ -73,7 +83,7 @@ class GroupAdapter extends BusinessAdapter {
         label: "Package Options",
         name: "Package Options",
         component: "details",
-        icon: "package",
+        icon: Package,
         description: "Browse available package options",
       },
       {
@@ -81,7 +91,7 @@ class GroupAdapter extends BusinessAdapter {
         label: "Package Details",
         name: "Package Details",
         component: "selection",
-        icon: "info",
+        icon: Info,
         description: "Review package details",
       },
       {
@@ -89,7 +99,7 @@ class GroupAdapter extends BusinessAdapter {
         label: "Personal Details",
         name: "Personal Details",
         component: "booking",
-        icon: "user",
+        icon: User,
         description: "Enter your information and payment",
       },
       {
@@ -97,7 +107,7 @@ class GroupAdapter extends BusinessAdapter {
         label: "Confirmation",
         name: "Confirmation",
         component: "confirmation",
-        icon: "check",
+        icon: Check,
         description: "Booking confirmed",
       },
     ];

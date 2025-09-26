@@ -1,6 +1,6 @@
 // src/components/UniversalBookingWidget.jsx - MOBILE RESPONSIVE
 import React, { useEffect } from "react";
-import { X } from "lucide-react";
+import { Calendar, Check, X } from "lucide-react";
 import { useUniversalBooking } from "../core/UniversalStateManager";
 import { ActionTypes } from "../core/UniversalStateManager";
 
@@ -321,38 +321,58 @@ const LeftSidebar = ({ currentStep, bookingSteps, config }) => {
         <div className="space-y-3">
           {bookingSteps.map((step, index) => {
             const isActive = currentStep === step.key;
+            const currentStepIndex = bookingSteps.findIndex(
+              (s) => s.key === currentStep
+            );
             const isCompleted = index < currentStepIndex;
+            const Icon = step.icon || Calendar;
 
             return (
-              <div
-                key={step.key}
-                className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${
-                  isActive
-                    ? "bg-orange-100 border-l-4 border-orange-500"
-                    : isCompleted
-                    ? "bg-green-50"
-                    : "bg-white border border-gray-200"
-                }`}
-              >
-                {getStepIcon(index, isActive, isCompleted)}
-                <div className="flex-1">
+              <div key={step.key} className="relative pl-4">
+                {/* left orange bar */}
+                <span
+                  className="absolute left-0 top-3 bottom-3 w-1 rounded"
+                  style={{ backgroundColor: "orange" }}
+                />
+                {/* row */}
+                <div className="flex items-center justify-between px-4 py-3 rounded-lg bg-white border border-gray-200">
+                  {/* left: icon + label */}
+                  <div className="flex items-center gap-3">
+                    <Icon size={20} className="text-gray-800" />
+                    <span
+                      className={`font-medium ${
+                        isActive
+                          ? "text-gray-900"
+                          : isCompleted
+                          ? "text-gray-900"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      {step.label || step.name}
+                    </span>
+                  </div>
+
+                  {/* right: status bubble */}
                   <span
-                    className={`font-medium ${
-                      isActive
-                        ? "text-orange-800"
-                        : isCompleted
-                        ? "text-green-700"
-                        : "text-gray-600"
+                    className={`inline-flex items-center justify-center w-6 h-6 rounded-full ${
+                      isCompleted
+                        ? "bg-green-500"
+                        : isActive
+                        ? "bg-orange-500"
+                        : "bg-white border border-gray-300"
                     }`}
+                    style={isActive ? { backgroundColor: "orange" } : undefined}
                   >
-                    {step.label || step.name}
+                    {isCompleted ? (
+                      <Check size={14} className="text-white" />
+                    ) : isActive ? (
+                      <span className="block w-2.5 h-2.5 rounded-full bg-white" />
+                    ) : null}
                   </span>
-                  {step.description && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      {step.description}
-                    </p>
-                  )}
                 </div>
+
+                {/* divider */}
+                <div className="border-b border-gray-200 mt-2" />
               </div>
             );
           })}

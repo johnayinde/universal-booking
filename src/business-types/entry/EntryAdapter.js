@@ -5,6 +5,7 @@ import ConfigManager from "../../core/ConfigManager";
 import EntryTicketList from "./components/EntryTicketList";
 import EntryPersonalInfo from "./components/EntryPersonalInfo";
 import EntryConfirmation from "./components/EntryConfirmation";
+import { Calendar, Ticket, User, Check, CheckCheck } from "lucide-react";
 
 /**
  * Fixed Entry Adapter with working API integration
@@ -57,7 +58,7 @@ class EntryAdapter extends BusinessAdapter {
         label: "Booking Type",
         name: "Booking Type",
         component: "list",
-        icon: "ticket",
+        icon: Calendar,
         description: "Select entry type and quantity",
       },
       {
@@ -65,7 +66,7 @@ class EntryAdapter extends BusinessAdapter {
         label: "Personal Details",
         name: "Personal Details",
         component: "booking",
-        icon: "user",
+        icon: User,
         description: "Enter your information",
       },
       {
@@ -73,7 +74,7 @@ class EntryAdapter extends BusinessAdapter {
         label: "Confirmation",
         name: "Confirmation",
         component: "confirmation",
-        icon: "check",
+        icon: CheckCheck,
         description: "Review and confirm",
       },
     ];

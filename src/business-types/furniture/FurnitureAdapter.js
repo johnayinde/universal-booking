@@ -6,6 +6,7 @@ import FurnitureDateSelection from "./components/FurnitureDateSelection";
 import FurnitureSessionSelection from "./components/FurnitureSessionSelection";
 import FurniturePersonalInfo from "./components/FurniturePersonalInfo";
 import FurnitureConfirmation from "./components/FurnitureConfirmation";
+import { Calendar, Ticket, User, Check, CheckCheck, Clock } from "lucide-react";
 
 /**
  * Furniture Adapter for furniture booking system
@@ -59,19 +60,19 @@ class FurnitureAdapter extends BusinessAdapter {
   getBookingSteps() {
     return [
       {
-        key: "list", // Changed from "dateSelection" to match widget expectations
+        key: "list",
         label: "Date & Furniture",
         name: "Select Date & Furniture",
-        component: "dateSelection", // Component mapping stays the same
-        icon: "calendar",
+        component: "dateSelection",
+        icon: Calendar,
         description: "Pick date and furniture type",
       },
       {
-        key: "details", // Changed from "sessionSelection"
+        key: "details",
         label: "Time Slots",
         name: "Select Sessions",
-        component: "sessionSelection", // Component mapping stays the same
-        icon: "clock",
+        component: "sessionSelection",
+        icon: Clock,
         description: "Choose available time slots",
       },
       {
@@ -79,7 +80,7 @@ class FurnitureAdapter extends BusinessAdapter {
         label: "Personal Details",
         name: "Personal Details",
         component: "booking",
-        icon: "user",
+        icon: User,
         description: "Enter your information",
       },
       {
@@ -87,7 +88,7 @@ class FurnitureAdapter extends BusinessAdapter {
         label: "Confirmation",
         name: "Confirmation",
         component: "confirmation",
-        icon: "check",
+        icon: Check,
         description: "Review and confirm",
       },
     ];
