@@ -24,6 +24,10 @@ function App({ config = {} }) {
       primaryColor: "#f97316", // Orange for Nike Lake Resort
       logoUrl: "",
       companyName: "Nike Lake Resort",
+      locationName: "Nike Lake Resort, Enugu",
+      locationImage: "",
+      description:
+        " Experience the serenity of Nike Lake Resort, Enugu's premier getaway nestled by the tranquil Nike Lake. Enjoy luxurious accommodations, exquisite dining, and a variety of recreational activities in a picturesque setting.",
     },
     autoShow: false,
     position: "bottom-right",
@@ -50,24 +54,6 @@ function App({ config = {} }) {
     // Check if we're in development mode
     setIsDevelopment(process.env.NODE_ENV === "development");
 
-    // Check if current URL is the payment callback
-    // const currentUrl = window.location.href;
-    // const urlParams = new URLSearchParams(window.location.search);
-
-    // if (
-    //   currentUrl.includes("/booking/payment/callback") ||
-    //   urlParams.get("reference") ||
-    //   urlParams.get("trxref")
-    // ) {
-    //   console.log("🔄 Payment callback detected in widget");
-    //   setFinalConfig({
-    //     ...defaultConfig,
-    //     showPaymentVerification: true,
-    //     paymentReference: urlParams.get("reference") || urlParams.get("trxref"),
-    //   });
-    //   setIsLoading(false);
-    //   return;
-    // }
     // Function to process configuration and sessionStorage
     const processConfig = () => {
       console.log("🔍 Processing Enhanced App configuration...");
@@ -158,11 +144,6 @@ function App({ config = {} }) {
       </div>
     );
   }
-  // if (finalConfig?.showPaymentVerification) {
-  //   return (
-  //     <PaymentVerification paymentReference={finalConfig.paymentReference} />
-  //   );
-  // }
 
   // Render specific business type with BookingEngine
   return (
@@ -173,9 +154,6 @@ function App({ config = {} }) {
       >
         <UniversalBookingWidget />
       </BookingEngine>
-
-      {/* Development Debug Panel */}
-      {/* {isDevelopment && <DevelopmentDebugPanel config={finalConfig} />} */}
     </div>
   );
 }

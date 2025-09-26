@@ -1,7 +1,7 @@
 // src/business-types/entry/EntryAdapter.js - FIXED with Working API Calls
 import BusinessAdapter from "../../core/BusinessAdapter";
+import ConfigManager from "../../core/ConfigManager";
 
-// Import components
 import EntryTicketList from "./components/EntryTicketList";
 import EntryPersonalInfo from "./components/EntryPersonalInfo";
 import EntryConfirmation from "./components/EntryConfirmation";
@@ -15,8 +15,10 @@ class EntryAdapter extends BusinessAdapter {
     console.log("🎫 EntryAdapter initialized with config:", config);
 
     // Set up API base URL
+    // this.apiBaseUrl = config.apiBaseUrl || "http://127.0.0.1:8000/api";
+    // this.locationId = config.locationId || config.location || 2; // Default to Enugu (ID: 2)
     this.apiBaseUrl = config.apiBaseUrl || "http://127.0.0.1:8000/api";
-    this.locationId = config.locationId || config.location || 2; // Default to Enugu (ID: 2)
+    this.locationId = config.locationId || config.location || 1;
   }
 
   getBusinessType() {
@@ -78,11 +80,12 @@ class EntryAdapter extends BusinessAdapter {
   }
 
   getDefaultConfig() {
+    const loc = ConfigManager.getLocation(this.locationId);
     return {
       ...super.getDefaultConfig(),
       branding: {
         primaryColor: "#f97316",
-        companyName: "Nike Lake Resort",
+        companyName: loc?.displayName || `Location ${this.locationId}`,
         logoUrl: "",
       },
       currency: "NGN",

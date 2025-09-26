@@ -43,43 +43,6 @@ const UniversalBookablesList = ({ config = {} }) => {
       available: true,
       implemented: true, // Set to true since we just implemented it
     },
-    {
-      id: "hotel",
-      type: "hotel",
-      name: "Hotel",
-      icon: Hotel,
-      description: "Accommodation and room bookings",
-      available: true,
-      implemented: false,
-    },
-
-    {
-      id: "food",
-      type: "restaurant",
-      name: "Food and Beverages",
-      icon: Utensils,
-      description: "Restaurant dining and beverage services",
-      available: false,
-      implemented: false,
-    },
-    {
-      id: "club",
-      type: "club",
-      name: "Kids Club",
-      icon: Users,
-      description: "Kids activities and entertainment",
-      available: true,
-      implemented: false,
-    },
-    {
-      id: "activities",
-      type: "activities",
-      name: "Activities",
-      icon: Ship,
-      description: "Water sports and recreational activities",
-      available: false,
-      implemented: false,
-    },
   ];
 
   // Filter bookables based on config
@@ -114,14 +77,31 @@ const UniversalBookablesList = ({ config = {} }) => {
       if (window.UniversalBookingWidget) {
         try {
           window.UniversalBookingWidget.destroyAll?.();
+          // const widgetConfig = {
+          //   businessType: selectedBookable.type,
+          //   locationId: config.locationId || config.location || 1,
+          //   location: config.locationId || config.location || 1,
+          //   apiBaseUrl: config.apiBaseUrl || "http://127.0.0.1:8000/api",
+          //   branding: { ...config.branding },
+          //   autoShow: true,
+          // };
+
+          const locId = config.locationId || config.location || 1;
           const widgetConfig = {
             businessType: selectedBookable.type,
-            locationId: config.locationId || config.location || 1,
-            location: config.locationId || config.location || 1,
+            locationId: locId,
+            location: locId,
             apiBaseUrl: config.apiBaseUrl || "http://127.0.0.1:8000/api",
-            branding: { ...config.branding },
+            branding: {
+              ...config.branding,
+              locationName: config.locationName,
+              companyName: config.companyName,
+              locationImage: config.locationImage,
+              description: config.description,
+            },
             autoShow: true,
           };
+
           const widget = window.UniversalBookingWidget.init(widgetConfig);
           widget.open();
         } catch (error) {
@@ -167,8 +147,7 @@ const UniversalBookablesList = ({ config = {} }) => {
   const locationNames = { 1: "Lagos", 2: "Enugu" };
   const locationName = locationNames[locationId] || `Location ${locationId}`;
   const primaryColor = config.branding?.primaryColor || "#f97316";
-  const locationImage =
-    config.branding?.locationImage || "/api/placeholder/80/60";
+  const locationImage = config.branding?.locationImage;
   const displayName =
     config.branding?.locationName || `Nike Lake Resort, ${locationName}`;
 
@@ -266,26 +245,39 @@ const UniversalBookablesList = ({ config = {} }) => {
             {/* Sidebar (collapses to top section on small) */}
             <aside className="border-b lg:border-b-0 lg:border-r border-gray-200 bg-gray-50">
               <div className="p-4 sm:p-6 lg:w-80">
-                <div className="flex lg:block items-center gap-4 lg:gap-0">
+                <div className="flex items-start gap-4">
                   <img
                     src={locationImage}
                     alt={displayName}
-                    className="w-16 h-12 lg:w-20 lg:h-16 rounded-lg object-cover"
+                    className="w-16 h-12 lg:w-36 lg:h-36 rounded-lg object-cover shrink-0"
+                    // fallback if image fails:
                     onError={(e) => {
                       e.currentTarget.src =
                         "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA4MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iODAiIGhlaWdodD0iNjAiIGZpbGw9IiNGM0Y0RjYiLz48cmVjdCB4PSIyMCIgeT0iMTUiIHdpZHRoPSI0MCIgaGVpZ2h0PSIzMCIgZmlsbD0iIjlDQTNBRiIvPjwvc3ZnPg==";
                     }}
                   />
-                  <div className="lg:mt-4 min-w-0">
-                    <h2 className="text-sm lg:text-lg font-semibold text-gray-900 truncate">
-                      {displayName}
+
+                  <div className="min-w-0">
+                    {/* Location name (e.g., "Nike Lake Resort, Enugu") */}
+                    <h2 className="text-sm lg:text-lg font-semibold text-gray-900 leading-tight break-words">
+                      {config.branding?.locationName || displayName}
                     </h2>
-                    <p className="text-gray-600 text-xs lg:text-sm leading-relaxed hidden lg:block">
-                      Welcome to Nike Lake Resort
+
+                    {/* Welcome line */}
+                    <p className="text-gray-900 text-xs lg:text-sm font-medium mt-1">
+                      Welcome to{" "}
+                      {config.branding?.companyName ||
+                        (config.branding?.locationName
+                          ? config.branding.locationName.split(",")[0]
+                          : "Our Resort")}
                     </p>
-                    <p className="text-gray-500 text-[11px] lg:text-xs mt-1 hidden lg:block">
-                      Select your booking type to continue
-                    </p>
+
+                    {/* Description */}
+                    {config.branding?.description && (
+                      <p className="text-gray-600 text-[11px] lg:text-sm leading-relaxed mt-1 line-clamp-2">
+                        {config.branding.description}
+                      </p>
+                    )}
                   </div>
                 </div>
 

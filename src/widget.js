@@ -17,6 +17,9 @@ class UniversalBookingWidgetAPI {
       branding: {
         primaryColor: "#3b82f6",
         companyName: "Universal Booking",
+        companyName: "Universal Booking",
+        locationImage: "",
+        description: "",
       },
       autoShow: false,
       position: "bottom-right",

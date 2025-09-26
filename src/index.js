@@ -12,7 +12,10 @@ if (process.env.NODE_ENV === "development") {
     apiBaseUrl: "http://127.0.0.1:8000/api",
     branding: {
       primaryColor: "#3b82f6",
-      companyName: "Universal Booking Demo",
+      locationName: "Landmark Oniru Lagos, Nigeria",
+      locationImage:
+        "https://pbs.twimg.com/media/GfgQsLwXIAA6aCQ?format=jpg&name=large",
+      description: "The premier event and leisure destination in Lagos.",
     },
     autoShow: false, // Auto-open for development
   };

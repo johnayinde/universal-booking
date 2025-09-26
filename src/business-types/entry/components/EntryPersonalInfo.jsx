@@ -124,13 +124,6 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
     return Object.keys(errors).length === 0;
   };
 
-  // Handle form submission and payment processing
-  // Update the handleSubmit function in EntryPersonalInfo.jsx
-  console.log("ssssssssssssssssss", {
-    state,
-    locationId,
-    ticket_type_id: selectedItem,
-  });
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -154,7 +147,7 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
     try {
       // Prepare booking data - Updated to match new API structure
       const bookingData = {
-        // date: "2025-10-01", // You might want to make this dynamic
+        // date: "2025-10-01",
         platform: "web",
         ticket_type_id: selectedItem?.id,
         ticket_type: selectedItem?.name,
@@ -202,7 +195,6 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
         if (payment.payment_url) {
           console.log("🔄 Opening Paystack payment popup...");
           setPaymentStep("redirecting");
-
 
           setTimeout(() => {
             // Initialize Paystack popup

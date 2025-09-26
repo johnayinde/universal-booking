@@ -21,19 +21,9 @@ const EntryConfirmation = () => {
   const selectedTickets = Object.values(state.selections || {}).filter(
     (ticket) => ticket && ticket.quantity > 0
   );
-  const bookingRef = state.bookingReference || "ET-IZ21772522";
+  const bookingRef = state.bookingReference || "";
   const customerInfo = state.customerInfo;
   const totalAmount = state.totalAmount;
-
-  // const handleDownloadTicket = () => {
-  //   console.log("Download ticket for booking:", bookingRef);
-  //   // Implement download functionality
-  // };
-
-  // const handleEmailTicket = () => {
-  //   console.log("Email ticket to:", customerInfo.email);
-  //   // Implement email functionality
-  // };
 
   const handleCloseWidget = () => {
     dispatch({ type: ActionTypes.SET_WIDGET_OPEN, payload: false });
@@ -207,7 +197,7 @@ const EntryConfirmation = () => {
               </h4>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <h5 className="font-medium text-blue-900 mb-2">
-                  Nike Lake Resort
+                  {state.config?.branding?.companyName}
                 </h5>
                 <div className="space-y-2 text-sm text-blue-800">
                   <div className="flex items-center">

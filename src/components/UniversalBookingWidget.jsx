@@ -281,15 +281,34 @@ const LeftSidebar = ({ currentStep, bookingSteps, config }) => {
     <div>
       {/* Location Header */}
       <div className="mb-8">
-        <div className="w-20 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg mb-4 flex items-center justify-center">
-          <span className="text-white font-bold text-xl">🏨</span>
+        {/* Top row: image + location/title */}
+        <div className="flex items-center gap-4 mb-4">
+          {config.branding?.locationImage && (
+            <img
+              src={config.branding.locationImage}
+              alt={config.branding?.companyName || "Location image"}
+              className="w-20 h-16 rounded-lg object-cover shrink-0"
+            />
+          )}
+
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 leading-tight break-words">
+            {config.branding?.locationName || config.branding?.companyName}
+          </h1>
         </div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">
-          {config.branding?.companyName || "Nike Lake Resort, Enugu"}
+
+        {/* “Welcome to …” line */}
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
+          Welcome to{" "}
+          {config.branding?.companyName ||
+            (config.branding?.locationName
+              ? config.branding.locationName.split(",")[0]
+              : "Our Resort")}
         </h2>
+
+        {/* Description */}
         <p className="text-gray-600 text-sm leading-relaxed">
-          Enjoy the perfect business getaway with breath-taking views in a very
-          secure and tranquil setting
+          {config.branding?.description ||
+            "Enjoy the perfect business getaway with breath-taking views in a very secure and tranquil setting"}
         </p>
       </div>
 
