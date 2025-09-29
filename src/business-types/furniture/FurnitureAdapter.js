@@ -3,7 +3,6 @@ import BusinessAdapter from "../../core/BusinessAdapter";
 
 // Import components
 import FurnitureDateSelection from "./components/FurnitureDateSelection";
-import FurnitureSessionSelection from "./components/FurnitureSessionSelection";
 import FurniturePersonalInfo from "./components/FurniturePersonalInfo";
 import FurnitureConfirmation from "./components/FurnitureConfirmation";
 import { Calendar, Ticket, User, Check, CheckCheck, Clock } from "lucide-react";
@@ -30,13 +29,11 @@ class FurnitureAdapter extends BusinessAdapter {
     console.log("🧩 FurnitureAdapter: Getting components");
     return {
       list: FurnitureDateSelection, // Maps to "list" step
-      details: FurnitureSessionSelection, // Maps to "details" step
       selection: FurniturePersonalInfo, // Maps to "selection" step
       booking: FurniturePersonalInfo, // Alternative mapping
       confirmation: FurnitureConfirmation, // Maps to "confirmation" step
       // Also add the original mappings for compatibility
       dateSelection: FurnitureDateSelection,
-      sessionSelection: FurnitureSessionSelection,
     };
   }
 
@@ -67,14 +64,14 @@ class FurnitureAdapter extends BusinessAdapter {
         icon: Calendar,
         description: "Pick date and furniture type",
       },
-      {
-        key: "details",
-        label: "Time Slots",
-        name: "Select Sessions",
-        component: "sessionSelection",
-        icon: Clock,
-        description: "Choose available time slots",
-      },
+      // {
+      //   key: "details",
+      //   label: "Time Slots",
+      //   name: "Select Sessions",
+      //   component: "sessionSelection",
+      //   icon: Clock,
+      //   description: "Choose available time slots",
+      // },
       {
         key: "booking",
         label: "Personal Details",

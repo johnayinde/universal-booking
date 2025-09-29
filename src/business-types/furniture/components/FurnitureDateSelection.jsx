@@ -1,382 +1,509 @@
 // src/business-types/furniture/components/FurnitureDateSelection.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
-  Calendar,
-  Armchair,
+  Calendar as CalendarIcon,
   Loader,
-  ChevronRight,
   Users,
   AlertCircle,
+  Minus,
+  Plus,
+  ArrowLeft,
 } from "lucide-react";
 import { useUniversalBooking } from "../../../core/UniversalStateManager";
 import { ActionTypes } from "../../../core/UniversalStateManager";
 
-const FurnitureDateSelection = ({ apiService, adapter }) => {
-  const { state, dispatch, locationId } = useUniversalBooking();
-  const { loading, error } = state;
+const FurnitureDateSelection = ({ adapter }) => {
+  const { state, dispatch } = useUniversalBooking();
+  const { error } = state;
 
-  const [selectedDate, setSelectedDate] = useState("");
+  // Date & furniture
+  const [selectedDate, setSelectedDate] = useState(
+    state.bookingData?.date || ""
+  );
   const [furnitureList, setFurnitureList] = useState([]);
-  const [selectedFurniture, setSelectedFurniture] = useState(null);
+  const [selectedFurniture, setSelectedFurniture] = useState(
+    state.selectedFurniture || null
+  );
+
+  // Sessions + qty (counter is on the timeslot)
+  const [sessions, setSessions] = useState([]); // list from API
+  const [slotQty, setSlotQty] = useState({}); // {sessionId: quantity}
+  const [availability, setAvailability] = useState({}); // {sessionId: {total, booked, available}}
+
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState("");
 
-  // Format currency
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-NG", {
+  // Currency
+  const formatCurrency = (amount) =>
+    new Intl.NumberFormat("en-NG", {
       style: "currency",
       currency: "NGN",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(amount);
+    }).format(amount || 0);
+
+  const toInputDate = (d) => {
+    if (!d) return "";
+    const dt = d instanceof Date ? d : new Date(d);
+    // normalize to local date, strip time & TZ
+    const tz = dt.getTimezoneOffset() * 60000;
+    return new Date(dt - tz).toISOString().slice(0, 10);
+  };
+  const todayInput = () => toInputDate(new Date());
+  const plusMonthsInput = (m = 3) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + m);
+    return toInputDate(d);
   };
 
-  // Load furniture list on component mount
+  const formatTime = (t) =>
+    t
+      ? new Date(`2000-01-01T${t}`).toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        })
+      : "";
+
+  // ------- Load furniture once
   useEffect(() => {
-    loadFurnitureList();
+    (async () => {
+      try {
+        setIsLoading(true);
+        setLoadingStep("furniture");
+        dispatch({ type: ActionTypes.CLEAR_ERROR });
+        const furniture = await adapter.getFurnitureList();
+        setFurnitureList(furniture || []);
+      } catch (e) {
+        dispatch({
+          type: ActionTypes.SET_ERROR,
+          payload: e?.message || "Failed to load furniture list",
+        });
+      } finally {
+        setIsLoading(false);
+        setLoadingStep("");
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadFurnitureList = async () => {
+  // ------- Select furniture (then fetch sessions)
+  const handleFurnitureSelect = async (f) => {
+    setSelectedFurniture(f);
+    dispatch({ type: ActionTypes.SET_SELECTED_FURNITURE, payload: f });
+  };
+
+  // ------- Fetch sessions whenever both date & furniture are chosen
+  useEffect(() => {
+    const fetchSessions = async () => {
+      if (!selectedFurniture || !selectedDate) return;
+      try {
+        setIsLoading(true);
+        setLoadingStep("sessions");
+        dispatch({ type: ActionTypes.CLEAR_ERROR });
+
+        const list = await adapter.getFurnitureSessions(
+          selectedDate,
+          selectedFurniture.id
+        );
+        setSessions(list || []);
+        setSlotQty({}); // reset counters on change
+        setAvailability({});
+      } catch (e) {
+        dispatch({
+          type: ActionTypes.SET_ERROR,
+          payload: e?.message || "Failed to load available sessions",
+        });
+      } finally {
+        setIsLoading(false);
+        setLoadingStep("");
+      }
+    };
+    fetchSessions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedFurniture, selectedDate]);
+
+  // ------- Increment / decrement (checks availability on first increment)
+  const checkAndCacheAvailability = async (session) => {
+    // if already cached, reuse
+    if (availability[session.id]) return availability[session.id];
     try {
       setIsLoading(true);
-      setLoadingStep("furniture");
-      dispatch({ type: ActionTypes.CLEAR_ERROR });
-
-      console.log("🪑 Loading furniture list...");
-      const furniture = await adapter.getFurnitureList();
-
-      setFurnitureList(furniture);
-      console.log("✅ Furniture list loaded:", furniture);
-    } catch (error) {
-      console.error("❌ Failed to load furniture list:", error);
-      dispatch({
-        type: ActionTypes.SET_ERROR,
-        payload: error.message || "Failed to load furniture list",
-      });
+      setLoadingStep("availability");
+      const a = await adapter.checkFurnitureAvailability(
+        selectedFurniture.id,
+        selectedDate,
+        session.id
+      );
+      const info = { total: a.total, booked: a.booked, available: a.available };
+      setAvailability((prev) => ({ ...prev, [session.id]: info }));
+      return info;
     } finally {
       setIsLoading(false);
       setLoadingStep("");
     }
   };
 
-  // Handle date change
-  const handleDateChange = (e) => {
-    const date = e.target.value;
-    setSelectedDate(date);
+  const increaseQty = async (session) => {
+    const a = await checkAndCacheAvailability(session);
+    const current = slotQty[session.id] || 0;
+    if (current >= (a?.available || 0)) return; // can't exceed available
+    setSlotQty((prev) => ({ ...prev, [session.id]: current + 1 }));
+  };
 
-    // Update global state
+  const decreaseQty = (session) => {
+    const current = slotQty[session.id] || 0;
+    const next = Math.max(0, current - 1);
+    setSlotQty((prev) => {
+      const n = { ...prev };
+      if (next === 0) delete n[session.id];
+      else n[session.id] = next;
+      return n;
+    });
+  };
+
+  // ------- Derived totals
+  const slotLines = useMemo(() => {
+    return sessions
+      .filter((s) => slotQty[s.id] > 0)
+      .map((s) => ({
+        id: s.id,
+        name: s.session_name || s.name,
+        qty: slotQty[s.id],
+        unitPrice: s.price || 0,
+        subtotal: (s.price || 0) * (slotQty[s.id] || 0),
+      }));
+  }, [sessions, slotQty]);
+
+  const canProceed = Boolean(
+    selectedDate &&
+      selectedFurniture &&
+      slotLines.reduce((n, l) => n + l.qty, 0) > 0
+  );
+
+  const totalAmount =
+    (selectedFurniture?.price || 0) +
+    slotLines.reduce((sum, l) => sum + l.subtotal, 0);
+
+  // ------- Next: persist to global and go to Personal Info
+  const handleNext = () => {
+    if (!canProceed) return;
+
+    // Save chosen slots (first selected slot id & name also stored for compatibility)
+    const first = slotLines[0];
+    if (first) {
+      dispatch({
+        type: ActionTypes.SET_SELECTED_SESSION,
+        payload: {
+          id: first.id,
+          session_name: first.name,
+          quantity: first.qty,
+          price: first.unitPrice,
+        },
+      });
+    }
+
     dispatch({
       type: ActionTypes.UPDATE_BOOKING_DATA,
-      payload: { date },
-    });
-  };
-
-  // Handle furniture selection
-  const handleFurnitureSelect = (furniture) => {
-    setSelectedFurniture(furniture);
-
-    // Update global state
-    dispatch({
-      type: ActionTypes.SET_SELECTED_FURNITURE,
-      payload: furniture,
+      payload: {
+        date: selectedDate,
+        furniture_id: selectedFurniture?.id,
+        furniture_name: selectedFurniture?.name,
+        sessionLines: slotLines, // all selected slots with qty
+        totalAmount,
+        availability, // cached availability map
+      },
     });
 
-    console.log("🪑 Selected furniture:", furniture);
+    dispatch({ type: ActionTypes.SET_CURRENT_STEP, payload: "booking" });
   };
 
-  // Handle next step
-  const handleNext = () => {
-    if (!selectedDate) {
-      dispatch({
-        type: ActionTypes.SET_ERROR,
-        payload: "Please select a booking date",
-      });
-      return;
+  const handleBack = () => {
+    // Clear the selected business type
+    sessionStorage.removeItem("selectedBusinessType");
+
+    // Destroy current widget
+    if (window.UniversalBookingWidget) {
+      window.UniversalBookingWidget.destroyAll?.();
     }
 
-    if (!selectedFurniture) {
-      dispatch({
-        type: ActionTypes.SET_ERROR,
-        payload: "Please select furniture type",
+    // Reinitialize widget without business type (shows bookables list)
+    setTimeout(() => {
+      const widget = window.UniversalBookingWidget.init({
+        businessType: null, // This shows the bookables list
+        locationId: state.config?.locationId || 1,
+        apiBaseUrl: state.config?.apiBaseUrl,
+        branding: state.config?.branding,
+        autoShow: true,
       });
-      return;
-    }
-
-    // Navigate to session selection - FIXED to use correct step key
-    dispatch({
-      type: ActionTypes.SET_CURRENT_STEP,
-      payload: "details", // Changed from "sessionSelection" to "details"
-    });
+      widget.open();
+    }, 100);
   };
 
-  const renderFurnitureCard = (furniture) => {
-    const isSelected = selectedFurniture?.id === furniture.id;
-    const isAvailable =
-      furniture.is_active &&
-      furniture.available_number > furniture.reserved_number;
-    const availableSlots =
-      furniture.available_number - furniture.reserved_number;
-
-    return (
-      <div
-        key={furniture.id}
-        onClick={() => isAvailable && handleFurnitureSelect(furniture)}
-        className={`cursor-pointer rounded-xl p-6 transition-all duration-200 border-2 ${
-          !isAvailable
-            ? "border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed"
-            : isSelected
-            ? "border-orange-500 bg-orange-50 shadow-lg"
-            : "border-gray-200 hover:border-gray-300 hover:shadow-md"
-        }`}
-      >
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-orange-100 rounded-lg">
-              <Armchair className="text-orange-600" size={24} />
-            </div>
-            <div>
-              <h3 className="font-semibold text-gray-900 text-lg">
-                {furniture.name}
-              </h3>
-              <p className="text-sm text-gray-600">{furniture.description}</p>
-            </div>
-          </div>
-          {isSelected && (
-            <div className="p-1 bg-orange-500 rounded-full">
-              <ChevronRight className="text-white" size={16} />
-            </div>
-          )}
-        </div>
-
-        {/* UPDATED: Show new API fields */}
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between items-center">
-            <span className="text-gray-600">Available:</span>
-            <span
-              className={`font-medium ${
-                isAvailable ? "text-green-600" : "text-red-600"
-              }`}
-            >
-              {availableSlots} / {furniture.available_number}
-            </span>
-          </div>
-
-          {furniture.features && Object.keys(furniture.features).length > 0 && (
-            <div className="space-y-1">
-              <span className="text-gray-600 text-xs">Features:</span>
-              <div className="flex flex-wrap gap-1">
-                {Object.entries(furniture.features).map(([key, value]) => (
-                  <span
-                    key={key}
-                    className="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded"
-                  >
-                    {key}: {value}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {!isAvailable && (
-            <div className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
-              Not available - Fully booked
-            </div>
-          )}
-
-          <div className="text-xs text-gray-500">
-            Reserved: {furniture.reserved_number}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // Get minimum date (today)
-  const getMinDate = () => {
-    const today = new Date();
-    return today.toISOString().split("T")[0];
-  };
-
-  // Get maximum date (3 months from now)
-  const getMaxDate = () => {
-    const future = new Date();
-    future.setMonth(future.getMonth() + 3);
-    return future.toISOString().split("T")[0];
-  };
-
+  // ------- UI
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="p-6 border-b border-gray-200">
-        <div className="mb-4">
-          <div className="flex items-center space-x-2 text-orange-600 mb-2">
-            <Calendar size={20} />
-            <span className="text-sm font-medium">
-              Date & Furniture Selection
-            </span>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Select Booking Date and Furniture
-          </h1>
-          <p className="text-gray-600">
-            Choose your preferred date and furniture type for booking
-          </p>
-        </div>
+        <button
+          onClick={handleBack}
+          className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors mb-4"
+        >
+          <ArrowLeft size={20} />
+          <span>Back to Bookables</span>
+        </button>
       </div>
 
       {/* Content */}
       <div className="flex-1 p-6 overflow-y-auto">
-        <div className="max-w-4xl space-y-8">
-          {/* Error Display */}
+        <div className="max-w-5xl space-y-3">
+          {/* Error */}
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <div className="flex items-center">
-                <AlertCircle
-                  className="text-red-400 mr-2 flex-shrink-0"
-                  size={20}
-                />
-                <div>
-                  <h3 className="text-sm font-medium text-red-800">Error</h3>
-                  <p className="mt-1 text-sm text-red-700">{error}</p>
-                </div>
+            <div className="bg-red-50  rounded-lg p-4 flex items-start gap-2">
+              <AlertCircle className="text-red-400" size={18} />
+              <div>
+                <h3 className="text-sm font-medium text-red-800">Error</h3>
+                <p className="text-sm text-red-700">{error}</p>
               </div>
             </div>
           )}
 
-          {/* Date Selection */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <Calendar className="mr-2" size={20} />
-              Select Date
-            </h3>
-
-            <div className="max-w-md">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Booking Date *
-              </label>
+          {/* Date picker */}
+          <div className="bg-white rounded-xl p-4 sm:p-5 ">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Date
+            </label>
+            <div className="relative">
               <input
                 type="date"
-                value={selectedDate}
-                onChange={handleDateChange}
-                min={getMinDate()}
-                max={getMaxDate()}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors"
+                value={selectedDate || ""} // must be YYYY-MM-DD
+                onChange={(e) => {
+                  const v = e.target.value; // already YYYY-MM-DD
+                  setSelectedDate(v);
+                  dispatch({
+                    type: ActionTypes.UPDATE_BOOKING_DATA,
+                    payload: { date: v },
+                  });
+                }}
+                min={todayInput()}
+                max={plusMonthsInput(3)}
+                className="w-full pr-10 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                onFocus={(e) => e.currentTarget.showPicker?.()}
+                onClick={(e) => e.currentTarget.showPicker?.()}
               />
-              <p className="mt-2 text-sm text-gray-500">
-                Select a date between today and{" "}
-                {new Date(getMaxDate()).toLocaleDateString()}
-              </p>
+              {/* icon MUST NOT intercept clicks */}
+              {/* <CalendarIcon
+                size={18}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+              /> */}
             </div>
           </div>
 
-          {/* Furniture Selection */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <Armchair className="mr-2" size={20} />
-              Select Furniture Type
-            </h3>
+          {/* Furniture */}
+          <div className="bg-white rounded-xl sm:p-3">
+            <div className="flex items-baseline justify-between mb-3">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Furniture
+              </label>
 
-            {/* Loading Furniture */}
-            {isLoading && loadingStep === "furniture" && (
-              <div className="text-center py-8">
-                <Loader className="animate-spin mx-auto mb-4" size={24} />
-                <p className="text-gray-600">Loading available furniture...</p>
+              <span className="text-xs text-orange-600">
+                Pick only one option
+              </span>
+            </div>
+
+            {isLoading && loadingStep === "furniture" ? (
+              <div className="py-8 text-center text-gray-600">
+                <Loader className="animate-spin mx-auto mb-2" size={22} />
+                Loading furniture...
               </div>
-            )}
-
-            {/* Furniture List */}
-            {!isLoading && furnitureList.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {furnitureList.length > 0 ? (
-                  <div className="grid gap-4">
-                    {furnitureList.map(renderFurnitureCard)}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500">
-                      No furniture available for this location
-                    </p>
-                  </div>
-                )}
+            ) : furnitureList.length ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {furnitureList.map((f) => {
+                  const isSelected = selectedFurniture?.id === f.id;
+                  const isAvailable =
+                    f.is_active && f.available_number > f.reserved_number;
+                  const max = Math.max(
+                    0,
+                    (f.available_number || 0) - (f.reserved_number || 0)
+                  );
+                  return (
+                    <button
+                      key={f.id}
+                      type="button"
+                      disabled={!isAvailable}
+                      onClick={() => handleFurnitureSelect(f)}
+                      className={`rounded-2xl border-2 p-4 text-left transition ${
+                        !isAvailable
+                          ? "bg-gray-50 border-gray-200 opacity-60 cursor-not-allowed"
+                          : isSelected
+                          ? "border-orange-400 bg-orange-50"
+                          : "bg-white border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-gray-900 font-semibold">
+                            {f.name}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Max of {f.capacity || f.max_people || max || 1}{" "}
+                            people
+                          </div>
+                        </div>
+                        <div
+                          className={`p-2 rounded-lg ${
+                            isSelected
+                              ? "bg-orange-100 text-orange-600"
+                              : "bg-gray-100 text-gray-600"
+                          }`}
+                        >
+                          <Users size={18} />
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
-            )}
-
-            {/* No Furniture Available */}
-            {!isLoading && furnitureList.length === 0 && (
-              <div className="text-center py-8">
-                <Armchair className="mx-auto text-gray-400 mb-4" size={48} />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  No furniture available
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  No furniture types are currently available for booking.
-                </p>
-                <button
-                  onClick={loadFurnitureList}
-                  className="inline-flex items-center space-x-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors"
-                >
-                  <Loader size={16} />
-                  <span>Retry</span>
-                </button>
+            ) : (
+              <div className="py-6 text-center text-gray-500">
+                No furniture available
               </div>
             )}
           </div>
 
-          {/* Selected Summary */}
-          {(selectedDate || selectedFurniture) && (
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-              <h4 className="font-medium text-blue-900 mb-3">Your Selection</h4>
-              <div className="space-y-2 text-sm">
-                {selectedDate && (
-                  <div className="flex justify-between">
-                    <span className="text-blue-700">Date:</span>
-                    <span className="font-medium text-blue-900">
-                      {new Date(selectedDate).toLocaleDateString("en-US", {
-                        weekday: "long",
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
+          {/* Sessions (Time Slots) with counter */}
+          {selectedFurniture && selectedDate && (
+            <div className="bg-white rounded-xl  ">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Time Slot
+              </label>
+
+              {isLoading && loadingStep === "sessions" ? (
+                <div className="py-8 text-center text-gray-600">
+                  <Loader className="animate-spin mx-auto mb-2" size={22} />
+                  Loading time slots...
+                </div>
+              ) : sessions.length ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {sessions.map((s) => {
+                    const qty = slotQty[s.id] || 0;
+                    const avail = availability[s.id]; // undefined until first increment
+                    const disabled = avail ? avail.available === 0 : false;
+
+                    return (
+                      <div
+                        key={s.id}
+                        className={`flex flex-col justify-between rounded-[16px] border-2 p-4 transition-all
+    ${
+      qty > 0
+        ? "border-orange-500 bg-white"
+        : "border-gray-300 bg-white hover:border-gray-400"
+    }`}
+                      >
+                        {/* Top: Session title & time */}
+                        <div className="mb-4">
+                          <div className="text-base font-semibold text-gray-900">
+                            {s.session_name || s.name}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {formatTime(s.start_time)} –{" "}
+                            {formatTime(s.end_time)}
+                          </div>
+                        </div>
+
+                        {/* Bottom: Counter + Price */}
+                        <div className="flex items-center justify-between">
+                          {/* Counter */}
+                          <div className="inline-flex items-center rounded-full bg-orange-50 px-2 py-1">
+                            <button
+                              onClick={() => decreaseQty(s)}
+                              disabled={qty === 0}
+                              className="w-8 h-8 rounded-full flex items-center justify-center text-orange-600 hover:bg-orange-100 disabled:opacity-50"
+                            >
+                              <Minus className="w-4 h-4" />
+                            </button>
+                            <span className="w-8 text-center font-semibold">
+                              {qty}
+                            </span>
+                            <button
+                              disabled={
+                                availability[s.id]?.available !== undefined &&
+                                qty >= availability[s.id].available
+                              }
+                              onClick={() => increaseQty(s)}
+                              className="w-8 h-8 rounded-full flex items-center justify-center text-orange-600 hover:bg-orange-100 disabled:opacity-50"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </button>
+                          </div>
+
+                          {/* Price */}
+                          <div className="text-sm font-extrabold text-gray-900">
+                            {formatCurrency(s.price)}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="py-6 text-center text-gray-500">
+                  No time slots available
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Inline summary (optional) */}
+          {/* {(selectedFurniture || slotLines.length > 0) && (
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+              <h4 className="font-semibold text-gray-900 mb-2">Summary</h4>
+              <div className="space-y-1 text-sm">
+                {selectedFurniture && (
+                  <div className="flex items-center justify-between">
+                    <span>{selectedFurniture.name}</span>
+                    <span className="font-semibold">
+                      {formatCurrency(selectedFurniture.price)}
                     </span>
                   </div>
                 )}
-                {selectedFurniture && (
-                  <>
-                    <div className="flex justify-between">
-                      <span className="text-blue-700">Furniture:</span>
-                      <span className="font-medium text-blue-900">
-                        {selectedFurniture.name}
-                      </span>
-                    </div>
-                    {selectedFurniture.price > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-blue-700">Base Price:</span>
-                        <span className="font-medium text-blue-900">
-                          {formatCurrency(selectedFurniture.price)}
-                        </span>
-                      </div>
-                    )}
-                  </>
-                )}
+                {slotLines.map((l) => (
+                  <div key={l.id} className="flex items-center justify-between">
+                    <span>
+                      {l.name}{" "}
+                      <span className="text-gray-500 italic">x{l.qty}</span>
+                    </span>
+                    <span className="font-semibold">
+                      {formatCurrency(l.subtotal)}
+                    </span>
+                  </div>
+                ))}
+                <div className="border-t border-gray-200 my-2" />
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold">Total</span>
+                  <span className="font-extrabold">
+                    {formatCurrency(totalAmount)}
+                  </span>
+                </div>
               </div>
             </div>
-          )}
+          )} */}
         </div>
       </div>
 
       {/* Footer */}
       <div className="p-6 border-t border-gray-200">
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-3">
           <button
             onClick={handleNext}
-            disabled={!selectedDate || !selectedFurniture || isLoading}
+            disabled={!canProceed || isLoading}
             className={`px-8 py-3 rounded-lg font-medium transition-colors ${
-              selectedDate && selectedFurniture && !isLoading
+              canProceed && !isLoading
                 ? "bg-orange-600 text-white hover:bg-orange-700 shadow-lg hover:shadow-xl"
                 : "bg-gray-300 text-gray-500 cursor-not-allowed"
             }`}
           >
-            {isLoading ? "Loading..." : "Next"}
+            {isLoading ? "Processing..." : "Next"}
           </button>
         </div>
       </div>

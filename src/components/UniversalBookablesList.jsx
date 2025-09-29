@@ -329,7 +329,7 @@ const UniversalBookablesList = ({ config = {} }) => {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center justify-between gap-4">
+                  {/* <div className="flex items-center justify-between gap-4">
                     <button
                       type="button"
                       disabled
@@ -350,7 +350,7 @@ const UniversalBookablesList = ({ config = {} }) => {
                     >
                       Next
                     </button>
-                  </div>
+                  </div> */}
                 </div>
               </main>
 

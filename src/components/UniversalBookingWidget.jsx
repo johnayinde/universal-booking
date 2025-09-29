@@ -142,7 +142,7 @@ const UniversalBookingWidget = () => {
         {/* Body: columns on lg+, stacked on smaller */}
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
           {/* Left Sidebar: hidden on small; shows from lg */}
-          <div className=" rounded-xl border border-gray-200 bg-white shadow-sm h-full p-4 hidden lg:block lg:w-96 overflow-y-auto">
+          <div className=" rounded-xl border border-gray-200 bg-gray-100 shadow-sm h-full p-4 hidden lg:block lg:w-96 overflow-y-auto">
             {/* <div className="p-6"> */}
             <div className="rounded-xl border border-gray-200 bg-white shadow-sm h-full p-4">
               <LeftSidebar
