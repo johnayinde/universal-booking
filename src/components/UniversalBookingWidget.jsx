@@ -125,7 +125,6 @@ const UniversalBookingWidget = () => {
         "flex items-stretch sm:items-center justify-center",
       ].join(" ")}
     >
-      {/* Modal container: full-screen on mobile, card on larger screens */}
       <div
         className={[
           "bg-white shadow-2xl w-full",
@@ -137,50 +136,15 @@ const UniversalBookingWidget = () => {
         role="dialog"
         aria-modal="true"
       >
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
-          <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-orange-400 to-orange-600 rounded-lg flex items-center justify-center shrink-0">
-              <span className="text-white font-bold text-base sm:text-lg">
-                N
-              </span>
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-base sm:text-xl font-bold text-gray-900 truncate">
-                {config.branding?.companyName || "Nike Lake Resort"}
-              </h1>
-              <p className="text-xs sm:text-sm text-gray-600 truncate">
-                Secure booking portal
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => {
-              sessionStorage.removeItem("selectedBusinessType");
-              setTimeout(() => {
-                const newConfig = {
-                  ...config,
-                  businessType: null, // or undefined
-                };
-                window.UniversalBookingWidget.init(newConfig).open();
-              }, 100);
-              closeWidget();
-            }}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            aria-label="Close booking widget"
-          >
-            <X size={24} className="text-gray-500" />
-          </button>
-        </div>
-
         {/* Mobile progress (hidden on lg+) */}
         <MobileProgress currentStep={currentStep} bookingSteps={bookingSteps} />
 
         {/* Body: columns on lg+, stacked on smaller */}
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
           {/* Left Sidebar: hidden on small; shows from lg */}
-          <div className="hidden lg:block lg:w-80 bg-gray-50 border-r border-gray-200 overflow-y-auto">
-            <div className="p-6">
+          <div className=" rounded-xl border border-gray-200 bg-white shadow-sm h-full p-4 hidden lg:block lg:w-96 overflow-y-auto">
+            {/* <div className="p-6"> */}
+            <div className="rounded-xl border border-gray-200 bg-white shadow-sm h-full p-4">
               <LeftSidebar
                 currentStep={currentStep}
                 bookingSteps={bookingSteps}
@@ -191,14 +155,14 @@ const UniversalBookingWidget = () => {
           </div>
 
           {/* Center Content */}
-          <div className="flex-1 order-1 lg:order-none bg-gray-50 overflow-y-auto">
+          <div className="flex-1 order-1 lg:order-none bg-white overflow-y-auto">
             <div className="p-4 sm:p-6">
               <CurrentStepComponent apiService={apiService} adapter={adapter} />
             </div>
           </div>
 
           {/* Right Sidebar: becomes bottom section on small screens */}
-          <div className="order-2 lg:order-none w-full lg:w-96 bg-white border-t lg:border-t-0 lg:border-l border-gray-200 overflow-y-auto">
+          <div className="order-2 lg:order-none w-full lg:w-96 bg-gray-100 border-t lg:border-t-0 lg:border-l border-gray-200 overflow-y-auto">
             <RightSidebar
               state={state}
               currentStep={currentStep}
@@ -278,39 +242,14 @@ const LeftSidebar = ({ currentStep, bookingSteps, config }) => {
   };
 
   return (
-    <div>
+    <div className="">
       {/* Location Header */}
-      <div className="mb-8">
-        {/* Top row: image + location/title */}
-        <div className="flex items-center gap-4 mb-4">
-          {config.branding?.locationImage && (
-            <img
-              src={config.branding.locationImage}
-              alt={config.branding?.companyName || "Location image"}
-              className="w-20 h-16 rounded-lg object-cover shrink-0"
-            />
-          )}
-
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 leading-tight break-words">
-            {config.branding?.locationName || config.branding?.companyName}
-          </h1>
-        </div>
-
-        {/* “Welcome to …” line */}
-        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
-          Welcome to{" "}
-          {config.branding?.companyName ||
-            (config.branding?.locationName
-              ? config.branding.locationName.split(",")[0]
-              : "Our Resort")}
-        </h2>
-
-        {/* Description */}
-        <p className="text-gray-600 text-sm leading-relaxed">
-          {config.branding?.description ||
-            "Enjoy the perfect business getaway with breath-taking views in a very secure and tranquil setting"}
-        </p>
-      </div>
+      <SidebarInfo
+        locationImage={config.branding.locationImage}
+        companyName={config.branding.companyName}
+        locationName={config.branding.locationName}
+        description={config.description}
+      />
 
       {/* Progress Steps */}
       <div className="space-y-4">
@@ -328,14 +267,14 @@ const LeftSidebar = ({ currentStep, bookingSteps, config }) => {
             const Icon = step.icon || Calendar;
 
             return (
-              <div key={step.key} className="relative pl-4">
+              <div key={step.key} className="relative ">
                 {/* left orange bar */}
                 <span
-                  className="absolute left-0 top-3 bottom-3 w-1 rounded"
+                  className="absolute left-0 top-[0.1rem] bottom-3 w-1 rounded"
                   style={{ backgroundColor: "orange" }}
                 />
                 {/* row */}
-                <div className="flex items-center justify-between px-4 py-3 rounded-lg bg-white border border-gray-200">
+                <div className="flex items-center justify-between px-4 py-5 rounded-lg bg-white border border-gray-200">
                   {/* left: icon + label */}
                   <div className="flex items-center gap-3">
                     <Icon size={20} className="text-gray-800" />
@@ -378,21 +317,6 @@ const LeftSidebar = ({ currentStep, bookingSteps, config }) => {
           })}
         </div>
       </div>
-
-      {/* Security Badge */}
-      <div className="mt-8 p-4 bg-white border border-gray-200 rounded-lg">
-        <div className="flex items-center space-x-2 mb-2">
-          <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-            <span className="text-white text-xs">✓</span>
-          </div>
-          <span className="text-sm font-medium text-gray-900">
-            Secure Booking
-          </span>
-        </div>
-        <p className="text-xs text-gray-600">
-          Your payment information is encrypted and secure
-        </p>
-      </div>
     </div>
   );
 };
@@ -427,127 +351,120 @@ const RightSidebar = ({ state, currentStep }) => {
   );
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col bg-gray-100">
       {/* Content */}
       <div className="flex-1 p-3 sm:p-6 overflow-y-auto">
-        {/* Selected Tickets */}
-        {selectedTickets.length > 0 ? (
-          <div className="mb-4 sm:mb-6">
-            <h4 className="font-medium text-gray-900 mb-2 sm:mb-3 text-sm sm:text-base">
-              Selected Tickets ({totalTickets})
-            </h4>
-            <div className="space-y-2.5 sm:space-y-3">
-              {selectedTickets.map((ticket) => (
-                <div
-                  key={ticket.id}
-                  className="bg-gray-50 border border-gray-200 rounded-lg p-3 sm:p-4"
-                >
-                  <div className="flex justify-between items-start mb-1.5 sm:mb-2 gap-2.5 sm:gap-3">
-                    <div className="flex-1 min-w-0">
-                      <h5 className="font-medium text-gray-900 text-sm sm:text-base truncate">
-                        {ticket.name}
-                      </h5>
-                      {ticket.type && (
-                        <span className="text-[10px] sm:text-[11px] text-gray-600 bg-gray-200 px-1.5 py-0.5 rounded mt-1 inline-block">
-                          {ticket.type}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="font-semibold text-gray-900 text-sm sm:text-base">
-                        {formatCurrency(ticket.price)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-center text-xs sm:text-sm">
-                    <span className="text-gray-600">
-                      Qty: {ticket.quantity}
-                    </span>
-                    <span className="font-medium text-gray-900">
-                      {formatCurrency(ticket.price * ticket.quantity)}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="mb-4 sm:mb-6">
-            <h4 className="font-medium text-gray-900 mb-2 sm:mb-3 text-sm sm:text-base">
+        {/* Ticket Details Card */}
+        <div className="mb-4 sm:mb-6">
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 sm:p-5">
+            <h4 className="font-semibold text-gray-900 text-sm sm:text-base mb-3">
               Ticket Details
             </h4>
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 sm:p-6 text-center">
-              <div className="text-gray-400 mb-2">
-                <svg
-                  className="w-6 h-6 sm:w-8 sm:h-8 mx-auto"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a1 1 0 001 1h1a1 1 0 001-1V7a2 2 0 00-2-2H5zM5 14a2 2 0 00-2 2v3a1 1 0 001 1h1a1 1 0 001-1v-3a2 2 0 00-2-2H5z"
-                  />
-                </svg>
-              </div>
-              <p className="text-xs sm:text-sm text-gray-600">
-                No tickets selected
-              </p>
-              <p className="text-[11px] sm:text-xs text-gray-500 mt-1">
-                Select tickets to see details here
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
 
-      {/* Footer - Total & Actions */}
-      <div className="border-t border-gray-200 p-4 sm:p-6 bg-gray-50">
-        {totalAmount > 0 ? (
-          <div className="space-y-4">
-            {/* Subtotal Breakdown */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Subtotal</span>
-                <span className="text-gray-900">
-                  {formatCurrency(totalAmount)}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Service Fee</span>
-                <span className="text-gray-900">₦0</span>
-              </div>
-              <div className="border-t border-gray-300 pt-2">
-                <div className="flex justify-between items-center">
+            {selectedTickets.length > 0 ? (
+              <>
+                <div className="space-y-2.5">
+                  {selectedTickets.map((ticket) => (
+                    <div
+                      key={ticket.id}
+                      className="flex items-start justify-between text-sm"
+                    >
+                      <div className="text-gray-900">
+                        <span className="font-medium">{ticket.name}</span>
+                        <span className="ml-2 text-gray-500 italic">
+                          x{ticket.quantity}
+                        </span>
+                      </div>
+                      <div className="font-semibold text-gray-900">
+                        {formatCurrency(ticket.price * ticket.quantity)}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Optional discount row (shown only if present) */}
+                  {(state?.pricing?.discountAmount ?? 0) > 0 && (
+                    <div className="flex items-start justify-between text-sm">
+                      <div className="text-gray-900">
+                        {state?.pricing?.discountLabel || "Discount"}
+                      </div>
+                      <div className="font-semibold text-red-500">
+                        -{formatCurrency(state.pricing.discountAmount)}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Divider */}
+                <div className="my-3 border-t border-gray-200" />
+
+                {/* Total */}
+                <div className="flex items-center justify-between">
                   <span className="font-semibold text-gray-900">Total</span>
-                  <span className="font-bold text-lg sm:text-xl text-orange-600">
-                    {formatCurrency(totalAmount)}
+                  <span className="font-extrabold text-gray-900">
+                    {formatCurrency(
+                      (typeof totalAmount === "number" ? totalAmount : 0) -
+                        (state?.pricing?.discountAmount ?? 0)
+                    )}
                   </span>
                 </div>
+              </>
+            ) : (
+              // Empty state – compact and neutral
+              <div className="text-center py-6 text-gray-600 text-sm">
+                No tickets selected
               </div>
-            </div>
-
-            {/* Action Note */}
-            <div className="text-center">
-              <p className="text-xs text-gray-500">
-                Complete your booking to proceed to secure payment
-              </p>
-            </div>
+            )}
           </div>
-        ) : (
-          <div className="text-center">
-            <p className="text-sm text-gray-500">
-              Total amount will appear here
-            </p>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );
 };
 
 export default UniversalBookingWidget;
+
+export const SidebarInfo = ({
+  locationImage,
+  companyName,
+  locationName,
+  description,
+}) => {
+  return (
+    <div className="mb-8">
+      {/* Card container */}
+      <div>
+        {/* Row: image + title */}
+        <div className="flex items-center gap-3">
+          {locationImage && (
+            <img
+              src={locationImage}
+              alt={companyName || "Location image"}
+              className="w-44 h-44 rounded-lg object-cover shrink-0"
+            />
+          )}
+
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 leading-snug">
+            {locationName || companyName || "Your Location"}
+          </h2>
+        </div>
+
+        {/* Divider-like spacing */}
+        <div className="mt-5" />
+
+        {/* “Welcome to …” block */}
+        <h2 className="text-base sm:text-lg font-semibold text-gray-900">
+          Welcome to{" "}
+          {companyName ||
+            (locationName
+              ? (locationName.split(",")[0] || "").trim()
+              : "Our Resort")}
+        </h2>
+
+        <p className="mt-1 text-gray-600 text-sm leading-relaxed">
+          {description ||
+            "Enjoy the perfect business getaway with breath-taking views in a very secure and tranquil setting"}
+        </p>
+      </div>
+    </div>
+  );
+};

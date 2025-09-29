@@ -8,6 +8,7 @@ import {
   RefreshCw,
   Loader,
   CheckCircle,
+  ArrowLeft,
 } from "lucide-react";
 import { useUniversalBooking } from "../../../core/UniversalStateManager";
 import { ActionTypes } from "../../../core/UniversalStateManager";
@@ -25,42 +26,15 @@ const EntryTicketList = ({ apiService, adapter }) => {
   const [loadingStep, setLoadingStep] = useState("none"); // "types", "items", "none"
   const [apiError, setApiError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
-
-  // Debug info
-  console.log("🎫 EntryTicketList rendered with:", {
-    hasAdapter: !!adapter,
-    hasApiService: !!apiService,
-    locationId: state.config?.locationId || state.config?.location,
-    currentStep: state.currentStep,
-    loadingStep,
-    selectedType: selectedType?.name,
-    ticketCount: tickets.length,
-    totalAmount,
-  });
-
   // Load ticket types on mount
   useEffect(() => {
     loadTicketTypes();
   }, []);
 
-  // useEffect(() => {
-  //   console.log("🔄 EntryPersonalInfo selections changed:", {
-  //     stateSelections: state.selections,
-  //     selectedTickets: selectedTickets.length,
-  //     totalTickets,
-  //   });
-  // }, [state.selections, selectedTickets, totalTickets]);
-
   // Update total when selections change
   useEffect(() => {
     const total = calculateTotal(selections, tickets);
     setTotalAmount(total);
-
-    // Update global state
-    // dispatch({
-    //   type: ActionTypes.UPDATE_SELECTIONS,
-    //   payload: selections,
-    // });
 
     dispatch({
       type: ActionTypes.CALCULATE_TOTAL,
@@ -139,7 +113,6 @@ const EntryTicketList = ({ apiService, adapter }) => {
       return;
     }
 
-    console.log("🎯 Selecting ticket type:", type);
     setSelectedType(type);
     setTickets([]);
     setSelections({});
@@ -194,7 +167,6 @@ const EntryTicketList = ({ apiService, adapter }) => {
       setApiError(`Failed to load tickets: ${error.message}`);
 
       // Use fallback data
-      console.log("🔄 Using fallback ticket data");
       const fallbackItems = [
         {
           id: 1,
@@ -288,7 +260,6 @@ const EntryTicketList = ({ apiService, adapter }) => {
         };
       }
     });
-    console.log(">>>>>>>", globalSelections);
 
     dispatch({
       type: ActionTypes.UPDATE_SELECTIONS,
@@ -332,6 +303,27 @@ const EntryTicketList = ({ apiService, adapter }) => {
     });
   };
 
+  const handleBack = () => {
+    // Clear the selected business type
+    sessionStorage.removeItem("selectedBusinessType");
+
+    // Destroy current widget
+    if (window.UniversalBookingWidget) {
+      window.UniversalBookingWidget.destroyAll?.();
+    }
+
+    // Reinitialize widget without business type (shows bookables list)
+    setTimeout(() => {
+      const widget = window.UniversalBookingWidget.init({
+        businessType: null, // This shows the bookables list
+        locationId: state.config?.locationId || 1,
+        apiBaseUrl: state.config?.apiBaseUrl,
+        branding: state.config?.branding,
+        autoShow: true,
+      });
+      widget.open();
+    }, 100);
+  };
   /**
    * Retry API call
    */
@@ -398,6 +390,14 @@ const EntryTicketList = ({ apiService, adapter }) => {
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="p-6 border-b border-gray-200">
+        <button
+          onClick={handleBack}
+          className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors mb-4"
+        >
+          <ArrowLeft size={20} />
+          <span>Back to Bookables</span>
+        </button>
+
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             Select Ticket Type
@@ -434,51 +434,42 @@ const EntryTicketList = ({ apiService, adapter }) => {
         {/* Ticket Type Selection */}
         {!selectedType && (
           <div className="max-w-2xl">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Available Entry Types
-            </h2>
-
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
               {ticketTypes.map((type) => (
                 <div
                   key={type.id}
                   onClick={() => handleTypeSelect(type)}
-                  className="bg-white border-2 border-gray-200 rounded-xl p-3 cursor-pointer hover:border-orange-300 hover:shadow-md transition-all duration-200"
+                  className="flex items-center justify-between rounded-xl border-2 border-gray-200 bg-white px-4 py-3 cursor-pointer hover:border-orange-300 hover:shadow transition-all duration-200"
                 >
-                  <div className="flex items-start space-x-4">
-                    <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                      <Ticket className="text-orange-600" size={24} />
+                  {/* Left: icon + text */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center">
+                      <Ticket className="text-orange-600 w-4 h-4" />
                     </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-900">
                         {type.name}
                       </h3>
-
-                      <p className="text-gray-600 text-sm mb-3">
+                      <p className="text-xs text-gray-600 line-clamp-1">
                         {type.description}
                       </p>
-                      {type.features?.fast_track && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          Fast Track Access
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-orange-600">
-                      <svg
-                        className="w-6 h-6"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 5l7 7-7 7"
-                        />
-                      </svg>
                     </div>
                   </div>
+
+                  {/* Right: chevron or indicator */}
+                  <svg
+                    className="w-5 h-5 text-orange-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
                 </div>
               ))}
             </div>
@@ -523,7 +514,7 @@ const EntryTicketList = ({ apiService, adapter }) => {
                   Select Tickets
                 </h3>
 
-                <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   {tickets.map((ticket) => {
                     const quantity = selections[ticket.id] || 0;
                     const maxQty = ticket.max_per_guest || 10;
@@ -531,106 +522,67 @@ const EntryTicketList = ({ apiService, adapter }) => {
                     return (
                       <div
                         key={ticket.id}
-                        className={`bg-white rounded-xl p-4 sm:p-6 transition-all duration-200 border sm:border-2 ${
-                          quantity > 0
-                            ? "border-orange-200 bg-orange-50"
-                            : "border-gray-200 hover:border-gray-300"
-                        }`}
+                        className="flex items-center justify-between rounded-2xl border-2 border-gray-200 bg-white p-4 transition-all hover:border-orange-300"
                       >
-                        <div className="flex items-center justify-between gap-3 sm:gap-4">
-                          {/* Ticket Info */}
-                          <div className="flex-1">
-                            <div className="flex items-start gap-3 sm:gap-4">
-                              <div
-                                className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center ${
-                                  quantity > 0 ? "bg-orange-500" : "bg-gray-100"
-                                }`}
-                              >
-                                <Ticket
-                                  className={`w-5 h-5 sm:w-6 sm:h-6 ${
-                                    quantity > 0
-                                      ? "text-white"
-                                      : "text-gray-400"
-                                  }`}
-                                />
-                              </div>
-
-                              <div className="flex-1 min-w-0">
-                                <h4 className="text-base sm:text-lg font-semibold text-gray-900 mb-0.5 sm:mb-1">
-                                  {ticket.name}
-                                </h4>
-
-                                {ticket.description && (
-                                  <p className="text-gray-600 text-xs sm:text-sm mb-1.5 sm:mb-2 line-clamp-2">
-                                    {ticket.description}
-                                  </p>
-                                )}
-
-                                <div className="flex items-center flex-wrap gap-x-2 gap-y-1">
-                                  <span className="text-xl sm:text-2xl font-bold text-gray-900">
-                                    {formatCurrency(ticket.price)}
-                                  </span>
-
-                                  {ticket.type && (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-medium bg-blue-100 text-blue-800">
-                                      {ticket.type}
-                                    </span>
-                                  )}
-
-                                  {maxQty < 10 && (
-                                    <span className="text-[11px] sm:text-xs text-gray-500">
-                                      Max {maxQty} per order
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
+                        {/* Left: icon + label = price */}
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+                            <Ticket className="w-5 h-5 text-gray-800" />
                           </div>
 
-                          {/* Quantity Controls */}
-                          <div className="flex items-center gap-2 sm:gap-3">
-                            <button
-                              onClick={() => updateQuantity(ticket.id, -1)}
-                              disabled={quantity === 0}
-                              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 border-orange-300 text-orange-600 flex items-center justify-center hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-                            >
-                              <Minus className="w-4 h-4 sm:w-5 sm:h-5" />
-                            </button>
-
-                            <div
-                              className={`w-14 h-9 sm:w-16 sm:h-10 rounded-lg border-2 flex items-center justify-center font-bold text-base sm:text-lg transition-all duration-200 ${
-                                quantity > 0
-                                  ? "border-orange-300 bg-orange-100 text-orange-700"
-                                  : "border-gray-200 bg-gray-50 text-gray-600"
-                              }`}
-                            >
-                              {quantity}
+                          <div className="min-w-0">
+                            <div className="text-base sm:text-lg text-gray-900 truncate">
+                              <span className="font-medium">{ticket.name}</span>
+                              <span className="mx-1">{" = "}</span>
+                              <span className="font-extrabold text-indigo-950">
+                                {formatCurrency(ticket.price)}
+                              </span>
                             </div>
 
-                            <button
-                              onClick={() => updateQuantity(ticket.id, 1)}
-                              disabled={quantity >= maxQty}
-                              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 border-orange-300 text-orange-600 flex items-center justify-center hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-                            >
-                              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-                            </button>
+                            {ticket.description && (
+                              <p className="text-xs text-gray-600 truncate">
+                                {ticket.description}
+                              </p>
+                            )}
                           </div>
                         </div>
 
-                        {/* Subtotal for this ticket */}
-                        {/* {quantity > 0 && (
-                          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-orange-200">
-                            <div className="flex justify-between items-center text-xs sm:text-sm">
-                              <span className="text-orange-700 font-medium">
-                                ✓ Added to booking
+                        {/* Right: Add / qty pill */}
+                        <div className="shrink-0">
+                          {quantity === 0 ? (
+                            <button
+                              onClick={() => updateQuantity(ticket.id, 1)}
+                              className="inline-flex items-center gap-2 rounded-full px-4 py-2 bg-orange-50 text-orange-600 font-semibold hover:bg-orange-100"
+                            >
+                              <span>Add</span>
+                              <Plus className="w-4 h-4" />
+                            </button>
+                          ) : (
+                            <div className="inline-flex items-center rounded-full bg-orange-50 px-2 py-1">
+                              <button
+                                onClick={() => updateQuantity(ticket.id, -1)}
+                                disabled={quantity === 0}
+                                aria-label="Decrease"
+                                className="w-8 h-8 rounded-full flex items-center justify-center text-orange-600 hover:bg-orange-100 disabled:opacity-50"
+                              >
+                                <Minus className="w-4 h-4" />
+                              </button>
+
+                              <span className="w-8 text-center font-semibold text-gray-900">
+                                {quantity}
                               </span>
-                              <span className="text-orange-600 font-semibold">
-                                {quantity} × {formatCurrency(ticket.price)} ={" "}
-                                {formatCurrency(ticket.price * quantity)}
-                              </span>
+
+                              <button
+                                onClick={() => updateQuantity(ticket.id, 1)}
+                                disabled={quantity >= maxQty}
+                                aria-label="Increase"
+                                className="w-8 h-8 rounded-full flex items-center justify-center text-orange-600 hover:bg-orange-100 disabled:opacity-50"
+                              >
+                                <Plus className="w-4 h-4" />
+                              </button>
                             </div>
-                          </div>
-                        )} */}
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -638,29 +590,11 @@ const EntryTicketList = ({ apiService, adapter }) => {
 
                 {/* Total & Next Button */}
                 {totalAmount > 0 && (
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    {/* <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <span className="text-lg font-medium text-gray-900">
-                          Total
-                        </span>
-                        <p className="text-sm text-gray-600">
-                          {Object.values(selections).reduce(
-                            (sum, qty) => sum + qty,
-                            0
-                          )}{" "}
-                          ticket(s) selected
-                        </p>
-                      </div>
-                      <span className="text-2xl font-bold text-orange-600">
-                        {formatCurrency(totalAmount)}
-                      </span>
-                    </div> */}
-
+                  <div className="rounded-lg p-4 flex justify-end">
                     <button
                       onClick={handleNext}
                       disabled={!canProceed()}
-                      className={`w-full py-3 px-4 rounded-lg font-medium transition-all duration-200 ${
+                      className={`py-3 px-6 rounded-lg font-medium transition-all duration-200 ${
                         canProceed()
                           ? "bg-orange-600 text-white hover:bg-orange-700 shadow-lg hover:shadow-xl"
                           : "bg-gray-300 text-gray-500 cursor-not-allowed"

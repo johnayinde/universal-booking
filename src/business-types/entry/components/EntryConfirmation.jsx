@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { ActionTypes } from "../../../core/UniversalStateManager";
 
-const EntryConfirmation = () => {
+const EntryConfirmation = ({ config = {} }) => {
   const { state, dispatch, adapter } = useUniversalBooking();
 
   // Get data from state
@@ -26,7 +26,18 @@ const EntryConfirmation = () => {
   const totalAmount = state.totalAmount;
 
   const handleCloseWidget = () => {
-    dispatch({ type: ActionTypes.SET_WIDGET_OPEN, payload: false });
+    sessionStorage.removeItem("selectedBusinessType");
+    sessionStorage.removeItem("isReloading");
+
+    if (window.UniversalBookingWidget) {
+      window.UniversalBookingWidget.destroyAll?.();
+      setTimeout(() => {
+        const newConfig = { ...config, businessType: null };
+        window.UniversalBookingWidget.init(newConfig).open();
+      }, 100);
+    }
+
+    if (window.parent) window.parent.postMessage({ type: "close-widget" }, "*");
   };
 
   const handleNewBooking = () => {
@@ -188,64 +199,7 @@ const EntryConfirmation = () => {
                 </div>
               </div>
             )}
-
-            {/* Location & Visit Information */}
-            <div>
-              <h4 className="flex items-center text-gray-900 font-medium mb-3">
-                <MapPin className="w-4 h-4 mr-2" />
-                Location & Visit Information
-              </h4>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h5 className="font-medium text-blue-900 mb-2">
-                  {state.config?.branding?.companyName}
-                </h5>
-                <div className="space-y-2 text-sm text-blue-800">
-                  <div className="flex items-center">
-                    <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
-                    <span>Enugu, Nigeria</span>
-                  </div>
-                  <div className="flex items-center">
-                    <Calendar className="w-4 h-4 mr-2 flex-shrink-0" />
-                    <span>Valid for any day</span>
-                  </div>
-                  <div className="flex items-center">
-                    <Clock className="w-4 h-4 mr-2 flex-shrink-0" />
-                    <span>Open daily: 8:00 AM - 6:00 PM</span>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
-
-          {/* Action Buttons */}
-          {/* <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <button
-              onClick={handleDownloadTicket}
-              className="flex items-center justify-center px-6 py-3 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 transition-colors"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Download Ticket
-            </button>
-            <button
-              onClick={handleEmailTicket}
-              className="flex items-center justify-center px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
-            >
-              <Mail className="w-4 h-4 mr-2" />
-              Email Ticket
-            </button>
-          </div> */}
-
-          {/* Help Section */}
-          {/* <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-            <h3 className="font-medium text-orange-900 mb-2">Need Help?</h3>
-            <p className="text-sm text-orange-800 mb-3">
-              Contact our support team if you have any questions about your
-              booking.
-            </p>
-            <button className="w-full bg-orange-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-orange-700 transition-colors">
-              Contact Support
-            </button>
-          </div> */}
         </div>
       </div>
 

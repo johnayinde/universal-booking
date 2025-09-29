@@ -2,14 +2,13 @@
 import React, { useState, useMemo, useRef } from "react";
 import {
   Ticket,
-  Utensils,
-  Hotel,
-  Camera,
   RockingChairIcon,
   Users,
   Ship,
   X,
+  Calendar,
 } from "lucide-react";
+import { SidebarInfo } from "./UniversalBookingWidget";
 
 const UniversalBookablesList = ({ config = {} }) => {
   const [selectedBookable, setSelectedBookable] = useState(null);
@@ -61,55 +60,6 @@ const UniversalBookablesList = ({ config = {} }) => {
   const handleBookableSelect = (bookable) => setSelectedBookable(bookable);
 
   const isAdvancingRef = useRef(false);
-
-  // --- Launch the business-type widget ---
-  // const handleNext = () => {
-  //   if (!selectedBookable) return;
-  //   if (!selectedBookable.implemented) {
-  //     alert(`${selectedBookable.name} booking is not implemented yet.`);
-  //     return;
-  //   }
-
-  //   sessionStorage.setItem("selectedBusinessType", selectedBookable.type);
-  //   if (window.parent) window.parent.postMessage({ type: "close-widget" }, "*");
-
-  //   setTimeout(() => {
-  //     if (!window.UniversalBookingWidget) {
-  //       console.error("UniversalBookingWidget not found on window");
-  //       alert("Booking system not loaded properly.");
-  //       return;
-  //     }
-  //     try {
-  //       window.UniversalBookingWidget.destroyAll?.();
-
-  //       const locId = config.locationId || config.location || 1;
-  //       const widgetConfig = {
-  //         businessType: selectedBookable.type,
-  //         locationId: locId,
-  //         location: locId,
-  //         apiBaseUrl: config.apiBaseUrl || "http://127.0.0.1:8000/api",
-  //         branding: {
-  //           ...config.branding,
-  //           // ensure these exist for consistent header
-  //           locationName: config.branding?.locationName || config.locationName,
-  //           companyName: config.branding?.companyName || config.companyName,
-  //           locationImage:
-  //             config.branding?.locationImage || config.locationImage,
-  //           description: config.branding?.description || config.description,
-  //         },
-  //         autoShow: true,
-  //       };
-
-  //       const widget = window.UniversalBookingWidget.init(widgetConfig);
-  //       widget.open();
-  //     } catch (error) {
-  //       console.error("Error opening widget:", error);
-  //       alert(
-  //         `${selectedBookable.name} booking encountered an error: ${error.message}`
-  //       );
-  //     }
-  //   }, 200);
-  // };
 
   const handleNext = (bookableOverride) => {
     const bookable = bookableOverride || selectedBookable;
@@ -247,210 +197,176 @@ const UniversalBookablesList = ({ config = {} }) => {
       className="fixed inset-0 z-50 bg-black/50 flex items-stretch sm:items-center justify-center px-0 sm:px-4 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
       style={customStyles}
     >
-      <div className="bg-white w-full h-dvh sm:h-[90vh] sm:max-w-7xl sm:rounded-xl shadow-2xl overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
-          <div className="min-w-0">
-            <h2 className="text-base sm:text-xl font-semibold text-gray-900">
-              Booking Type
-            </h2>
-            {config.branding?.companyName && (
-              <p className="text-xs sm:text-sm text-gray-600 mt-1 truncate">
-                {config.branding.companyName}
-              </p>
-            )}
-            <p className="text-[11px] sm:text-xs text-gray-500 mt-1 truncate">
-              {displayName} (Location ID: {locationId})
-            </p>
-          </div>
-          <button
-            onClick={handleClose}
-            className="p-2 hover:bg-gray-100 rounded-lg"
-            aria-label="Close booking widget"
-          >
-            <X size={22} className="text-gray-500" />
-          </button>
-        </div>
-
-        {/* Body: Left intro / Center list / Right ticket panel */}
-        <div className="flex-1 overflow-hidden">
-          <div className="h-full flex flex-col lg:flex-row">
-            {/* LEFT: Intro panel */}
-            <aside className="border-b lg:border-b-0 lg:border-r border-gray-200 bg-gray-50">
-              <div className="p-4 sm:p-6 lg:w-80">
-                <div className="flex items-start gap-4">
-                  <img
-                    src={locationImage}
-                    alt={displayName}
-                    className="w-20 h-16 lg:w-36 lg:h-36 rounded-lg object-cover shrink-0 ring-1 ring-black/5"
-                    onError={(e) => {
-                      e.currentTarget.src =
-                        "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA4MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iODAiIGhlaWdodD0iNjAiIGZpbGw9IiNGM0Y0RjYiLz48cmVjdCB4PSIyMCIgeT0iMTUiIHdpZHRoPSI0MCIgaGVpZ2h0PSIzMCIgZmlsbD0iIjlDQTNBRiIvPjwvc3ZnPg==";
-                    }}
+      {/* Outer shell = light grey, padded */}
+      <div className="w-full h-dvh sm:h-[92vh] sm:max-w-[95rem] sm:rounded-2xl bg-gray-100 p-2 sm:p-4 shadow-2xl overflow-hidden">
+        {/* Inner card = white with thin border (like the UI) */}
+        <div className="bg-white border border-gray-200 rounded-xl h-full overflow-hidden flex flex-col">
+          <div className="flex-1 overflow-hidden">
+            <div className="h-full flex flex-col lg:flex-row">
+              {/* LEFT: Intro panel (white) */}
+              <aside className="border-b lg:border-b-0 lg:border-r border-gray-200 bg-white">
+                <div className="p-4 sm:p-6 lg:w-80">
+                  <SidebarInfo
+                    locationImage={config.branding.locationImage}
+                    companyName={config.branding.companyName}
+                    locationName={config.branding.locationName}
+                    description={config.description}
                   />
 
-                  <div className="min-w-0">
-                    <h2 className="text-sm lg:text-lg font-semibold text-gray-900 leading-tight break-words">
-                      {config.branding?.locationName || displayName}
-                    </h2>
-
-                    <p className="text-gray-900 text-xs lg:text-sm font-medium mt-1">
-                      Welcome to{" "}
-                      {config.branding?.companyName ||
-                        (config.branding?.locationName
-                          ? config.branding.locationName.split(",")[0]
-                          : "Our Resort")}
-                    </p>
-
-                    {config.branding?.description && (
-                      <p className="text-gray-600 text-[11px] lg:text-sm leading-relaxed mt-1">
-                        {config.branding.description}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Progress Indicator */}
-                {/* <div className="mt-4 lg:mt-8 hidden sm:block">
-                  <div className="flex items-center space-x-3 px-4 py-3 rounded-lg bg-orange-100">
-                    <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm"
-                      style={{ backgroundColor: primaryColor }}
-                    >
-                      1
-                    </div>
-                    <span className="font-medium text-orange-800 text-sm">
-                      Booking Type
-                    </span>
-                  </div>
-                </div> */}
-              </div>
-            </aside>
-
-            {/* CENTER: Bookables list */}
-            <main className="flex-1 overflow-y-auto">
-              <div className="p-4 sm:p-6 max-w-3xl">
-                <div className="mb-6 sm:mb-8">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <div
-                      className="w-7 h-7 rounded-full text-white flex items-center justify-center text-sm font-bold"
-                      style={{ backgroundColor: "#F5CBA7" }}
-                    >
-                      1
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">
-                        Booking Type
-                      </p>
-                      <p className="text-gray-500 text-xs">
-                        Select a booking type and time to visit the venue
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-                  {filteredBookables.map((bookable) => {
-                    const Icon = bookable.icon;
-                    const isSelected = selectedBookable?.id === bookable.id;
-
-                    return (
-                      <button
-                        key={bookable.id}
-                        // onClick={() => handleBookableSelect(bookable)}
-                        onClick={() => {
-                          handleBookableSelect(bookable);
-                          handleNext(bookable); // auto-advance
-                        }}
-                        aria-pressed={isSelected}
-                        className={`group p-4 rounded-xl border text-left transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                          isSelected
-                            ? "border-orange-500 bg-orange-50 focus:ring-orange-400"
-                            : "border-gray-200 bg-white hover:border-gray-300 focus:ring-gray-300"
-                        }`}
-                      >
+                  {/* Progress Indicator */}
+                  <div className="space-y-0 -mx-6">
+                    <div className="relative">
+                      {/* left orange bar */}
+                      <span
+                        className="absolute left-0 top-[0.1rem] bottom-3 w-1 rounded"
+                        style={{ backgroundColor: "orange" }}
+                      />
+                      {/* row */}
+                      <div className="flex items-center justify-between px-4 py-5 rounded-lg bg-white border border-gray-200">
                         <div className="flex items-center gap-3">
-                          <div
-                            className={`p-2 rounded-lg ring-1 ring-black/5 ${
-                              isSelected
-                                ? "bg-orange-100 text-orange-600"
-                                : "bg-gray-100 text-gray-600"
-                            }`}
-                          >
-                            <Icon size={20} />
-                          </div>
-
-                          <div className="min-w-0 flex-1">
-                            <h3
-                              className={`font-medium text-sm truncate ${
-                                isSelected ? "text-orange-900" : "text-gray-900"
-                              }`}
-                            >
-                              {bookable.name}
-                            </h3>
-                          </div>
-
-                          {/* Radio circle on the right */}
-                          <span
-                            className={`ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full border transition-colors ${
-                              isSelected
-                                ? "border-orange-500"
-                                : "border-gray-300"
-                            }`}
-                          >
-                            <span
-                              className={`block w-2.5 h-2.5 rounded-full transition-opacity ${
-                                isSelected
-                                  ? "opacity-100 bg-orange-500"
-                                  : "opacity-0"
-                              }`}
-                            />
+                          <Calendar size={20} className="text-gray-800" />
+                          <span className="font-medium text-gray-900">
+                            Booking Type
                           </span>
                         </div>
-                      </button>
-                    );
-                  })}
+                        <span
+                          className="inline-flex items-center justify-center w-6 h-6 rounded-full"
+                          style={{ backgroundColor: "orange" }}
+                        >
+                          <span className="block w-2.5 h-2.5 rounded-full bg-white" />
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
+              </aside>
 
-                {/* Actions */}
-                <div className="flex items-center justify-between gap-4">
-                  <button
-                    type="button"
-                    disabled
-                    className="px-6 py-3 rounded-lg border bg-white text-gray-400 border-gray-200 cursor-not-allowed"
-                  >
-                    Previous
-                  </button>
+              {/* CENTER: Bookables list (very light grey like the UI) */}
+              <main className="flex-1 overflow-y-auto bg-gray-50">
+                <div className="p-4 sm:p-6">
+                  <div className="mb-6 sm:mb-8">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <div
+                        className="w-7 h-7 rounded-full text-white flex items-center justify-center text-sm font-bold"
+                        style={{ backgroundColor: "#F5CBA7" }}
+                      >
+                        1
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">
+                          Booking Type
+                        </p>
+                        <p className="text-gray-500 text-xs">
+                          Select a booking type and time to visit the venue
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
-                  <button
-                    onClick={handleNext}
-                    disabled={!selectedBookable}
-                    className={`px-6 py-3 rounded-lg font-semibold transition-opacity ${
-                      selectedBookable
-                        ? "text-white"
-                        : "opacity-60 text-white cursor-not-allowed"
-                    }`}
-                    style={{ backgroundColor: primaryColor }}
-                  >
-                    Next
-                  </button>
+                  {/* Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                    {filteredBookables.map((bookable) => {
+                      const Icon = bookable.icon;
+                      const isSelected = selectedBookable?.id === bookable.id;
+
+                      return (
+                        <button
+                          key={bookable.id}
+                          onClick={() => {
+                            handleBookableSelect(bookable);
+                            handleNext(bookable); // auto-advance
+                          }}
+                          aria-pressed={isSelected}
+                          className={`group p-4 rounded-xl border text-left transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                            isSelected
+                              ? "border-orange-500 bg-orange-50 focus:ring-orange-400"
+                              : "border-gray-200 bg-white hover:border-gray-300 focus:ring-gray-300"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`p-2 rounded-lg ring-1 ring-black/5 ${
+                                isSelected
+                                  ? "bg-orange-100 text-orange-600"
+                                  : "bg-gray-100 text-gray-600"
+                              }`}
+                            >
+                              <Icon size={20} />
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <h3
+                                className={`font-medium text-sm truncate ${
+                                  isSelected
+                                    ? "text-orange-900"
+                                    : "text-gray-900"
+                                }`}
+                              >
+                                {bookable.name}
+                              </h3>
+                            </div>
+
+                            {/* Radio circle on the right */}
+                            <span
+                              className={`ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full border transition-colors ${
+                                isSelected
+                                  ? "border-orange-500"
+                                  : "border-gray-300"
+                              }`}
+                            >
+                              <span
+                                className={`block w-2.5 h-2.5 rounded-full transition-opacity ${
+                                  isSelected
+                                    ? "opacity-100 bg-orange-500"
+                                    : "opacity-0"
+                                }`}
+                              />
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center justify-between gap-4">
+                    <button
+                      type="button"
+                      disabled
+                      className="px-6 py-3 rounded-lg border bg-white text-gray-400 border-gray-200 cursor-not-allowed"
+                    >
+                      Previous
+                    </button>
+
+                    <button
+                      onClick={handleNext}
+                      disabled={!selectedBookable}
+                      className={`px-6 py-3 rounded-lg font-semibold transition-opacity ${
+                        selectedBookable
+                          ? "text-white"
+                          : "opacity-60 text-white cursor-not-allowed"
+                      }`}
+                      style={{ backgroundColor: primaryColor }}
+                    >
+                      Next
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </main>
+              </main>
 
-            {/* RIGHT: Ticket details panel */}
-            <aside className="hidden lg:block lg:w-80 border-l border-gray-200 bg-white">
-              <div className="p-6">
-                <h3 className="text-base font-semibold text-gray-900">
-                  Ticket Details
-                </h3>
-                <div className="mt-6 text-sm text-gray-500 space-y-1">
-                  <p className="font-medium text-gray-400">No Data</p>
-                  <p>No item has been added to cart</p>
+              {/* RIGHT: Ticket details (white) */}
+              <aside className="hidden lg:block lg:w-80 border-l border-gray-200 bg-white">
+                <div className="p-6">
+                  <h3 className="text-base font-semibold text-gray-900">
+                    Ticket Details
+                  </h3>
+                  <div className="mt-6 text-sm text-gray-500 space-y-1">
+                    <p className="font-medium text-gray-400">No Data</p>
+                    <p>No item has been added to cart</p>
+                  </div>
                 </div>
-              </div>
-            </aside>
+              </aside>
+            </div>
           </div>
         </div>
       </div>
