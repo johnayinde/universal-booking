@@ -75,7 +75,7 @@ const GroupPackageDetails = ({ apiService, adapter }) => {
   const handleBack = () => {
     dispatch({
       type: ActionTypes.SET_CURRENT_STEP,
-      payload: "details",
+      payload: "list",
     });
   };
 
@@ -139,7 +139,7 @@ const GroupPackageDetails = ({ apiService, adapter }) => {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="p-6 border-b border-gray-200">
+      <div className="p-6 b">
         <button
           onClick={handleBack}
           className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors mb-4"
@@ -147,23 +147,10 @@ const GroupPackageDetails = ({ apiService, adapter }) => {
           <ArrowLeft size={20} />
           <span>Back to Package Options</span>
         </button>
-
-        <div className="mb-4">
-          <div className="flex items-center space-x-2 text-emerald-600 mb-2">
-            <Info size={20} />
-            <span className="text-sm font-medium">Package Details</span>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            {selectedPackageOption.name}
-          </h1>
-          <p className="text-gray-600">
-            Review the complete details of your selected package
-          </p>
-        </div>
       </div>
 
       {/* Content */}
-      <div className="flex-1 p-6 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto">
         <div className="max-w-4xl space-y-6">
           {/* Error Display */}
           {error && (
@@ -195,7 +182,7 @@ const GroupPackageDetails = ({ apiService, adapter }) => {
           {packageDetails && (
             <>
               {/* Package Hero */}
-              <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+              <div className="bg-white rounded-xl overflow-hidden">
                 <div className="flex flex-col md:flex-row">
                   <div className="w-full md:w-64 h-48 md:h-64 relative bg-emerald-500 flex-shrink-0">
                     {packageDetails.image_url ? (
@@ -223,16 +210,16 @@ const GroupPackageDetails = ({ apiService, adapter }) => {
 
                   <div className="flex-1 p-6">
                     <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                      <div className="flex">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2 mr-3">
                           {packageDetails.name}
                         </h2>
-                        <div className="text-3xl font-bold text-emerald-600">
+                        <span className="text-3xl font-bold text-orange-400">
                           ₦
                           {parseFloat(
                             packageDetails.price || 0
                           ).toLocaleString()}
-                        </div>
+                        </span>
                       </div>
                     </div>
 
@@ -240,7 +227,7 @@ const GroupPackageDetails = ({ apiService, adapter }) => {
                       <h4 className="font-semibold text-gray-900 mb-2">
                         Package Details
                       </h4>
-                      <p className="text-gray-600 leading-relaxed">
+                      <p className="text-gray-600 leading-relaxed font-normal text-xs">
                         {packageDetails.description ||
                           "Dive into our exhilarating activity package designed to provide you with a perfect blend of adventure and relaxation! Experience the thrill of archery as you aim for the bullseye, or test your skills at our state-of-the-art shooting ranges. For those who love the great outdoors, enjoy a scenic horse riding excursion through picturesque trails."}
                       </p>
@@ -251,7 +238,7 @@ const GroupPackageDetails = ({ apiService, adapter }) => {
 
               {/* Benefits */}
               {(packageDetails.benefits || packageDetails.features) && (
-                <div className="bg-white border border-gray-200 rounded-xl p-6">
+                <div className="bg-white rounded-xl p-2">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">
                     Benefits
                   </h3>
@@ -277,16 +264,16 @@ const GroupPackageDetails = ({ apiService, adapter }) => {
       </div>
 
       {/* Footer Actions */}
-      <div className="p-6 border-t border-gray-200 bg-gray-50">
-        <div className="flex items-center justify-between max-w-4xl">
-          <button
+      <div className="p-6 ">
+        <div className="flex items-center justify-end max-w-4xl">
+          {/* <button
             onClick={handleBack}
             disabled={isLoading}
             className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center space-x-2 disabled:opacity-50"
           >
             <ArrowLeft size={18} />
             <span>Back</span>
-          </button>
+          </button> */}
 
           <button
             onClick={handleNext}
@@ -294,7 +281,7 @@ const GroupPackageDetails = ({ apiService, adapter }) => {
             className={`px-8 py-3 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2 ${
               isLoading || !packageDetails
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg hover:shadow-xl"
+                : "bg-orange-400 text-white  shadow-lg hover:shadow-xl"
             }`}
           >
             {isLoading ? (
@@ -304,7 +291,7 @@ const GroupPackageDetails = ({ apiService, adapter }) => {
               </>
             ) : (
               <>
-                <span>Continue to Booking</span>
+                <span>Next</span>
                 <ArrowRight size={18} />
               </>
             )}

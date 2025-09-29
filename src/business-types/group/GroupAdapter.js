@@ -3,7 +3,7 @@ import BusinessAdapter from "../../core/BusinessAdapter";
 
 // Import components
 import GroupDatePackageSelection from "./components/GroupDatePackageSelection";
-import GroupPackageOptions from "./components/GroupPackageOptions";
+// import GroupPackageOptions from "./components/GroupPackageOptions";
 import GroupPackageDetails from "./components/GroupPackageDetails";
 import GroupPersonalInfo from "./components/GroupPersonalInfo";
 import GroupConfirmation from "./components/GroupConfirmation";
@@ -40,13 +40,13 @@ class GroupAdapter extends BusinessAdapter {
     console.log("🧩 GroupAdapter: Getting components");
     return {
       list: GroupDatePackageSelection, // Maps to "list" step (date + package size selection)
-      details: GroupPackageOptions, // Maps to "details" step (package options horizontal scroll)
+      // details: GroupPackageOptions, // Maps to "details" step (package options horizontal scroll)
       selection: GroupPackageDetails, // Maps to "selection" step (package details)
       booking: GroupPersonalInfo, // Maps to "booking" step (personal info + payment)
       confirmation: GroupConfirmation, // Maps to "confirmation" step
       // Also add the original mappings for compatibility
       datePackageSelection: GroupDatePackageSelection,
-      packageOptions: GroupPackageOptions,
+      // packageOptions: GroupPackageOptions,
       packageDetails: GroupPackageDetails,
       personalInfo: GroupPersonalInfo,
     };

@@ -1,5 +1,5 @@
 // src/business-types/group/components/GroupConfirmation.jsx
-import React, { useContext, useEffect } from "react";
+import React, { useContext } from "react";
 import {
   CheckCircle,
   Calendar,
@@ -8,10 +8,7 @@ import {
   Mail,
   Phone,
   User,
-  Download,
-  Share,
   CreditCard,
-  MapPin,
   Clock,
 } from "lucide-react";
 import UniversalBookingContext from "../../../core/UniversalStateManager";
@@ -29,64 +26,9 @@ const GroupConfirmation = ({ apiService, adapter }) => {
   const selectedPackageOption = selection?.packageOption;
   const packageDetails = selection?.packageDetails || selectedPackageOption;
 
-  // Calculate total amount
-  const totalAmount =
-    packageDetails && selectedPackageSize
-      ? parseFloat(packageDetails.price || 0) *
-        parseInt(selectedPackageSize.size || 1)
-      : 0;
-
-  // Format currency
-  const formatCurrency = (amount) => {
-    return `₦${parseFloat(amount).toLocaleString()}`;
-  };
-
   // Get confirmation details from localStorage if available
   const paymentReference = localStorage.getItem("payment_reference");
   const storedBookingRef = localStorage.getItem("booking_reference");
-
-  useEffect(() => {
-    // You could fetch additional booking details here if needed
-    console.log("📋 Group booking confirmed:", {
-      bookingReference: bookingReference || storedBookingRef,
-      paymentReference,
-      customerInfo,
-      selection,
-    });
-  }, []);
-
-  const handleDownloadReceipt = () => {
-    // Implement receipt download functionality
-    console.log("📄 Downloading receipt...");
-    // This would typically generate and download a PDF receipt
-  };
-
-  const handleShareBooking = () => {
-    // Implement sharing functionality
-    console.log("📤 Sharing booking...");
-    if (navigator.share) {
-      navigator.share({
-        title: "Group Booking Confirmation",
-        text: `My group booking is confirmed! Reference: ${
-          bookingReference || storedBookingRef
-        }`,
-        url: window.location.href,
-      });
-    } else {
-      // Fallback for browsers that don't support Web Share API
-      const bookingText = `Group Booking Confirmed!\nReference: ${
-        bookingReference || storedBookingRef
-      }\nDate: ${new Date(selectedDate).toLocaleDateString()}\nPackage: ${
-        packageDetails?.name
-      }\nGroup Size: ${selectedPackageSize?.size} people`;
-
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(bookingText).then(() => {
-          alert("Booking details copied to clipboard!");
-        });
-      }
-    }
-  };
 
   return (
     <div className="h-full flex flex-col bg-gray-50">
@@ -244,65 +186,6 @@ const GroupConfirmation = ({ apiService, adapter }) => {
             </div>
           )}
 
-          {/* Payment Summary */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              Payment Summary
-            </h2>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center py-2">
-                <span className="text-gray-600">
-                  {packageDetails?.name} × {selectedPackageSize?.size}
-                </span>
-                <span className="font-medium text-gray-900">
-                  {formatCurrency(totalAmount)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-2">
-                <span className="text-gray-600">Price per person</span>
-                <span className="font-medium text-gray-900">
-                  {formatCurrency(packageDetails?.price || 0)}
-                </span>
-              </div>
-              <div className="border-t border-gray-200 pt-3">
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold text-gray-900 text-lg">
-                    Total Paid
-                  </span>
-                  <span className="font-bold text-2xl text-emerald-600">
-                    {formatCurrency(totalAmount)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Important Information */}
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-            <h2 className="text-xl font-semibold text-blue-900 mb-4 flex items-center">
-              <MapPin className="mr-2" size={20} />
-              Important Information
-            </h2>
-            <div className="space-y-3 text-blue-800">
-              <div>
-                <strong>Arrival:</strong> Please arrive 15 minutes before your
-                scheduled time.
-              </div>
-              <div>
-                <strong>Contact:</strong> If you need to make any changes or
-                have questions, please contact us with your booking reference.
-              </div>
-              <div>
-                <strong>Cancellation:</strong> Cancellations must be made at
-                least 24 hours in advance for a full refund.
-              </div>
-              <div>
-                <strong>Weather:</strong> In case of adverse weather conditions,
-                we will contact you to reschedule your booking.
-              </div>
-            </div>
-          </div>
-
           {/* Special Requirements */}
           {customerInfo?.specialRequirements && (
             <div className="bg-white border border-gray-200 rounded-xl p-6">
@@ -322,30 +205,7 @@ const GroupConfirmation = ({ apiService, adapter }) => {
       {/* Footer Actions */}
       <div className="bg-white border-t border-gray-200 p-6">
         <div className="max-w-4xl mx-auto">
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            {/* <button
-              onClick={handleDownloadReceipt}
-              className="px-6 py-3 bg-emerald-100 text-emerald-700 rounded-lg font-medium hover:bg-emerald-200 transition-colors flex items-center justify-center space-x-2"
-            >
-              <Download size={18} />
-              <span>Download Receipt</span>
-            </button>
-
-            <button
-              onClick={handleShareBooking}
-              className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center justify-center space-x-2"
-            >
-              <Share size={18} />
-              <span>Share Booking</span>
-            </button> */}
-
-            {/* <button
-              onClick={() => window.location.reload()}
-              className="px-6 py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors"
-            >
-              Make Another Booking
-            </button> */}
-          </div>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center"></div>
 
           {/* Contact Information */}
           <div className="text-center mt-6 pt-6 border-t border-gray-200">
@@ -358,14 +218,14 @@ const GroupConfirmation = ({ apiService, adapter }) => {
                 className="text-emerald-600 hover:text-emerald-700 flex items-center justify-center space-x-1"
               >
                 <Mail size={16} />
-                <span>support@nikelakeresort.com</span>
+                <span></span>
               </a>
               <a
                 href="tel:+2348000000000"
                 className="text-emerald-600 hover:text-emerald-700 flex items-center justify-center space-x-1"
               >
                 <Phone size={16} />
-                <span>+234 800 000 0000</span>
+                <span></span>
               </a>
             </div>
           </div>

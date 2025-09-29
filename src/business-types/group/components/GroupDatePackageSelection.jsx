@@ -7,6 +7,7 @@ import {
   ArrowRight,
   AlertCircle,
   ChevronRight,
+  ArrowLeft,
 } from "lucide-react";
 import { ActionTypes } from "../../../core/UniversalStateManager";
 
@@ -25,6 +26,10 @@ const GroupDatePackageSelection = ({ apiService, adapter }) => {
   const [packageSizes, setPackageSizes] = useState([]);
   const [selectedPackageSize, setSelectedPackageSize] = useState(null);
   const [loadingStep, setLoadingStep] = useState("");
+
+  const [packageOptions, setPackageOptions] = useState([]);
+  const [optionsLoading, setOptionsLoading] = useState(false);
+  const [optionsError, setOptionsError] = useState("");
 
   // Initialize date to today if not set
   useEffect(() => {
@@ -108,8 +113,63 @@ const GroupDatePackageSelection = ({ apiService, adapter }) => {
       type: ActionTypes.UPDATE_SELECTION,
       payload: { packageSize },
     });
+
+    // clear previously loaded options
+    setPackageOptions([]);
+    setOptionsError("");
   };
 
+  // NEW: fetch options whenever size AND date are chosen
+  useEffect(() => {
+    const loadOptions = async () => {
+      if (
+        !adapter?.fetchPackageOptions ||
+        !selectedPackageSize?.id ||
+        !selectedDate
+      )
+        return;
+      try {
+        setOptionsLoading(true);
+        setOptionsError("");
+        const res = await adapter.fetchPackageOptions(
+          selectedPackageSize.id,
+          selectedDate
+        );
+        console.log("✅ Inline package options loaded:", res.data);
+        if (res?.success) {
+          const mapped = res.data.map((o) => ({
+            id: o.id,
+            name: o.name,
+            description: o.description,
+            price: o.price,
+            image: o.image,
+            benefits: o.benefits || [],
+          }));
+          setPackageOptions(mapped);
+        } else {
+          throw new Error(res?.error || "Failed to fetch package options");
+        }
+      } catch (err) {
+        console.error("❌ Inline options error:", err);
+        setOptionsError(err.message || "Failed to fetch package options");
+      } finally {
+        setOptionsLoading(false);
+      }
+    };
+    loadOptions();
+  }, [adapter, selectedPackageSize?.id, selectedDate]);
+
+  // NEW: click option → save + go to details page
+  const handleOptionClick = (option) => {
+    dispatch({
+      type: ActionTypes.UPDATE_SELECTION,
+      payload: { packageOption: option },
+    });
+    dispatch({
+      type: ActionTypes.SET_CURRENT_STEP,
+      payload: "selection", // this is the GroupPackageDetails page
+    });
+  };
   // Handle next step
   const handleNext = () => {
     if (!selectedDate) {
@@ -135,90 +195,39 @@ const GroupDatePackageSelection = ({ apiService, adapter }) => {
     });
   };
 
-  const renderPackageSizeCard = (packageSize) => {
-    const isSelected = selectedPackageSize?.id === packageSize.id;
-    const isAvailable = packageSize.is_active;
+  const handleBack = () => {
+    // Clear the selected business type
+    sessionStorage.removeItem("selectedBusinessType");
 
-    return (
-      <div
-        key={packageSize.id}
-        onClick={() => isAvailable && handlePackageSizeSelect(packageSize)}
-        className={`cursor-pointer rounded-xl p-6 transition-all duration-200 border-2 ${
-          !isAvailable
-            ? "border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed"
-            : isSelected
-            ? "border-emerald-500 bg-emerald-50 shadow-lg"
-            : "border-gray-200 hover:border-gray-300 hover:shadow-md"
-        }`}
-      >
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-emerald-100 rounded-lg">
-              <Users className="text-emerald-600" size={24} />
-            </div>
-            <div>
-              <h3 className="font-semibold text-gray-900 text-lg">
-                {packageSize.name}
-              </h3>
-              <p className="text-sm text-gray-600">{packageSize.description}</p>
-            </div>
-          </div>
-          {isSelected && (
-            <div className="p-1 bg-emerald-500 rounded-full">
-              <ChevronRight className="text-white" size={16} />
-            </div>
-          )}
-        </div>
+    // Destroy current widget
+    if (window.UniversalBookingWidget) {
+      window.UniversalBookingWidget.destroyAll?.();
+    }
 
-        {/* Package Size Details */}
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between items-center">
-            <span className="text-gray-600">Group Size:</span>
-            <span className="font-medium text-gray-900">
-              {packageSize.min_people === packageSize.max_people
-                ? `${packageSize.size} people`
-                : `${packageSize.min_people}-${packageSize.max_people} people`}
-            </span>
-          </div>
-          {/* <div className="flex justify-between items-center">
-            <span className="text-gray-600">Starting from:</span>
-            <span className="font-bold text-emerald-600 text-lg">
-              ₦{parseFloat(packageSize.base_price || 0).toLocaleString()}
-            </span>
-          </div> */}
-          <div className="flex justify-between items-center">
-            <span className="text-gray-600">Status:</span>
-            <span
-              className={`font-medium ${
-                isAvailable ? "text-emerald-600" : "text-red-500"
-              }`}
-            >
-              {isAvailable ? "Available" : "Not Available"}
-            </span>
-          </div>
-        </div>
-      </div>
-    );
+    // Reinitialize widget without business type (shows bookables list)
+    setTimeout(() => {
+      const widget = window.UniversalBookingWidget.init({
+        businessType: null, // This shows the bookables list
+        locationId: state.config?.locationId || 1,
+        apiBaseUrl: state.config?.apiBaseUrl,
+        branding: state.config?.branding,
+        autoShow: true,
+      });
+      widget.open();
+    }, 100);
   };
 
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="p-6 border-b border-gray-200">
-        <div className="mb-4">
-          <div className="flex items-center space-x-2 text-emerald-600 mb-2">
-            <Calendar size={20} />
-            <span className="text-sm font-medium">
-              Date & Package Selection
-            </span>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Select Date & Package Size
-          </h1>
-          <p className="text-gray-600">
-            Choose your preferred date and group package size
-          </p>
-        </div>
+        <button
+          onClick={handleBack}
+          className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors mb-4"
+        >
+          <ArrowLeft size={20} />
+          <span>Back to Bookables</span>
+        </button>
       </div>
 
       {/* Content */}
@@ -226,7 +235,7 @@ const GroupDatePackageSelection = ({ apiService, adapter }) => {
         <div className="max-w-4xl space-y-6">
           {/* Error Display */}
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="bg-red-50  rounded-lg ">
               <div className="flex items-center">
                 <AlertCircle
                   className="text-red-400 mr-2 flex-shrink-0"
@@ -241,14 +250,11 @@ const GroupDatePackageSelection = ({ apiService, adapter }) => {
           )}
 
           {/* Date Selection */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6">
+          <div className="bg-white rounded-xl">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Booking Date
             </h3>
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select a booking date
-              </label>
               <div className="relative">
                 <Calendar
                   className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
@@ -267,16 +273,15 @@ const GroupDatePackageSelection = ({ apiService, adapter }) => {
           </div>
 
           {/* Package Size Selection */}
-          <div className="bg-orange-50 border border-orange-200 rounded-xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+          <div className="bg-orange-50 border border-orange-100 rounded-xl p-6">
+            <div className="flex items-center  mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center mr-3">
                 Package Size
               </h3>
               <span className="text-sm text-orange-600 font-medium">
                 Pick only one option
               </span>
             </div>
-
             {/* Package Size Cards */}
             {!isLoading && packageSizes.length > 0 && (
               <div className="space-y-3">
@@ -323,67 +328,83 @@ const GroupDatePackageSelection = ({ apiService, adapter }) => {
               </div>
             )}
           </div>
-
-          {/* Selection Summary */}
+          {/* NEW: Package Options inline (shows after a size is picked) */}
           {selectedDate && selectedPackageSize && (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-emerald-900 mb-4">
-                Selection Summary
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-emerald-700">Date:</span>
-                  <span className="ml-2 font-medium text-emerald-900">
-                    {new Date(selectedDate).toLocaleDateString("en-US", {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
+            <div className="mt-6">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900">
+                  Package Options
+                </h3>
+                {optionsLoading && (
+                  <span className="inline-flex items-center text-sm text-gray-600">
+                    <Loader className="animate-spin mr-2" size={16} />
+                    Loading…
                   </span>
-                </div>
-                <div>
-                  <span className="text-emerald-700">Package:</span>
-                  <span className="ml-2 font-medium text-emerald-900">
-                    {selectedPackageSize.name}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-emerald-700">Group Size:</span>
-                  <span className="ml-2 font-medium text-emerald-900">
-                    {selectedPackageSize.size} people
-                  </span>
-                </div>
-                {/* <div>
-                  <span className="text-emerald-700">Starting Price:</span>
-                  <span className="ml-2 font-medium text-emerald-900">
-                    ₦
-                    {parseFloat(
-                      selectedPackageSize.base_price || 0
-                    ).toLocaleString()}
-                  </span>
-                </div> */}
+                )}
               </div>
+
+              {optionsError && (
+                <div className="flex items-center gap-2 text-red-600 text-sm mb-3">
+                  <AlertCircle size={16} /> {optionsError}
+                </div>
+              )}
+
+              {!optionsLoading &&
+                packageOptions.length === 0 &&
+                !optionsError && (
+                  <div className="text-sm text-gray-600">
+                    No options available.
+                  </div>
+                )}
+
+              {packageOptions.length > 0 && (
+                <div className="overflow-x-auto [-webkit-overflow-scrolling:touch]">
+                  <div className="flex gap-4 pb-1">
+                    {packageOptions.map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => handleOptionClick(opt)}
+                        className="min-w-[240px] max-w-[260px] text-left bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all"
+                      >
+                        <div className="h-28 w-full rounded-t-xl overflow-hidden bg-gray-100">
+                          {opt.image ? (
+                            <img
+                              src={opt.image}
+                              alt={opt.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) =>
+                                (e.currentTarget.style.display = "none")
+                              }
+                            />
+                          ) : null}
+                        </div>
+                        <div className="p-3">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-semibold text-gray-900 truncate">
+                              {opt.name}
+                            </h4>
+                            <span className="text-sm font-bold text-gray-900">
+                              {new Intl.NumberFormat("en-NG", {
+                                style: "currency",
+                                currency: "NGN",
+                                maximumFractionDigits: 0,
+                              }).format(opt.price || 0)}
+                            </span>
+                          </div>
+                          {opt.description && (
+                            <p className="mt-1 text-xs text-gray-600 line-clamp-2">
+                              {opt.description}
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Footer Actions */}
-      <div className="p-6 border-t border-gray-200 bg-gray-50">
-        <div className="flex items-center justify-end max-w-4xl">
-          <button
-            onClick={handleNext}
-            disabled={!selectedDate || !selectedPackageSize}
-            className={`px-8 py-3 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2 ${
-              !selectedDate || !selectedPackageSize
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg hover:shadow-xl"
-            }`}
-          >
-            <span>Continue to Package Options</span>
-            <ArrowRight size={18} />
-          </button>
         </div>
       </div>
     </div>
