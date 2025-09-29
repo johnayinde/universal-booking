@@ -336,27 +336,13 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <div className="relative">
-            {/* Outer rotating circle */}
-            <div className="animate-spin rounded-full h-20 w-20 border-4 border-gray-200 border-t-emerald-600 mx-auto mb-6"></div>
-            {/* Inner pulsing circle */}
-            <div className="absolute top-2 left-1/2 transform -translate-x-1/2">
-              <div className="animate-pulse w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
-                <Shield className="text-emerald-600" size={24} />
-              </div>
-            </div>
-          </div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
             Verifying Payment
           </h3>
           <p className="text-gray-600">
             Please wait while we confirm your payment...
           </p>
-          <div className="mt-4 bg-emerald-50 border border-emerald-200 rounded-lg p-3 max-w-md mx-auto">
-            <p className="text-sm text-emerald-700">
-              🔒 Your payment is being securely verified
-            </p>
-          </div>
         </div>
       </div>
     );
