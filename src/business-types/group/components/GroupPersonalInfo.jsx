@@ -37,11 +37,6 @@ const GroupPersonalInfo = ({ apiService, adapter }) => {
       ? parseFloat(packageDetails.price || 0)
       : 0;
 
-  // Format currency
-  const formatCurrency = (amount) => {
-    return `₦${parseFloat(amount).toLocaleString()}`;
-  };
-
   // Handle input changes
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
@@ -93,24 +88,41 @@ const GroupPersonalInfo = ({ apiService, adapter }) => {
   };
 
   // Handle payment verification and success
-  const verifyPaymentAndShowSuccess = async (paymentReference) => {
+  const verifyPaymentAndShowSuccess = async (reference) => {
     try {
-      // Here you would typically verify payment with your backend
-      console.log("✅ Payment verified:", paymentReference);
+      const apiBaseUrl =
+        process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:8000/api";
+      const response = await fetch(
+        `${apiBaseUrl}/payment/verify?reference=${reference}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        }
+      );
 
-      setTimeout(() => {
-        setPaymentStep("success");
+      const result = await response.json();
+
+      if (result.success && result.data.status === "success") {
+        // Payment verified successfully, show success
         dispatch({
           type: ActionTypes.SET_CURRENT_STEP,
           payload: "confirmation",
         });
-      }, 2000);
+        setPaymentStep("success");
+      } else {
+        throw new Error(result.message || "Payment verification failed");
+      }
     } catch (error) {
       console.error("❌ Payment verification failed:", error);
       setPaymentStep("error");
       dispatch({
         type: ActionTypes.SET_ERROR,
-        payload: "Payment verification failed. Please contact support.",
+        payload:
+          error.message ||
+          "Payment verification failed. Please contact support.",
       });
     }
   };
@@ -152,8 +164,6 @@ const GroupPersonalInfo = ({ apiService, adapter }) => {
         },
       };
 
-      console.log("👥 Submitting group booking data:", bookingData);
-
       // Submit booking
       const result = await adapter.createBooking(bookingData);
 
@@ -173,7 +183,6 @@ const GroupPersonalInfo = ({ apiService, adapter }) => {
 
         // Handle payment
         if (payment.payment_url) {
-          console.log("🔄 Opening Paystack payment popup...");
           setPaymentStep("redirecting");
 
           setTimeout(() => {

@@ -3,20 +3,10 @@ import BusinessAdapter from "../../core/BusinessAdapter";
 
 // Import components
 import GroupDatePackageSelection from "./components/GroupDatePackageSelection";
-// import GroupPackageOptions from "./components/GroupPackageOptions";
 import GroupPackageDetails from "./components/GroupPackageDetails";
 import GroupPersonalInfo from "./components/GroupPersonalInfo";
 import GroupConfirmation from "./components/GroupConfirmation";
-import {
-  Calendar,
-  Ticket,
-  User,
-  Check,
-  CheckCheck,
-  Clock,
-  Info,
-  Package,
-} from "lucide-react";
+import { Calendar, User, Check, Info, Package } from "lucide-react";
 
 /**
  * Group Adapter for group booking system
@@ -40,23 +30,17 @@ class GroupAdapter extends BusinessAdapter {
     console.log("🧩 GroupAdapter: Getting components");
     return {
       list: GroupDatePackageSelection, // Maps to "list" step (date + package size selection)
-      // details: GroupPackageOptions, // Maps to "details" step (package options horizontal scroll)
       selection: GroupPackageDetails, // Maps to "selection" step (package details)
       booking: GroupPersonalInfo, // Maps to "booking" step (personal info + payment)
       confirmation: GroupConfirmation, // Maps to "confirmation" step
       // Also add the original mappings for compatibility
       datePackageSelection: GroupDatePackageSelection,
-      // packageOptions: GroupPackageOptions,
       packageDetails: GroupPackageDetails,
       personalInfo: GroupPersonalInfo,
     };
   }
 
   getAPIConfig() {
-    console.log(
-      `🔧 GroupAdapter: Getting API config for location ${this.locationId}`
-    );
-
     return {
       endpoints: {
         packageSizes: `/booking/package/package-size?location_id=${this.locationId}`,
@@ -144,7 +128,6 @@ class GroupAdapter extends BusinessAdapter {
     console.log(`🔍 Fetching package sizes for location ${this.locationId}...`);
     try {
       const url = `${this.apiBaseUrl}/booking/package/package-size?location_id=${this.locationId}`;
-      console.log("📡 API URL:", url);
 
       const response = await fetch(url, {
         method: "GET",
@@ -159,7 +142,6 @@ class GroupAdapter extends BusinessAdapter {
       }
 
       const data = await response.json();
-      console.log("📦 Raw package sizes response:", data);
 
       // Transform the data to a consistent format
       let packageSizes = [];
@@ -179,7 +161,6 @@ class GroupAdapter extends BusinessAdapter {
         throw new Error("Invalid response format");
       }
 
-      console.log("✅ Processed package sizes:", packageSizes);
       return {
         success: true,
         data: packageSizes,
@@ -242,10 +223,8 @@ class GroupAdapter extends BusinessAdapter {
    * Fetch package details for a specific package option
    */
   async fetchPackageDetails(packageOptionId) {
-    console.log(`🔍 Fetching package details for option ${packageOptionId}...`);
     try {
       const url = `${this.apiBaseUrl}/booking/group/package-details/${packageOptionId}`;
-      console.log("📡 API URL:", url);
 
       const response = await fetch(url, {
         method: "GET",
@@ -260,14 +239,12 @@ class GroupAdapter extends BusinessAdapter {
       }
 
       const data = await response.json();
-      console.log("📦 Raw package details response:", data);
 
       let packageDetails = data;
       if (data.data) {
         packageDetails = data.data;
       }
 
-      console.log("✅ Processed package details:", packageDetails);
       return {
         success: true,
         data: packageDetails,
@@ -286,10 +263,8 @@ class GroupAdapter extends BusinessAdapter {
    * Create group booking
    */
   async createBooking(bookingData) {
-    console.log("👥 Creating group booking:", bookingData);
     try {
       const url = `${this.apiBaseUrl}/booking/package/bookings?location_id=${this.locationId}`;
-      console.log("📡 Booking API URL:", url);
 
       // basic validation (unchanged) ...
       if (!bookingData.customer_info?.email)
@@ -323,7 +298,6 @@ class GroupAdapter extends BusinessAdapter {
           },
         ],
       };
-      console.log("📤 Sending group booking payload:", payload);
 
       const response = await fetch(url, {
         method: "POST",
@@ -354,8 +328,6 @@ class GroupAdapter extends BusinessAdapter {
         message: raw?.msg ?? raw?.message ?? null,
         code: raw?.code ?? response.status,
       };
-
-      console.log("✅ Group booking created (normalized):", normalized);
 
       if (!response.ok || !normalized.success) {
         throw new Error(

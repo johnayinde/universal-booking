@@ -7,7 +7,6 @@ import {
   AlertCircle,
   RefreshCw,
   Loader,
-  CheckCircle,
   ArrowLeft,
 } from "lucide-react";
 import { useUniversalBooking } from "../../../core/UniversalStateManager";
@@ -50,8 +49,6 @@ const EntryTicketList = ({ apiService, adapter }) => {
     setApiError(null);
 
     try {
-      console.log("🔄 Loading ticket types...");
-
       let types = [];
 
       // Use adapter method if available
@@ -63,19 +60,15 @@ const EntryTicketList = ({ apiService, adapter }) => {
         throw new Error("Adapter method not available");
       }
 
-      console.log("✅ Ticket types loaded:", types);
       setTicketTypes(types);
       setRetryCount(0);
 
       // Auto-select first active type if available
       const activeTypes = types.filter((t) => t.is_active);
       if (activeTypes.length === 1) {
-        console.log("🎯 Auto-selecting single active type:", activeTypes[0]);
         await handleTypeSelect(activeTypes[0]);
       } else if (activeTypes.length > 0) {
-        console.log("📋 Multiple types available, user must select");
       } else {
-        console.warn("⚠️ No active ticket types found");
         setApiError("No active ticket types are currently available.");
       }
     } catch (error) {
@@ -85,7 +78,6 @@ const EntryTicketList = ({ apiService, adapter }) => {
 
       // Use fallback data after retries
       if (retryCount >= 2) {
-        console.log("🔄 Using fallback data after multiple failures");
         const fallbackTypes = [
           {
             id: 1,
@@ -109,7 +101,6 @@ const EntryTicketList = ({ apiService, adapter }) => {
    */
   const handleTypeSelect = async (type) => {
     if (selectedType?.id === type.id) {
-      console.log("🔄 Type already selected:", type.name);
       return;
     }
 
@@ -147,14 +138,11 @@ const EntryTicketList = ({ apiService, adapter }) => {
 
       // Use adapter method if available
       if (adapter && typeof adapter.fetchTicketItems === "function") {
-        console.log("🔧 Using adapter.fetchTicketItems...");
         items = await adapter.fetchTicketItems(typeId);
       } else {
-        console.log("❌ No adapter.fetchTicketItems method found");
         throw new Error("Adapter method not available");
       }
 
-      console.log("✅ Ticket items loaded:", items);
       setTickets(items);
 
       // Update global state with ticket items
@@ -163,7 +151,6 @@ const EntryTicketList = ({ apiService, adapter }) => {
         payload: items,
       });
     } catch (error) {
-      console.error("❌ Error loading ticket items:", error);
       setApiError(`Failed to load tickets: ${error.message}`);
 
       // Use fallback data

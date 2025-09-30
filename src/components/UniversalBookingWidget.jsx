@@ -155,7 +155,7 @@ const UniversalBookingWidget = () => {
           </div>
 
           {/* Center Content */}
-          <div className="flex-1 order-1 lg:order-none bg-white overflow-y-auto">
+          <div className="flex-1 order-1 lg:order-none bg-white overflow-y-auto overflow-x-visible">
             <div className="p-4 sm:p-6">
               <CurrentStepComponent apiService={apiService} adapter={adapter} />
             </div>
@@ -217,30 +217,6 @@ const MobileProgress = ({ currentStep, bookingSteps }) => {
  * Left Sidebar Component - Navigation & Progress
  */
 const LeftSidebar = ({ currentStep, bookingSteps, config }) => {
-  const currentStepIndex = bookingSteps.findIndex((s) => s.key === currentStep);
-
-  const getStepIcon = (index, isActive, isCompleted) => {
-    if (isCompleted) {
-      return (
-        <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-sm font-bold">
-          ✓
-        </div>
-      );
-    }
-    if (isActive) {
-      return (
-        <div className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold">
-          {index + 1}
-        </div>
-      );
-    }
-    return (
-      <div className="w-8 h-8 rounded-full border-2 border-gray-300 bg-white flex items-center justify-center text-sm font-medium text-gray-500">
-        {index + 1}
-      </div>
-    );
-  };
-
   return (
     <div className="">
       {/* Location Header */}
@@ -434,12 +410,12 @@ export const SidebarInfo = ({
       {/* Card container */}
       <div>
         {/* Row: image + title */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-center gap-3">
           {locationImage && (
             <img
               src={locationImage}
               alt={companyName || "Location image"}
-              className="w-44 h-44 rounded-lg object-cover shrink-0"
+              className="w-full sm:w-44 h-44 rounded-lg object-cover shrink-0"
             />
           )}
 

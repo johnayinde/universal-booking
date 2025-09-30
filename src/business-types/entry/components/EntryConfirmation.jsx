@@ -1,21 +1,11 @@
 // src/business-types/entry/components/EntryConfirmation.jsx - FIXED No Nesting
 import React from "react";
 import { useUniversalBooking } from "../../../core/UniversalStateManager";
-import {
-  CheckCircle,
-  Download,
-  Mail,
-  Calendar,
-  MapPin,
-  Users,
-  Ticket,
-  Phone,
-  Clock,
-} from "lucide-react";
+import { CheckCircle, Users, Ticket } from "lucide-react";
 import { ActionTypes } from "../../../core/UniversalStateManager";
 
 const EntryConfirmation = ({ config = {} }) => {
-  const { state, dispatch, adapter } = useUniversalBooking();
+  const { state, dispatch } = useUniversalBooking();
 
   // Get data from state
   const selectedTickets = Object.values(state.selections || {}).filter(

@@ -6,13 +6,7 @@ import {
   Info,
   Loader,
   AlertCircle,
-  Clock,
-  Users,
-  MapPin,
-  CheckCircle,
-  Star,
-  Calendar,
-  Package,
+ 
 } from "lucide-react";
 import UniversalBookingContext, {
   ActionTypes,
@@ -105,14 +99,6 @@ const GroupPackageDetails = ({ apiService, adapter }) => {
     });
   };
 
-  // Calculate total price
-  const calculateTotalPrice = () => {
-    if (!packageDetails || !selectedPackageSize) return 0;
-    return (
-      parseFloat(packageDetails.price || 0) *
-      parseInt(selectedPackageSize.size || 1)
-    );
-  };
 
   if (!selectedPackageOption) {
     return (
@@ -266,15 +252,6 @@ const GroupPackageDetails = ({ apiService, adapter }) => {
       {/* Footer Actions */}
       <div className="p-6 ">
         <div className="flex items-center justify-end max-w-4xl">
-          {/* <button
-            onClick={handleBack}
-            disabled={isLoading}
-            className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center space-x-2 disabled:opacity-50"
-          >
-            <ArrowLeft size={18} />
-            <span>Back</span>
-          </button> */}
-
           <button
             onClick={handleNext}
             disabled={isLoading || !packageDetails}

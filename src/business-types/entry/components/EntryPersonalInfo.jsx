@@ -1,24 +1,10 @@
 // src/business-types/entry/components/EntryPersonalInfo.jsx - FIXED for Three-Column Layout
-import React, { useState, useEffect } from "react";
-import {
-  ArrowLeft,
-  User,
-  Mail,
-  Phone,
-  CreditCard,
-  Shield,
-  CheckCircle,
-  AlertCircle,
-  Loader,
-} from "lucide-react";
+import React, { useState } from "react";
+import { ArrowLeft, CheckCircle, AlertCircle, Loader } from "lucide-react";
 import { useUniversalBooking } from "../../../core/UniversalStateManager";
 import { ActionTypes } from "../../../core/UniversalStateManager";
 
 const EntryPersonalInfo = ({ apiService, adapter }) => {
-  console.log("🚀🚀🚀🚀🚀 EntryPersonalInfo component rendered", {
-    adapter,
-    apiService,
-  });
   const { state, dispatch, locationId } = useUniversalBooking();
   const {
     selectedItem,
@@ -47,14 +33,6 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
       (selection) => selection && selection.quantity > 0
     );
   }, [state.selections]);
-
-  // FIX: Calculate total from global state
-  const totalTickets = React.useMemo(() => {
-    return selectedTickets.reduce(
-      (total, ticket) => total + ticket.quantity,
-      0
-    );
-  }, [selectedTickets]);
 
   // Handle input changes
   const handleInputChange = (field, value) => {
@@ -145,8 +123,6 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
         })),
       };
 
-      console.log("🎫 Submitting entry booking data:", bookingData);
-
       // Submit booking - Updated to use the new endpoint format
       const result = await adapter.createBooking(bookingData);
 
@@ -167,7 +143,6 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
         // Redirect to Paystack payment page
         // Replace the redirect section in handleSubmit with:
         if (payment.payment_url) {
-          console.log("🔄 Opening Paystack payment popup...");
           setPaymentStep("redirecting");
 
           setTimeout(() => {
@@ -178,7 +153,6 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
               amount: booking.total_amount * 100, // REQUIRED (NGN * 100)
               ref: payment.reference,
               callback: (transaction) => {
-                console.log("✅ Payment successful:", transaction);
                 // Set verification state and reference
                 setPaymentStep("verifying");
                 localStorage.setItem(
@@ -222,8 +196,6 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
 
   const verifyPaymentAndShowSuccess = async (reference) => {
     try {
-      console.log("🔍 Verifying payment:", reference);
-
       const apiBaseUrl =
         process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:8000/api";
       const response = await fetch(
@@ -264,10 +236,7 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
   const handleBack = () => {
     dispatch({ type: ActionTypes.SET_CURRENT_STEP, payload: "list" });
   };
-  console.log(
-    "🚀 Form data validated, proceeding to booking submission...",
-    selectedTickets
-  );
+
   // Don't render if no tickets selected
   if (!selectedTickets || selectedTickets.length === 0) {
     return (

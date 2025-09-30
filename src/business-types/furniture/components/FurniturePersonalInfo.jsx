@@ -2,15 +2,10 @@
 import React, { useState, useEffect } from "react";
 import {
   ArrowLeft,
-  User,
-  Mail,
-  Phone,
   CreditCard,
-  Shield,
   CheckCircle,
   AlertCircle,
   Loader,
-  MessageSquare,
 } from "lucide-react";
 import { useUniversalBooking } from "../../../core/UniversalStateManager";
 import { ActionTypes } from "../../../core/UniversalStateManager";
@@ -41,17 +36,7 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
 
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [paymentStep, setPaymentStep] = useState("form"); // "form", "processing", "success", "error"
-
-  // Format currency
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency: "NGN",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
+  const [paymentStep, setPaymentStep] = useState("form"); 
 
   // Format time
   const formatTime = (timeString) => {
@@ -66,14 +51,6 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
       return timeString;
     }
   };
-
-  console.log("🪑 Furniture Personal Info State:", {
-    state,
-    locationId,
-    selectedFurniture,
-    selectedSession,
-    bookingData,
-  });
 
   // Handle input changes
   const handleInputChange = (field, value) => {
@@ -128,7 +105,6 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
   // Verify payment and show success
   const verifyPaymentAndShowSuccess = async (reference) => {
     try {
-      console.log("🔍 Verifying payment:", reference);
 
       const apiBaseUrl =
         process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:8000/api";
@@ -209,10 +185,7 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
           (selectedFurniture.price || 0) + (selectedSession.price || 0),
       };
 
-      console.log(
-        "🪑 Submitting furniture booking data:",
-        furnitureBookingData
-      );
+     
 
       // Submit booking using adapter
       const result = await adapter.createFurnitureBooking(furnitureBookingData);
@@ -227,13 +200,7 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
           payload: booking.booking_ref,
         });
 
-        console.log("✅ Furniture booking created successfully:", {
-          booking_reference: booking.booking_ref,
-          payment_url: payment.payment_url,
-          booking_id: booking.id,
-          payment_reference: payment.reference,
-          customer,
-        });
+      
 
         // Store payment references for verification
         localStorage.setItem("payment_reference", payment.reference);
@@ -241,7 +208,6 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
 
         // Handle Paystack payment
         if (payment.payment_url) {
-          console.log("🔄 Opening Paystack payment popup...");
           setPaymentStep("redirecting");
 
           setTimeout(() => {

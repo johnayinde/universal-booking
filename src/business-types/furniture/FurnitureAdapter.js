@@ -5,7 +5,7 @@ import BusinessAdapter from "../../core/BusinessAdapter";
 import FurnitureDateSelection from "./components/FurnitureDateSelection";
 import FurniturePersonalInfo from "./components/FurniturePersonalInfo";
 import FurnitureConfirmation from "./components/FurnitureConfirmation";
-import { Calendar, Ticket, User, Check, CheckCheck, Clock } from "lucide-react";
+import { Calendar, User, Check, CheckCheck, Clock } from "lucide-react";
 
 /**
  * Furniture Adapter for furniture booking system
@@ -14,7 +14,6 @@ import { Calendar, Ticket, User, Check, CheckCheck, Clock } from "lucide-react";
 class FurnitureAdapter extends BusinessAdapter {
   constructor(config = {}) {
     super(config);
-    console.log("🪑 FurnitureAdapter initialized with config:", config);
 
     // Set up API base URL
     this.apiBaseUrl = config.apiBaseUrl || "http://127.0.0.1:8000/api";
@@ -38,9 +37,6 @@ class FurnitureAdapter extends BusinessAdapter {
   }
 
   getAPIConfig() {
-    console.log(
-      `🔧 FurnitureAdapter: Getting API config for location ${this.locationId}`
-    );
 
     return {
       endpoints: {
@@ -64,14 +60,6 @@ class FurnitureAdapter extends BusinessAdapter {
         icon: Calendar,
         description: "Pick date and furniture type",
       },
-      // {
-      //   key: "details",
-      //   label: "Time Slots",
-      //   name: "Select Sessions",
-      //   component: "sessionSelection",
-      //   icon: Clock,
-      //   description: "Choose available time slots",
-      // },
       {
         key: "booking",
         label: "Personal Details",
@@ -96,10 +84,8 @@ class FurnitureAdapter extends BusinessAdapter {
    */
   async getFurnitureList() {
     try {
-      console.log(`🪑 Fetching furniture list for location ${this.locationId}`);
 
       const url = `${this.apiBaseUrl}/booking/furniture/furniture-list?location_id=${this.locationId}`;
-      console.log("📡 Furniture API URL:", url);
 
       const response = await fetch(url, {
         method: "GET",
@@ -114,7 +100,6 @@ class FurnitureAdapter extends BusinessAdapter {
       }
 
       const data = await response.json();
-      console.log("📦 Raw furniture response:", data);
 
       // Handle the new API response format
       let furniture = [];
@@ -140,14 +125,9 @@ class FurnitureAdapter extends BusinessAdapter {
         features: item.features || {},
         created_at: item.created_at,
         updated_at: item.updated_at,
-        // For compatibility with existing code
-        // price: 0, // Price comes from sessions
-        // max_capacity: item.available_number || 8,
-        // available:
-        //   item.is_active && item.available_number > item.reserved_number,
+       
       }));
 
-      console.log("✅ Furniture list loaded:", transformedFurniture);
       return transformedFurniture;
     } catch (error) {
       console.error("❌ Failed to load furniture list:", error);
@@ -160,12 +140,8 @@ class FurnitureAdapter extends BusinessAdapter {
    */
   async getFurnitureSessions(date, furnitureId, platform = "web") {
     try {
-      console.log(
-        `🪑 Fetching sessions for furniture ${furnitureId} on ${date}`
-      );
-
+     
       const url = `${this.apiBaseUrl}/booking/furniture/sessions?date=${date}&furniture_id=${furnitureId}&platform=${platform}`;
-      console.log("📡 Sessions API URL:", url);
 
       const response = await fetch(url, {
         method: "GET",
@@ -180,7 +156,6 @@ class FurnitureAdapter extends BusinessAdapter {
       }
 
       const data = await response.json();
-      console.log("📦 Raw sessions response:", data);
 
       // Handle the new API response format
       let sessions = [];
@@ -199,13 +174,9 @@ class FurnitureAdapter extends BusinessAdapter {
         end_time: session.end_time,
         duration_hours: session.duration_hours,
         price: parseFloat(session.price) || 0,
-        // For compatibility with existing code
-        // name: session.session_name,
-        // available: true, // Will be checked separately with availability endpoint
-        // available_slots: 1, // Default, real availability checked separately
+       
       }));
 
-      console.log("✅ Sessions loaded:", transformedSessions);
       return transformedSessions;
     } catch (error) {
       console.error("❌ Failed to load sessions:", error);
@@ -214,19 +185,12 @@ class FurnitureAdapter extends BusinessAdapter {
   }
 
   /**
-   * Check availability for specific furniture, date, and session
-   */
-  /**
    * Check furniture availability (UPDATED with correct response format)
    */
   async checkFurnitureAvailability(furnitureId, date, sessionId) {
     try {
-      console.log(
-        `🪑 Checking availability for furniture ${furnitureId}, date ${date}, session ${sessionId}`
-      );
-
+     
       const url = `${this.apiBaseUrl}/booking/furniture/availability`;
-      console.log("📡 Availability API URL:", url);
 
       const response = await fetch(url, {
         method: "POST",
@@ -246,7 +210,6 @@ class FurnitureAdapter extends BusinessAdapter {
       }
 
       const data = await response.json();
-      console.log("📦 Availability response:", data);
 
       // UPDATED: Handle new API response format
       if (data.status && data.data && Array.isArray(data.data)) {
@@ -286,16 +249,11 @@ class FurnitureAdapter extends BusinessAdapter {
    */
   async createFurnitureBooking(bookingData) {
     try {
-      console.log("🪑 Creating furniture booking:", bookingData);
 
       // Validate required fields
       if (!bookingData.customer_info) {
         throw new Error("Customer information is required");
       }
-
-      //   if (!bookingData.furniture_id) {
-      //     throw new Error("Furniture selection is required");
-      //   }
 
       if (!bookingData.session_id) {
         throw new Error("Session selection is required");
@@ -325,10 +283,8 @@ class FurnitureAdapter extends BusinessAdapter {
         ],
       };
 
-      console.log("🪑 Submitting furniture booking payload:", payload);
 
       const url = `${this.apiBaseUrl}/booking/furniture/bookings?location_id=${this.locationId}`;
-      console.log("📡 Booking API URL:", url);
 
       const response = await fetch(url, {
         method: "POST",
@@ -345,7 +301,6 @@ class FurnitureAdapter extends BusinessAdapter {
       }
 
       const data = await response.json();
-      console.log("✅ Furniture booking created successfully:", data);
 
       // UPDATED: Handle expected response format
       if (data.status && data.data) {

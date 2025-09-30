@@ -234,3 +234,30 @@
     transition: none;
   }
 }
+
+@media (max-width: 768px) {
+  /* Ensure date inputs don't cause horizontal scroll */
+  input[type="date"] {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Override any browser-specific date picker positioning */
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    position: absolute;
+    right: 12px;
+  }
+}
+
+@media (max-width: 1024px) {
+  /* Allow date picker to escape overflow container on mobile */
+  input[type="date"] {
+    position: relative;
+    z-index: 9999;
+  }
+
+  /* Ensure parent containers don't clip the picker */
+  .overflow-y-auto {
+    overflow-x: visible !important;
+  }
+}

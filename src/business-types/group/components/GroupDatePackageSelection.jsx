@@ -1,14 +1,6 @@
 // src/business-types/group/components/GroupDatePackageSelection.jsx
 import React, { useState, useEffect, useContext } from "react";
-import {
-  Calendar,
-  Users,
-  Loader,
-  ArrowRight,
-  AlertCircle,
-  ChevronRight,
-  ArrowLeft,
-} from "lucide-react";
+import { Calendar, Users, Loader, AlertCircle, ArrowLeft } from "lucide-react";
 import { ActionTypes } from "../../../core/UniversalStateManager";
 
 import { useUniversalBooking } from "../../../core/UniversalStateManager";
@@ -56,12 +48,10 @@ const GroupDatePackageSelection = ({ apiService, adapter }) => {
       dispatch({ type: ActionTypes.SET_LOADING, payload: true });
       dispatch({ type: ActionTypes.CLEAR_ERROR });
 
-      console.log("📦 Fetching package sizes...");
       const result = await adapter.fetchPackageSizes();
 
       if (result.success) {
         setPackageSizes(result.data);
-        console.log("✅ Package sizes loaded:", result.data);
       } else {
         throw new Error(result.error || "Failed to fetch package sizes");
       }
@@ -91,7 +81,6 @@ const GroupDatePackageSelection = ({ apiService, adapter }) => {
   // Handle date change
   const handleDateChange = (e) => {
     const newDate = e.target.value;
-    console.log("📅 Date selected:", newDate);
     dispatch({
       type: ActionTypes.SET_SELECTED_DATE,
       payload: newDate,
@@ -107,7 +96,6 @@ const GroupDatePackageSelection = ({ apiService, adapter }) => {
 
   // Handle package size selection
   const handlePackageSizeSelect = (packageSize) => {
-    console.log("👥 Package size selected:", packageSize);
     setSelectedPackageSize(packageSize);
     dispatch({
       type: ActionTypes.UPDATE_SELECTION,
@@ -168,30 +156,6 @@ const GroupDatePackageSelection = ({ apiService, adapter }) => {
     dispatch({
       type: ActionTypes.SET_CURRENT_STEP,
       payload: "selection", // this is the GroupPackageDetails page
-    });
-  };
-  // Handle next step
-  const handleNext = () => {
-    if (!selectedDate) {
-      dispatch({
-        type: ActionTypes.SET_ERROR,
-        payload: "Please select a booking date",
-      });
-      return;
-    }
-
-    if (!selectedPackageSize) {
-      dispatch({
-        type: ActionTypes.SET_ERROR,
-        payload: "Please select a package size",
-      });
-      return;
-    }
-
-    // Navigate to package options selection
-    dispatch({
-      type: ActionTypes.SET_CURRENT_STEP,
-      payload: "details",
     });
   };
 

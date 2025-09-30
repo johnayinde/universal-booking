@@ -11,14 +11,16 @@ import {
   CreditCard,
   Clock,
 } from "lucide-react";
-import UniversalBookingContext from "../../../core/UniversalStateManager";
+import UniversalBookingContext, {
+  ActionTypes,
+} from "../../../core/UniversalStateManager";
 
 /**
  * Group Confirmation Component
  * Final step: Display booking confirmation and details
  */
-const GroupConfirmation = ({ apiService, adapter }) => {
-  const { state } = useContext(UniversalBookingContext);
+const GroupConfirmation = ({ apiService, config = {} }) => {
+  const { state, dispatch } = useContext(UniversalBookingContext);
   const { bookingReference, selectedDate, selection, customerInfo } = state;
 
   // Get selected data from state
@@ -29,6 +31,25 @@ const GroupConfirmation = ({ apiService, adapter }) => {
   // Get confirmation details from localStorage if available
   const paymentReference = localStorage.getItem("payment_reference");
   const storedBookingRef = localStorage.getItem("booking_reference");
+
+  const handleCloseWidget = () => {
+    sessionStorage.removeItem("selectedBusinessType");
+    sessionStorage.removeItem("isReloading");
+
+    if (window.UniversalBookingWidget) {
+      window.UniversalBookingWidget.destroyAll?.();
+      setTimeout(() => {
+        const newConfig = { ...config, businessType: null };
+        window.UniversalBookingWidget.init(newConfig).open();
+      }, 100);
+    }
+
+    if (window.parent) window.parent.postMessage({ type: "close-widget" }, "*");
+  };
+
+  const handleNewBooking = () => {
+    dispatch({ type: ActionTypes.RESET_BOOKING });
+  };
 
   return (
     <div className="h-full flex flex-col bg-gray-50">
@@ -203,32 +224,21 @@ const GroupConfirmation = ({ apiService, adapter }) => {
       </div>
 
       {/* Footer Actions */}
-      <div className="bg-white border-t border-gray-200 p-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex flex-col sm:flex-row gap-4 justify-center"></div>
+      <div className="p-6 border-t border-gray-200 bg-gray-50">
+        <div className="flex items-center justify-between max-w-6xl">
+          <button
+            onClick={handleNewBooking}
+            className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+          >
+            New Booking
+          </button>
 
-          {/* Contact Information */}
-          <div className="text-center mt-6 pt-6 border-t border-gray-200">
-            <p className="text-gray-600 mb-2">
-              Need help? Contact our support team
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center text-sm">
-              <a
-                href="mailto:support@nikelakeresort.com"
-                className="text-emerald-600 hover:text-emerald-700 flex items-center justify-center space-x-1"
-              >
-                <Mail size={16} />
-                <span></span>
-              </a>
-              <a
-                href="tel:+2348000000000"
-                className="text-emerald-600 hover:text-emerald-700 flex items-center justify-center space-x-1"
-              >
-                <Phone size={16} />
-                <span></span>
-              </a>
-            </div>
-          </div>
+          <button
+            onClick={handleCloseWidget}
+            className="px-8 py-3 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 transition-colors"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>

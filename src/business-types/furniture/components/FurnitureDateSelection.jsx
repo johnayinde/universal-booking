@@ -1,7 +1,6 @@
 // src/business-types/furniture/components/FurnitureDateSelection.jsx
 import React, { useState, useEffect, useMemo } from "react";
 import {
-  Calendar as CalendarIcon,
   Loader,
   Users,
   AlertCircle,
@@ -285,17 +284,8 @@ const FurnitureDateSelection = ({ adapter }) => {
                     payload: { date: v },
                   });
                 }}
-                min={todayInput()}
-                max={plusMonthsInput(3)}
                 className="w-full pr-10 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                onFocus={(e) => e.currentTarget.showPicker?.()}
-                onClick={(e) => e.currentTarget.showPicker?.()}
               />
-              {/* icon MUST NOT intercept clicks */}
-              {/* <CalendarIcon
-                size={18}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-              /> */}
             </div>
           </div>
 

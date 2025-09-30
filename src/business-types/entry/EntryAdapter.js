@@ -16,8 +16,6 @@ class EntryAdapter extends BusinessAdapter {
     console.log("🎫 EntryAdapter initialized with config:", config);
 
     // Set up API base URL
-    // this.apiBaseUrl = config.apiBaseUrl || "http://127.0.0.1:8000/api";
-    // this.locationId = config.locationId || config.location || 2; // Default to Enugu (ID: 2)
     this.apiBaseUrl = config.apiBaseUrl || "http://127.0.0.1:8000/api";
     this.locationId = config.locationId || config.location || 1;
   }
@@ -27,7 +25,6 @@ class EntryAdapter extends BusinessAdapter {
   }
 
   getComponents() {
-    console.log("🧩 EntryAdapter: Getting components");
     return {
       list: EntryTicketList,
       booking: EntryPersonalInfo,
@@ -36,10 +33,6 @@ class EntryAdapter extends BusinessAdapter {
   }
 
   getAPIConfig() {
-    console.log(
-      `🔧 EntryAdapter: Getting API config for location ${this.locationId}`
-    );
-
     return {
       endpoints: {
         types: `/booking/entry/type?landmark_location_id=${this.locationId}`,
@@ -113,11 +106,8 @@ class EntryAdapter extends BusinessAdapter {
    * Fetch ticket types with proper error handling
    */
   async fetchTicketTypes() {
-    console.log(`🔍 Fetching ticket types for location ${this.locationId}...`);
-
     try {
       const url = `${this.apiBaseUrl}/booking/entry/type?landmark_location_id=${this.locationId}`;
-      console.log("📡 API URL:", url);
 
       const response = await fetch(url, {
         method: "GET",
@@ -132,7 +122,6 @@ class EntryAdapter extends BusinessAdapter {
       }
 
       const data = await response.json();
-      console.log("📦 Raw ticket types response:", data);
 
       // Transform the response data
       let types = [];
@@ -162,13 +151,11 @@ class EntryAdapter extends BusinessAdapter {
         );
       }
 
-      console.log("✅ Processed ticket types:", types);
       return types;
     } catch (error) {
       console.error("❌ Error fetching ticket types:", error);
 
       // Return fallback data
-      console.log("🔄 Using fallback ticket types");
       return [
         {
           id: 1,
@@ -192,11 +179,8 @@ class EntryAdapter extends BusinessAdapter {
    * Fetch ticket items for a specific type
    */
   async fetchTicketItems(typeId) {
-    console.log(`🔍 Fetching ticket items for type ${typeId}...`);
-
     try {
       const url = `${this.apiBaseUrl}/booking/entry/items?type_id=${typeId}&platform=web&landmark_location_id=${this.locationId}`;
-      console.log("📡 API URL:", url);
 
       const response = await fetch(url, {
         method: "GET",
@@ -211,7 +195,6 @@ class EntryAdapter extends BusinessAdapter {
       }
 
       const data = await response.json();
-      console.log("📦 Raw ticket items response:", data);
 
       // Transform the response data
       let items = [];
@@ -245,82 +228,21 @@ class EntryAdapter extends BusinessAdapter {
         );
       }
 
-      console.log("✅ Processed ticket items:", items);
       return items;
     } catch (error) {
       console.error("❌ Error fetching ticket items:", error);
-
-      // Return fallback data based on type
-      console.log("🔄 Using fallback ticket items");
-      return this.getFallbackTicketItems(typeId);
     }
   }
 
-  /**
-   * Get fallback ticket items for testing
-   */
-  getFallbackTicketItems(typeId) {
-    const fallbackData = {
-      1: [
-        // Regular Entry
-        {
-          id: 1,
-          name: "Adult Ticket",
-          description: "Standard entry for adults",
-          price: 3000,
-          max_per_guest: 10,
-          available: true,
-          type: "Regular",
-          category: "Individual",
-        },
-        {
-          id: 2,
-          name: "Child Ticket",
-          description: "Entry for children (5-12 years)",
-          price: 2000,
-          max_per_guest: 5,
-          available: true,
-          type: "Regular",
-          category: "Individual",
-        },
-      ],
-      2: [
-        // VIP Entry
-        {
-          id: 3,
-          name: "VIP Adult Ticket",
-          description: "Premium entry with exclusive access",
-          price: 5000,
-          max_per_guest: 8,
-          available: true,
-          type: "VIP",
-          category: "Premium",
-        },
-        {
-          id: 4,
-          name: "VIP Child Ticket",
-          description: "Premium entry for children with benefits",
-          price: 3500,
-          max_per_guest: 4,
-          available: true,
-          type: "VIP",
-          category: "Premium",
-        },
-      ],
-    };
 
-    return fallbackData[typeId] || fallbackData[1];
-  }
 
   /**
    * Create booking with proper payload structure
    */
   async createBooking(bookingData) {
-    console.log("🎫 Creating entry booking:", bookingData);
 
     try {
       const url = `${this.apiBaseUrl}/booking/entry/create-booking?location_id=${this.locationId}`;
-      console.log("📡 Booking API URL:", url);
 
       const payload = {
         date: bookingData.date || new Date().toISOString().split("T")[0],
@@ -334,7 +256,6 @@ class EntryAdapter extends BusinessAdapter {
         items: bookingData.items,
       };
 
-      console.log("📤 Sending booking payload:", payload);
 
       const response = await fetch(url, {
         method: "POST",
@@ -344,7 +265,6 @@ class EntryAdapter extends BusinessAdapter {
         },
         body: JSON.stringify(payload),
       });
-      console.log("📨 Booking API response status:", response);
 
       if (!response.ok) {
         const errorData = await response.text();
@@ -352,20 +272,9 @@ class EntryAdapter extends BusinessAdapter {
       }
 
       const result = await response.json();
-      console.log("✅ Booking created successfully:", result);
 
       return result;
-      // return {
-      //   success: true,
-      //   data: {
-      //     booking_reference: result.ref,
-      //     booking_id: result.id,
-      //     payment_url: result.payment.payment_url,
-      //     amount: result.booking.total_amount,
-      //     currency: result.currency || "NGN",
-      //     ...result,
-      //   },
-      // };
+    
     } catch (error) {
       console.error("❌ Booking creation failed:", error);
       return {
