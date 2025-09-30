@@ -214,7 +214,7 @@ const UniversalBookablesList = ({ config = {} }) => {
                   />
 
                   {/* Progress Indicator */}
-                  <div className="space-y-0 -mx-6">
+                  <div className="hidden sm:block space-y-0 -mx-6">
                     <div className="relative">
                       {/* left orange bar */}
                       <span

@@ -6,14 +6,8 @@ import { ActionTypes } from "../../../core/UniversalStateManager";
 
 const EntryPersonalInfo = ({ apiService, adapter }) => {
   const { state, dispatch, locationId } = useUniversalBooking();
-  const {
-    selectedItem,
-    selections,
-    customerInfo,
-    totalAmount,
-    loading,
-    error,
-  } = state;
+  const { selectedItem, selections, customerInfo, totalAmount, config, error } =
+    state;
 
   const [formData, setFormData] = useState({
     firstName: customerInfo.firstName || "",
@@ -83,6 +77,7 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
+  console.log({ PK: config.paystackPK });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -107,7 +102,7 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
     try {
       // Prepare booking data - Updated to match new API structure
       const bookingData = {
-        // date: "2025-10-01",
+        date: state.bookingData?.date,
         platform: "web",
         ticket_type_id: selectedItem?.id,
         ticket_type: selectedItem?.name,

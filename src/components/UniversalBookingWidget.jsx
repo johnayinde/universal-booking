@@ -301,99 +301,180 @@ const LeftSidebar = ({ currentStep, bookingSteps, config }) => {
  * Right Sidebar Component - Ticket Details & Summary
  * On mobile, this renders beneath the main content.
  */
-const RightSidebar = ({ state, currentStep }) => {
-  const { selections, totalAmount, selectedItem, customerInfo } = state;
+// --- RightSidebar (drop-in replacement) ---
+const RightSidebar = ({ state }) => {
+  if (!state) return null;
 
-  const formatCurrency = (amount) =>
+  const businessType = state?.config?.businessType || "entry";
+
+  // Common helpers
+  const fmtNGN = (n) =>
     new Intl.NumberFormat("en-NG", {
       style: "currency",
       currency: "NGN",
-      minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(amount || 0);
+    }).format(n || 0);
 
-  const getSelectedTickets = () => {
-    if (!selections || typeof selections !== "object") return [];
-    return Object.values(selections).filter(
-      (selection) =>
-        selection && typeof selection === "object" && selection.quantity > 0
-    );
-  };
+  const prettyDate = (d) =>
+    d
+      ? new Date(d).toLocaleDateString("en-US", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })
+      : "Not selected";
 
-  const selectedTickets = getSelectedTickets();
-  const totalTickets = selectedTickets.reduce(
-    (acc, t) => acc + (t.quantity || 0),
-    0
+  // Entry (tickets) derived
+  const selectedTickets = Object.values(state?.selections || {}).filter(
+    (t) => t && typeof t === "object" && (t.quantity || 0) > 0
   );
+  console.log({ state });
+
+  const selectedDate = state?.selectedDate || state?.bookingData?.date || null;
+  const pkgSize = state?.selection?.packageSize || null;
+  const pkgOption = state?.selection?.packageOption || null;
+  const pkgDetails = state?.selection?.packageDetails || pkgOption || null;
+  // For furniture specifically
+  const selectedFurniture =
+    state?.selectedFurniture || state?.bookingData?.furniture_name || null;
+  const session = state?.selectedSession || null;
+  const totalAmount =
+    state?.selection?.packageOption?.price ??
+    state?.totalAmount ??
+    state?.bookingData?.totalAmount ??
+    (() => {
+      if (businessType === "entry") {
+        return selectedTickets.reduce(
+          (sum, t) => sum + (t.price || 0) * (t.quantity || 0),
+          0
+        );
+      }
+      return pkgDetails?.price || 0;
+    })();
+  console.log({ totalAmount, sother: state?.selection?.packageOption?.price });
+
+  const isFurnitureLike =
+    businessType === "furniture" || businessType === "group";
 
   return (
-    <div className="flex flex-col bg-gray-100">
-      {/* Content */}
-      <div className="flex-1 p-3 sm:p-6 overflow-y-auto">
-        {/* Ticket Details Card */}
-        <div className="mb-4 sm:mb-6">
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 sm:p-5">
-            <h4 className="font-semibold text-gray-900 text-sm sm:text-base mb-3">
-              Ticket Details
-            </h4>
+    <aside className="flex flex-col bg-gray-50 border-l border-gray-200 h-full">
+      <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 sm:p-5">
+          <h4 className="font-semibold text-gray-900 text-sm sm:text-base mb-3">
+            {isFurnitureLike ? "Booking Summary" : "Ticket Details"}
+          </h4>
 
-            {selectedTickets.length > 0 ? (
-              <>
-                <div className="space-y-2.5">
-                  {selectedTickets.map((ticket) => (
-                    <div
-                      key={ticket.id}
-                      className="flex items-start justify-between text-sm"
-                    >
-                      <div className="text-gray-900">
-                        <span className="font-medium">{ticket.name}</span>
-                        <span className="ml-2 text-gray-500 italic">
-                          x{ticket.quantity}
-                        </span>
-                      </div>
-                      <div className="font-semibold text-gray-900">
-                        {formatCurrency(ticket.price * ticket.quantity)}
-                      </div>
-                    </div>
-                  ))}
+          {isFurnitureLike ? (
+            <div className="space-y-2 text-sm">
+              <div className="flex items-start justify-between">
+                <span className="text-gray-600">Date</span>
+                <span className="font-medium text-gray-900">
+                  {prettyDate(selectedDate)}
+                </span>
+              </div>
 
-                  {/* Optional discount row (shown only if present) */}
-                  {(state?.pricing?.discountAmount ?? 0) > 0 && (
-                    <div className="flex items-start justify-between text-sm">
-                      <div className="text-gray-900">
-                        {state?.pricing?.discountLabel || "Discount"}
-                      </div>
-                      <div className="font-semibold text-red-500">
-                        -{formatCurrency(state.pricing.discountAmount)}
-                      </div>
-                    </div>
-                  )}
+              {businessType === "group" ? (
+                <>
+                  <div className="flex items-start justify-between">
+                    <span className="text-gray-600">Package size</span>
+                    <span className="font-medium text-gray-900">
+                      {pkgSize?.name || "Not selected"}
+                    </span>
+                  </div>
+                  <div className="flex items-start justify-between">
+                    <span className="text-gray-600">Option</span>
+                    <span className="font-medium text-gray-900">
+                      {pkgOption?.name || pkgOption?.title || "Not selected"}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-start justify-between">
+                  <span className="text-gray-600">Furniture</span>
+                  <span className="font-medium text-gray-900">
+                    {selectedFurniture?.name ||
+                      selectedFurniture ||
+                      "Not selected"}
+                  </span>
                 </div>
+              )}
 
-                {/* Divider */}
-                <div className="my-3 border-t border-gray-200" />
+              {/* Show all selected sessions with qty & subtotal */}
+              {Array.isArray(state?.bookingData?.sessionLines) &&
+                state.bookingData.sessionLines.length > 0 && (
+                  <div className="mt-3 space-y-1.5">
+                    {state.bookingData.sessionLines.map((line) => (
+                      <div
+                        key={line.id}
+                        className="flex items-center justify-between text-sm"
+                      >
+                        <div className="text-gray-800">
+                          {line.name}{" "}
+                          <span className="text-gray-500 italic">
+                            x{line.qty}
+                          </span>
+                        </div>
+                        <div className="font-semibold text-gray-900">
+                          {fmtNGN(line.subtotal)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-                {/* Total */}
+              <div className="my-3 border-t border-gray-200" />
+
+              {!businessType === "furniture" && (
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-gray-900">Total</span>
                   <span className="font-extrabold text-gray-900">
-                    {formatCurrency(
-                      (typeof totalAmount === "number" ? totalAmount : 0) -
-                        (state?.pricing?.discountAmount ?? 0)
-                    )}
+                    {fmtNGN(totalAmount)}
                   </span>
                 </div>
-              </>
-            ) : (
-              // Empty state – compact and neutral
-              <div className="text-center py-6 text-gray-600 text-sm">
-                No tickets selected
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          ) : (
+            // === Entry (tickets) summary ===
+            <>
+              {selectedTickets.length > 0 ? (
+                <>
+                  <div className="space-y-2.5 text-sm">
+                    {selectedTickets.map((t) => (
+                      <div
+                        key={t.id}
+                        className="flex items-start justify-between"
+                      >
+                        <div className="text-gray-900">
+                          <span className="font-medium">{t.name}</span>
+                          <span className="ml-2 text-gray-500 italic">
+                            x{t.quantity}
+                          </span>
+                        </div>
+                        <div className="font-semibold text-gray-900">
+                          {fmtNGN((t.price || 0) * (t.quantity || 0))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="my-3 border-t border-gray-200" />
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-gray-900">Total</span>
+                    <span className="font-extrabold text-gray-900">
+                      {fmtNGN(totalAmount)}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-6 text-gray-600 text-sm">
+                  No tickets selected
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
-    </div>
+    </aside>
   );
 };
 

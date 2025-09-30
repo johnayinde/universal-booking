@@ -234,13 +234,10 @@ class EntryAdapter extends BusinessAdapter {
     }
   }
 
-
-
   /**
    * Create booking with proper payload structure
    */
   async createBooking(bookingData) {
-
     try {
       const url = `${this.apiBaseUrl}/booking/entry/create-booking?location_id=${this.locationId}`;
 
@@ -256,6 +253,7 @@ class EntryAdapter extends BusinessAdapter {
         items: bookingData.items,
       };
 
+      console.log("📤 Sending booking payload:", payload);
 
       const response = await fetch(url, {
         method: "POST",
@@ -274,7 +272,6 @@ class EntryAdapter extends BusinessAdapter {
       const result = await response.json();
 
       return result;
-    
     } catch (error) {
       console.error("❌ Booking creation failed:", error);
       return {

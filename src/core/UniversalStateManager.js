@@ -104,6 +104,7 @@ export const initialState = {
   // Payment
   paymentStatus: PaymentStatus.PENDING,
   paymentUrl: null,
+  paystackPk: "",
   paymentReference: null,
   paymentInfo: {
     method: "paystack",
@@ -449,21 +450,6 @@ export const UniversalBookingProvider = ({ children, value }) => {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
       }).format(amount);
-    },
-
-    // Debug helpers
-    getDebugInfo: () => {
-      return {
-        currentStep: value.state.currentStep,
-        hasAdapter: !!value.adapter,
-        hasApiService: !!value.apiService,
-        isLoading: value.state.loading,
-        hasError: !!value.state.error,
-        totalAmount: value.state.totalAmount,
-        totalTickets: value.getTotalTickets(),
-        paymentStatus: value.state.paymentStatus,
-        bookingReference: value.state.bookingReference,
-      };
     },
   };
 

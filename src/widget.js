@@ -14,6 +14,7 @@ class UniversalBookingWidgetAPI {
       businessType: "", // Default business type
       apiBaseUrl: "http://127.0.0.1:8000/api",
       theme: "light",
+      paystackPK: "", // Paystack Public Key
       branding: {
         primaryColor: "#3b82f6",
         companyName: "Universal Booking",

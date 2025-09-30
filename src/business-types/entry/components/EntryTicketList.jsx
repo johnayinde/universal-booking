@@ -25,6 +25,25 @@ const EntryTicketList = ({ apiService, adapter }) => {
   const [loadingStep, setLoadingStep] = useState("none"); // "types", "items", "none"
   const [apiError, setApiError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [selectedDate, setSelectedDate] = useState(
+    state.bookingData?.date || ""
+  );
+
+  const toInputDate = (d) => {
+    if (!d) return "";
+    const dt = d instanceof Date ? d : new Date(d);
+    const tz = dt.getTimezoneOffset() * 60000;
+    return new Date(dt - tz).toISOString().slice(0, 10);
+  };
+
+  const todayInput = () => toInputDate(new Date());
+
+  const plusMonthsInput = (m = 3) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + m);
+    return toInputDate(d);
+  };
+
   // Load ticket types on mount
   useEffect(() => {
     loadTicketTypes();
@@ -417,6 +436,33 @@ const EntryTicketList = ({ apiService, adapter }) => {
             </div>
           </div>
         )}
+
+        {/* Date Picker - ADD THIS SECTION */}
+        <div className="max-w-4xl mb-6">
+          <div className="bg-white rounded-xl sm:p-5">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Booking Date
+            </label>
+            <div className="relative">
+              <input
+                type="date"
+                value={selectedDate || ""}
+                required
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setSelectedDate(v);
+                  dispatch({
+                    type: ActionTypes.UPDATE_BOOKING_DATA,
+                    payload: { date: v },
+                  });
+                }}
+                min={todayInput()}
+                max={plusMonthsInput(3)}
+                className="w-full pr-10 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+        </div>
 
         {/* Ticket Type Selection */}
         {!selectedType && (

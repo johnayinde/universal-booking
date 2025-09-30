@@ -443,41 +443,6 @@ const FurnitureDateSelection = ({ adapter }) => {
               )}
             </div>
           )}
-
-          {/* Inline summary (optional) */}
-          {/* {(selectedFurniture || slotLines.length > 0) && (
-            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-              <h4 className="font-semibold text-gray-900 mb-2">Summary</h4>
-              <div className="space-y-1 text-sm">
-                {selectedFurniture && (
-                  <div className="flex items-center justify-between">
-                    <span>{selectedFurniture.name}</span>
-                    <span className="font-semibold">
-                      {formatCurrency(selectedFurniture.price)}
-                    </span>
-                  </div>
-                )}
-                {slotLines.map((l) => (
-                  <div key={l.id} className="flex items-center justify-between">
-                    <span>
-                      {l.name}{" "}
-                      <span className="text-gray-500 italic">x{l.qty}</span>
-                    </span>
-                    <span className="font-semibold">
-                      {formatCurrency(l.subtotal)}
-                    </span>
-                  </div>
-                ))}
-                <div className="border-t border-gray-200 my-2" />
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold">Total</span>
-                  <span className="font-extrabold">
-                    {formatCurrency(totalAmount)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )} */}
         </div>
       </div>
 

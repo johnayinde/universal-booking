@@ -144,7 +144,7 @@
     </div>
 
     <!-- Load the Universal Booking Widget -->
-    <script src="dist//universal-booking-widget.min.js"></script>
+    <script src="dist/universal-booking-widget.min.js"></script>
 
     <script>
         // Utility functions
@@ -196,7 +196,7 @@
                 const widget = UniversalBookingWidget.init({
                     businessType: null, // Show bookables list
                     locationId: 1,
-                    bookables: ['entry', 'hotel', 'udh', 'furniture'],
+                    bookables: ['entry', 'hotel', 'group', 'furniture'],
                     branding: {
                         primaryColor: '#f97316',
                         companyName: 'Landmark Lagos',
@@ -204,7 +204,8 @@
                         locationImage: "https://pbs.twimg.com/media/GfgQsLwXIAA6aCQ?format=jpg&name=large",
                         description: "The premier event and leisure destination in Lagos."
                     },
-                    autoShow: true
+                    autoShow: true,
+                    pasystackPK: 'pk_test_51H8mX2L4a7gGkXxYz6Q9V7J8Y3F5b6c7d8e9f0g1h2i3j4k5l6m7n8o9p0q1r2s3t'
                 });
 
                 widget.open();
@@ -222,17 +223,17 @@
                 const widget = UniversalBookingWidget.init({
                     businessType: null,
                     locationId: 2,
-                    bookables: ['entry', 'hotel', 'udh', 'furniture'],
+                    bookables: ['entry', 'hotel', 'group', 'furniture'],
                     branding: {
                         primaryColor: '#f97316',
                         companyName: 'Nike Lake Resort - Enugu',
                         locationName: 'Nike Lake Resort, Enugu',
                         locationImage: "https://pbs.twimg.com/profile_images/1902362596965007360/epM_0g3-_400x400.jpg",
                         description: "A serene getaway nestled in the hills of Enugu."
-
-
                     },
-                    autoShow: true
+                    autoShow: true,
+                    pasystackPK: 'pk_test_51H8mX2L4a7gGkXxYz6Q9V7J8Y3F5b6c7d8e9f0g1h2i3j4k5l6m7n8o9p0q1r2s3t'
+
                 });
 
                 widget.open();

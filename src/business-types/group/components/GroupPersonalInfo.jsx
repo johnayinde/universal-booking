@@ -1,5 +1,5 @@
 // src/business-types/group/components/GroupPersonalInfo.jsx
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useContext } from "react";
 import { ArrowLeft, AlertCircle, CheckCircle, Loader } from "lucide-react";
 import UniversalBookingContext, {
   ActionTypes,
@@ -240,7 +240,7 @@ const GroupPersonalInfo = ({ apiService, adapter }) => {
   const handleBack = () => {
     dispatch({
       type: ActionTypes.SET_CURRENT_STEP,
-      payload: "selection",
+      payload: "list",
     });
   };
 

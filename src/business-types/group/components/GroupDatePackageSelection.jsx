@@ -1,6 +1,13 @@
 // src/business-types/group/components/GroupDatePackageSelection.jsx
 import React, { useState, useEffect, useContext } from "react";
-import { Calendar, Users, Loader, AlertCircle, ArrowLeft } from "lucide-react";
+import {
+  Calendar,
+  Users,
+  Loader,
+  AlertCircle,
+  ArrowLeft,
+  ArrowRight,
+} from "lucide-react";
 import { ActionTypes } from "../../../core/UniversalStateManager";
 
 import { useUniversalBooking } from "../../../core/UniversalStateManager";
@@ -22,6 +29,10 @@ const GroupDatePackageSelection = ({ apiService, adapter }) => {
   const [packageOptions, setPackageOptions] = useState([]);
   const [optionsLoading, setOptionsLoading] = useState(false);
   const [optionsError, setOptionsError] = useState("");
+
+  const [selectedOption, setSelectedOption] = useState(null);
+  const [optionDetails, setOptionDetails] = useState(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
 
   // Initialize date to today if not set
   useEffect(() => {
@@ -105,6 +116,41 @@ const GroupDatePackageSelection = ({ apiService, adapter }) => {
     // clear previously loaded options
     setPackageOptions([]);
     setOptionsError("");
+    setOptionDetails(null);
+    setSelectedOption(null);
+  };
+
+  const handleOptionClick = async (option) => {
+    setSelectedOption(option);
+    setOptionDetails(null);
+    dispatch({
+      type: ActionTypes.UPDATE_SELECTION,
+      payload: { packageOption: option },
+    });
+
+    if (adapter?.fetchPackageDetails) {
+      try {
+        // setDetailsLoading(true);
+        // const res = await adapter.fetchPackageDetails(option.id);
+        setOptionDetails(option);
+      } catch {
+        setOptionDetails(option);
+      } finally {
+        // setDetailsLoading(false);
+      }
+    } else {
+      setOptionDetails(option);
+    }
+  };
+
+  const proceedToBooking = () => {
+    // store the final packageDetails (prefer enriched details)
+    dispatch({
+      type: ActionTypes.UPDATE_SELECTION,
+      payload: { packageDetails: optionDetails || selectedOption },
+    });
+    // go straight to the personal info / payment form
+    dispatch({ type: ActionTypes.SET_CURRENT_STEP, payload: "booking" });
   };
 
   // NEW: fetch options whenever size AND date are chosen
@@ -147,18 +193,6 @@ const GroupDatePackageSelection = ({ apiService, adapter }) => {
     loadOptions();
   }, [adapter, selectedPackageSize?.id, selectedDate]);
 
-  // NEW: click option → save + go to details page
-  const handleOptionClick = (option) => {
-    dispatch({
-      type: ActionTypes.UPDATE_SELECTION,
-      payload: { packageOption: option },
-    });
-    dispatch({
-      type: ActionTypes.SET_CURRENT_STEP,
-      payload: "selection", // this is the GroupPackageDetails page
-    });
-  };
-
   const handleBack = () => {
     // Clear the selected business type
     sessionStorage.removeItem("selectedBusinessType");
@@ -180,6 +214,7 @@ const GroupDatePackageSelection = ({ apiService, adapter }) => {
       widget.open();
     }, 100);
   };
+  console.log({ selectedOption });
 
   return (
     <div className="h-full flex flex-col">
@@ -321,50 +356,163 @@ const GroupDatePackageSelection = ({ apiService, adapter }) => {
                   </div>
                 )}
 
-              {packageOptions.length > 0 && (
-                <div className="overflow-x-auto [-webkit-overflow-scrolling:touch]">
-                  <div className="flex gap-4 pb-1">
-                    {packageOptions.map((opt) => (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => handleOptionClick(opt)}
-                        className="min-w-[240px] max-w-[260px] text-left bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all"
-                      >
-                        <div className="h-28 w-full rounded-t-xl overflow-hidden bg-gray-100">
-                          {opt.image ? (
-                            <img
-                              src={opt.image}
-                              alt={opt.name}
-                              className="w-full h-full object-cover"
-                              onError={(e) =>
-                                (e.currentTarget.style.display = "none")
-                              }
-                            />
-                          ) : null}
-                        </div>
-                        <div className="p-3">
-                          <div className="flex items-center justify-between">
-                            <h4 className="font-semibold text-gray-900 truncate">
-                              {opt.name}
-                            </h4>
-                            <span className="text-sm font-bold text-gray-900">
-                              {new Intl.NumberFormat("en-NG", {
-                                style: "currency",
-                                currency: "NGN",
-                                maximumFractionDigits: 0,
-                              }).format(opt.price || 0)}
-                            </span>
+              {packageOptions.map((opt) => {
+                // ✅ define it here
+                const isSelected = selectedOption?.id === opt.id;
+
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => handleOptionClick(opt)}
+                    className={`min-w-[240px] max-w-[260px] text-left rounded-xl transition-all
+        ${
+          isSelected
+            ? "border-2 border-orange-500 bg-white shadow-md"
+            : "border border-gray-200 bg-white hover:border-gray-300 shadow-sm hover:shadow-md"
+        }
+      `}
+                  >
+                    <div className="h-28 w-full rounded-t-xl overflow-hidden bg-gray-100">
+                      {opt.image ? (
+                        <img
+                          src={opt.image}
+                          alt={opt.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) =>
+                            (e.currentTarget.style.display = "none")
+                          }
+                        />
+                      ) : null}
+                    </div>
+                    <div className="p-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-semibold text-gray-900 truncate">
+                          {opt.name}
+                        </h4>
+                        <span className="text-sm font-bold text-gray-900">
+                          {new Intl.NumberFormat("en-NG", {
+                            style: "currency",
+                            currency: "NGN",
+                            maximumFractionDigits: 0,
+                          }).format(opt.price || 0)}
+                        </span>
+                      </div>
+                      {opt.description && (
+                        <p className="mt-1 text-xs text-gray-600 line-clamp-2">
+                          {opt.description}
+                        </p>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+
+              {/* Inline Details panel (appears after an option is clicked) */}
+              {selectedOption && (
+                <div className="mt-6 bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+                  {detailsLoading ? (
+                    <div className="flex items-center justify-center p-6 text-gray-600 text-sm">
+                      <Loader className="animate-spin mr-2" size={18} /> Loading
+                      details…
+                    </div>
+                  ) : (
+                    <>
+                      {selectedOption.image_url ? (
+                        <img
+                          src={optionDetails.image_url}
+                          alt={optionDetails.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-emerald-500 flex items-center justify-center">
+                          <div className="text-white text-center">
+                            <div className="text-2xl font-bold mb-1">
+                              TOODUM
+                            </div>
+                            <div className="text-lg">TAKEAWAYS</div>
+                            <div className="mt-2">
+                              <div className="w-8 h-0.5 bg-yellow-400 mx-auto mb-1"></div>
+                              <div className="flex justify-center space-x-1">
+                                <div className="w-1 h-4 bg-red-400"></div>
+                                <div className="w-1 h-4 bg-yellow-400"></div>
+                              </div>
+                            </div>
                           </div>
-                          {opt.description && (
-                            <p className="mt-1 text-xs text-gray-600 line-clamp-2">
-                              {opt.description}
-                            </p>
-                          )}
                         </div>
-                      </button>
-                    ))}
-                  </div>
+                      )}
+
+                      {/* Content */}
+                      <div className="p-4 sm:p-6">
+                        {/* Title & Price */}
+                        <div className="flex items-start justify-between gap-3">
+                          <h3 className="text-lg sm:text-xl font-bold text-gray-900">
+                            {selectedOption.name}
+                          </h3>
+                          <span className="text-lg sm:text-xl font-extrabold text-gray-900">
+                            {new Intl.NumberFormat("en-NG", {
+                              style: "currency",
+                              currency: "NGN",
+                              maximumFractionDigits: 0,
+                            }).format(selectedOption.price || 0)}
+                          </span>
+                        </div>
+
+                        {/* Description */}
+                        {selectedOption && (
+                          <p className="mt-3 text-sm sm:text-base text-gray-700 leading-relaxed">
+                            {selectedOption.description ||
+                              "Dive into our exhilarating activity package designed to provide you with a perfect blend of adventure and relaxation! Experience the thrill of archery as you aim for the bullseye, or test your skills at our state-of-the-art shooting ranges. For those who love the great outdoors, enjoy a scenic horse riding excursion through picturesque trails."}
+                          </p>
+                        )}
+
+                        {/* Benefits */}
+                        {Array.isArray(optionDetails?.benefits) &&
+                          optionDetails.benefits.length > 0 && (
+                            <div className="mt-5">
+                              <h4 className="text-sm font-semibold text-gray-900 mb-2">
+                                What’s Included
+                              </h4>
+                              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {optionDetails.benefits.map((b, i) => (
+                                  <li
+                                    key={i}
+                                    className="flex items-start gap-2 text-sm text-gray-700"
+                                  >
+                                    <svg
+                                      className="w-4 h-4 text-emerald-600 mt-0.5"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M5 13l4 4L19 7"
+                                      />
+                                    </svg>
+                                    {b.name || b}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                        {/* Continue */}
+                        <div className="mt-6 flex justify-end">
+                          <button
+                            type="button"
+                            onClick={proceedToBooking}
+                            className="inline-flex items-center gap-2 px-5 py-3 rounded-lg font-semibold bg-orange-600 text-white hover:bg-orange-700"
+                          >
+                            Next
+                            <ArrowRight size={18} />
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>

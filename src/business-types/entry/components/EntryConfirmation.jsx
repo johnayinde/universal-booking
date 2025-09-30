@@ -14,6 +14,7 @@ const EntryConfirmation = ({ config = {} }) => {
   const bookingRef = state.bookingReference || "";
   const customerInfo = state.customerInfo;
   const totalAmount = state.totalAmount;
+  const selectedDate = state.bookingData?.date;
 
   const handleCloseWidget = () => {
     sessionStorage.removeItem("selectedBusinessType");
@@ -166,6 +167,10 @@ const EntryConfirmation = ({ config = {} }) => {
                             {formatCurrency(ticket.price)} each
                           </p>
                         </div>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Date:</span>
+                        <span className="text-gray-900">{selectedDate}</span>
                       </div>
                       {ticket.description && (
                         <p className="text-xs text-gray-500 mt-2">

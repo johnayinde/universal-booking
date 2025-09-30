@@ -202,24 +202,7 @@ const BookingEngine = ({ businessType = "", config = {}, children }) => {
       // Labels and configuration
       getLabels: () => adapter.getLabels(),
 
-      // Debug info
-      getDebugInfo: () => ({
-        businessType,
-        currentStep: state.currentStep,
-        hasAdapter: !!adapter,
-        hasApiService: !!apiService,
-        isLoading: state.loading,
-        hasError: !!state.error,
-        totalAmount: state.totalAmount,
-        totalTickets: helpers.getTotalTickets(),
-        paymentStatus: state.paymentStatus,
-        bookingReference: state.bookingReference,
-        config: {
-          locationId: config.locationId || config.location,
-          apiBaseUrl: config.apiBaseUrl,
-        },
-      }),
-    };
+        };
 
     const contextValue = {
       state,
@@ -230,14 +213,6 @@ const BookingEngine = ({ businessType = "", config = {}, children }) => {
       locationId: config.locationId || config.location,
       ...helpers,
     };
-
-    console.log("🎯 BookingEngine context value prepared:", {
-      hasAdapter: !!adapter,
-      hasApiService: !!apiService,
-      currentStep: state.currentStep,
-      isLoading: state.loading,
-      businessType,
-    });
 
     return contextValue;
   }, [state, adapter, apiService, businessType, config]);

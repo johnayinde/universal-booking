@@ -56,7 +56,7 @@ function App({ config = {} }) {
 
     // Function to process configuration and sessionStorage
     const processConfig = () => {
-      console.log("🔍 Processing Enhanced App configuration...");
+      console.log("🔍 Processing Enhanced App configuration...", config);
 
       // Merge provided config with defaults
       const mergedConfig = {
@@ -81,15 +81,6 @@ function App({ config = {} }) {
         "selectedBusinessType"
       );
 
-      const isReloading = sessionStorage.getItem("isReloading");
-
-      console.log("📋 Enhanced SessionStorage check:", {
-        selectedFromBookables,
-        isReloading,
-        currentBusinessType: mergedConfig.businessType,
-        features: mergedConfig.features,
-      });
-
       if (selectedFromBookables && !mergedConfig.businessType) {
         mergedConfig.businessType = selectedFromBookables;
 
@@ -110,7 +101,6 @@ function App({ config = {} }) {
       }
 
       // Log enhanced features
-      console.log("🎨 Enhanced Features Enabled:", mergedConfig.features);
 
       setFinalConfig(mergedConfig);
       setIsLoading(false);
