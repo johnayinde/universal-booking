@@ -297,6 +297,8 @@ if (typeof window !== "undefined") {
         autoConfig.apiBaseUrl = configAttrs.apiBaseUrl;
       if (configAttrs.position) autoConfig.position = configAttrs.position;
       if (configAttrs.autoShow === "true") autoConfig.autoShow = true;
+      if (configAttrs.paystackPK)
+        autoConfig.paystackPK = configAttrs.paystackPK;
     }
 
     // Look for trigger elements with data attributes

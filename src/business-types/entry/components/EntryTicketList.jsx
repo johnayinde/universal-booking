@@ -439,7 +439,7 @@ const EntryTicketList = ({ apiService, adapter }) => {
 
         {/* Date Picker - ADD THIS SECTION */}
         <div className="max-w-4xl mb-6">
-          <div className="bg-white rounded-xl sm:p-5">
+          <div className="bg-white rounded-xl">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Booking Date
             </label>
@@ -513,21 +513,28 @@ const EntryTicketList = ({ apiService, adapter }) => {
         {selectedType && (
           <div className="max-w-4xl">
             {/* Selected Type Header */}
-            <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold text-blue-900">
+            <div className="mb-6 rounded-xl border border-orange-200 bg-orange-50 p-4 sm:p-5 shadow-sm">
+              <div className="flex items-start justify-between gap-4">
+                {/* Left: title & description */}
+                <div className="min-w-0">
+                  <h2 className="text-base sm:text-lg font-bold text-gray-900 truncate">
                     {selectedType.name}
                   </h2>
-                  <p className="text-blue-700 text-sm">
-                    {selectedType.description}
-                  </p>
+                  {selectedType.description && (
+                    <p className="mt-1 text-sm text-gray-700 leading-snug line-clamp-2">
+                      {selectedType.description}
+                    </p>
+                  )}
                 </div>
+
+                {/* Right: action */}
                 <button
                   onClick={() => setSelectedType(null)}
-                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  className="shrink-0 inline-flex items-center px-3 py-1.5 rounded-md 
+                 text-xs sm:text-sm font-medium text-orange-700 
+                 bg-orange-100 hover:bg-orange-200 transition-colors"
                 >
-                  Change Type
+                  Change
                 </button>
               </div>
             </div>

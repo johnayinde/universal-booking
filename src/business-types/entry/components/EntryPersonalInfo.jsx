@@ -143,7 +143,7 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
           setTimeout(() => {
             // Initialize Paystack popup
             const handler = window.PaystackPop.setup({
-              key: process.env.REACT_APP_PAYSTACK_PUBLIC, // Replace with your actual Paystack public key
+              key: config.paystackPK || process.env.REACT_APP_PAYSTACK_PUBLIC,
               email: customer.email, // REQUIRED
               amount: booking.total_amount * 100, // REQUIRED (NGN * 100)
               ref: payment.reference,

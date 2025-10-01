@@ -11,11 +11,6 @@ import { useUniversalBooking } from "../../../core/UniversalStateManager";
 import { ActionTypes } from "../../../core/UniversalStateManager";
 
 const FurniturePersonalInfo = ({ apiService, adapter }) => {
-  console.log("🪑 FurniturePersonalInfo component rendered", {
-    adapter,
-    apiService,
-  });
-
   const { state, dispatch, locationId } = useUniversalBooking();
   const {
     selectedFurniture,
@@ -24,6 +19,7 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
     customerInfo,
     totalAmount,
     loading,
+    config,
     error,
   } = state;
 
@@ -36,7 +32,7 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
 
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [paymentStep, setPaymentStep] = useState("form"); 
+  const [paymentStep, setPaymentStep] = useState("form");
 
   // Format time
   const formatTime = (timeString) => {
@@ -105,7 +101,6 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
   // Verify payment and show success
   const verifyPaymentAndShowSuccess = async (reference) => {
     try {
-
       const apiBaseUrl =
         process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:8000/api";
       const response = await fetch(
@@ -185,8 +180,6 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
           (selectedFurniture.price || 0) + (selectedSession.price || 0),
       };
 
-     
-
       // Submit booking using adapter
       const result = await adapter.createFurnitureBooking(furnitureBookingData);
 
@@ -200,8 +193,6 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
           payload: booking.booking_ref,
         });
 
-      
-
         // Store payment references for verification
         localStorage.setItem("payment_reference", payment.reference);
         localStorage.setItem("booking_reference", booking.booking_ref);
@@ -213,7 +204,7 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
           setTimeout(() => {
             // Initialize Paystack popup
             const handler = window.PaystackPop.setup({
-              key: process.env.REACT_APP_PAYSTACK_PUBLIC,
+              key: config.paystackPK || process.env.REACT_APP_PAYSTACK_PUBLIC,
               email: customer.email,
               amount: booking.total_amount * 100, // Convert to kobo
               ref: payment.reference,

@@ -20,6 +20,7 @@ function App({ config = {} }) {
     theme: "light",
     apiBaseUrl:
       process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:8000/api",
+    publicKey: config.paystackPK || "",
     branding: {
       primaryColor: "#f97316", // Orange for Nike Lake Resort
       logoUrl: "",

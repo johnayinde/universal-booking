@@ -12,7 +12,7 @@ import UniversalBookingContext, {
  */
 const GroupPersonalInfo = ({ apiService, adapter }) => {
   const { state, dispatch } = useContext(UniversalBookingContext);
-  const { selectedDate, error, isLoading, selection, customerInfo } = state;
+  const { selectedDate, error, config, selection, customerInfo } = state;
 
   // Local state for form
   const [formData, setFormData] = useState({
@@ -188,7 +188,7 @@ const GroupPersonalInfo = ({ apiService, adapter }) => {
           setTimeout(() => {
             // Initialize Paystack popup
             const handler = window.PaystackPop.setup({
-              key: process.env.REACT_APP_PAYSTACK_PUBLIC, // Replace with your actual Paystack public key
+              key: config.paystackPK || process.env.REACT_APP_PAYSTACK_PUBLIC,
               email: customer.email,
               amount: booking.total_amount * 100, // NGN * 100
               ref: payment.reference,
