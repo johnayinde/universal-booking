@@ -90,8 +90,8 @@ const GroupPersonalInfo = ({ apiService, adapter }) => {
   // Handle payment verification and success
   const verifyPaymentAndShowSuccess = async (reference) => {
     try {
-      const apiBaseUrl =
-        process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:8000/api";
+      const apiBaseUrl = config.apiBaseUrl;
+
       const response = await fetch(
         `${apiBaseUrl}/payment/verify?reference=${reference}`,
         {

@@ -77,7 +77,6 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
-  console.log({ PK: config.paystackPK });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -143,7 +142,7 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
           setTimeout(() => {
             // Initialize Paystack popup
             const handler = window.PaystackPop.setup({
-              key: config.paystackPK || process.env.REACT_APP_PAYSTACK_PUBLIC,
+              key: config.paystackPK,
               email: customer.email, // REQUIRED
               amount: booking.total_amount * 100, // REQUIRED (NGN * 100)
               ref: payment.reference,
@@ -191,8 +190,8 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
 
   const verifyPaymentAndShowSuccess = async (reference) => {
     try {
-      const apiBaseUrl =
-        process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:8000/api";
+      const apiBaseUrl = config.apiBaseUrl;
+
       const response = await fetch(
         `${apiBaseUrl}/payment/verify?reference=${reference}`,
         {
