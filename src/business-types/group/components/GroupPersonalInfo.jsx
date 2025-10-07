@@ -188,7 +188,7 @@ const GroupPersonalInfo = ({ apiService, adapter }) => {
           setTimeout(() => {
             // Initialize Paystack popup
             const handler = window.PaystackPop.setup({
-              key: config.paystackPK || process.env.REACT_APP_PAYSTACK_PUBLIC,
+              key: config.paystackPK,
               email: customer.email,
               amount: booking.total_amount * 100, // NGN * 100
               ref: payment.reference,
