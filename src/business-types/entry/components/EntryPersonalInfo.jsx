@@ -149,12 +149,8 @@ const EntryPersonalInfo = ({ apiService, adapter }) => {
               callback: (transaction) => {
                 // Set verification state and reference
                 setPaymentStep("verifying");
-                localStorage.setItem(
-                  "payment_reference",
-                  transaction.reference
-                );
                 // Trigger verification
-                verifyPaymentAndShowSuccess(transaction.reference);
+                verifyPaymentAndShowSuccess(payment.reference);
               },
               onCancel: () => {
                 console.log("❌ Payment cancelled");

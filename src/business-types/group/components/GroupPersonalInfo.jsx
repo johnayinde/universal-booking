@@ -195,11 +195,8 @@ const GroupPersonalInfo = ({ apiService, adapter }) => {
               callback: (transaction) => {
                 console.log("✅ Payment successful:", transaction);
                 setPaymentStep("verifying");
-                localStorage.setItem(
-                  "payment_reference",
-                  transaction.reference
-                );
-                verifyPaymentAndShowSuccess(transaction.reference);
+
+                verifyPaymentAndShowSuccess(payment.reference);
               },
               onCancel: () => {
                 console.log("❌ Payment cancelled");

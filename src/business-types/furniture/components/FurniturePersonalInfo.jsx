@@ -205,19 +205,15 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
           setTimeout(() => {
             // Initialize Paystack popup
             const handler = window.PaystackPop.setup({
-              key: config.paystackPK || process.env.REACT_APP_PAYSTACK_PUBLIC,
+              key: config.paystackPK,
               email: customer.email,
               amount: booking.total_amount * 100, // Convert to kobo
               ref: payment.reference,
               callback: (transaction) => {
                 console.log("✅ Payment successful:", transaction);
                 setPaymentStep("verifying");
-                localStorage.setItem(
-                  "payment_reference",
-                  transaction.reference
-                );
                 // Trigger verification
-                verifyPaymentAndShowSuccess(transaction.reference);
+                verifyPaymentAndShowSuccess(payment.reference);
               },
               onCancel: () => {
                 console.log("❌ Payment cancelled");
