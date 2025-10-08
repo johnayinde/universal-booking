@@ -1,15 +1,23 @@
 // src/business-types/furniture/components/FurnitureConfirmation.jsx
-import React from "react";
-import { CheckCircle, Calendar, CreditCard, Home } from "lucide-react";
+import React, { useRef } from "react";
+import {
+  CheckCircle,
+  Calendar,
+  CreditCard,
+  Home,
+  Download,
+} from "lucide-react";
 import {
   ActionTypes,
   useUniversalBooking,
 } from "../../../core/UniversalStateManager";
+import { generatePdfFromElement } from "../../../utils/pdfUtils";
 
 const FurnitureConfirmation = ({ adapter, config }) => {
   const { state, dispatch } = useUniversalBooking();
   const { bookingReference, selectedFurniture, selectedSession, bookingData } =
     state;
+  const contentRef = useRef(null);
 
   // Format time
   const formatTime = (timeString) => {
@@ -45,18 +53,42 @@ const FurnitureConfirmation = ({ adapter, config }) => {
   };
 
   const handleCloseWidget = () => {
+    // Clear the selected business type
     sessionStorage.removeItem("selectedBusinessType");
-    sessionStorage.removeItem("isReloading");
 
+    // Destroy current widget
     if (window.UniversalBookingWidget) {
       window.UniversalBookingWidget.destroyAll?.();
-      setTimeout(() => {
-        const newConfig = { ...config, businessType: null };
-        window.UniversalBookingWidget.init(newConfig).open();
-      }, 100);
     }
 
-    if (window.parent) window.parent.postMessage({ type: "close-widget" }, "*");
+    // Reinitialize widget without business type (shows bookables list)
+    setTimeout(() => {
+      const widget = window.UniversalBookingWidget.init({
+        businessType: null, // This shows the bookables list
+        locationId: state.config?.locationId || 1,
+        apiBaseUrl: state.config?.apiBaseUrl,
+        branding: state.config?.branding,
+        autoShow: true,
+      });
+      widget.open();
+    }, 100);
+  };
+
+  const handleDownloadPdf = async () => {
+    try {
+      await generatePdfFromElement(
+        contentRef.current,
+        `Entry-Confirmation-${bookingReference || Date.now()}`,
+        {
+          scale: 2,
+          margin: 10,
+          orientation: "p",
+          format: "a4",
+        }
+      );
+    } catch (error) {
+      console.error("Download failed:", error);
+    }
   };
 
   // Success state
@@ -77,7 +109,7 @@ const FurnitureConfirmation = ({ adapter, config }) => {
             </p>
           </div>
 
-          <div className="p-6">
+          <div ref={contentRef} className="p-6">
             {/* Booking Reference */}
             <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
               <h3 className="font-semibold text-orange-900 mb-2 flex items-center">
@@ -138,13 +170,24 @@ const FurnitureConfirmation = ({ adapter, config }) => {
 
               {/* Action Buttons */}
               <div className="p-6 border-t border-gray-200 bg-gray-50">
-                <div className="flex items-center justify-between max-w-6xl">
-                  <button
-                    onClick={handleNewBooking}
-                    className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
-                  >
-                    New Booking
-                  </button>
+                <div className="flex items-center justify-between max-w-6xl gap-3">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleNewBooking}
+                      className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                    >
+                      New Booking
+                    </button>
+
+                    <button
+                      onClick={handleDownloadPdf}
+                      className="px-6 py-3 border border-gray-300 text-gray-800 rounded-lg font-medium hover:bg-gray-100 transition-colors inline-flex items-center gap-2"
+                      title="Download this confirmation as PDF"
+                    >
+                      <Download className="w-4 h-4" />
+                      Download Confirmation
+                    </button>
+                  </div>
 
                   <button
                     onClick={handleCloseWidget}

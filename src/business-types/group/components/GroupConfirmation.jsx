@@ -1,5 +1,5 @@
 // src/business-types/group/components/GroupConfirmation.jsx
-import React, { useContext } from "react";
+import React, { useContext, useRef } from "react";
 import {
   CheckCircle,
   Calendar,
@@ -10,10 +10,12 @@ import {
   User,
   CreditCard,
   Clock,
+  Download,
 } from "lucide-react";
 import UniversalBookingContext, {
   ActionTypes,
 } from "../../../core/UniversalStateManager";
+import { generatePdfFromElement } from "../../../utils/pdfUtils";
 
 /**
  * Group Confirmation Component
@@ -22,6 +24,8 @@ import UniversalBookingContext, {
 const GroupConfirmation = ({ apiService, config = {} }) => {
   const { state, dispatch } = useContext(UniversalBookingContext);
   const { bookingReference, selectedDate, selection, customerInfo } = state;
+
+  const contentRef = useRef(null);
 
   // Get selected data from state
   const selectedPackageSize = selection?.packageSize;
@@ -33,22 +37,46 @@ const GroupConfirmation = ({ apiService, config = {} }) => {
   const storedBookingRef = localStorage.getItem("booking_reference");
 
   const handleCloseWidget = () => {
+    // Clear the selected business type
     sessionStorage.removeItem("selectedBusinessType");
-    sessionStorage.removeItem("isReloading");
 
+    // Destroy current widget
     if (window.UniversalBookingWidget) {
       window.UniversalBookingWidget.destroyAll?.();
-      setTimeout(() => {
-        const newConfig = { ...config, businessType: null };
-        window.UniversalBookingWidget.init(newConfig).open();
-      }, 100);
     }
 
-    if (window.parent) window.parent.postMessage({ type: "close-widget" }, "*");
+    // Reinitialize widget without business type (shows bookables list)
+    setTimeout(() => {
+      const widget = window.UniversalBookingWidget.init({
+        businessType: null, // This shows the bookables list
+        locationId: state.config?.locationId || 1,
+        apiBaseUrl: state.config?.apiBaseUrl,
+        branding: state.config?.branding,
+        autoShow: true,
+      });
+      widget.open();
+    }, 100);
   };
 
   const handleNewBooking = () => {
     dispatch({ type: ActionTypes.RESET_BOOKING });
+  };
+
+  const handleDownloadPdf = async () => {
+    try {
+      await generatePdfFromElement(
+        contentRef.current,
+        `Entry-Confirmation-${bookingReference || Date.now()}`,
+        {
+          scale: 2,
+          margin: 10,
+          orientation: "p",
+          format: "a4",
+        }
+      );
+    } catch (error) {
+      console.error("Download failed:", error);
+    }
   };
 
   return (
@@ -80,7 +108,7 @@ const GroupConfirmation = ({ apiService, config = {} }) => {
 
       {/* Content */}
       <div className="flex-1 p-6 overflow-y-auto">
-        <div className="max-w-4xl mx-auto space-y-6">
+        <div ref={contentRef} className="max-w-4xl mx-auto space-y-6">
           {/* Booking Details */}
           <div className="bg-white border border-gray-200 rounded-xl p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">
@@ -225,13 +253,24 @@ const GroupConfirmation = ({ apiService, config = {} }) => {
 
       {/* Footer Actions */}
       <div className="p-6 border-t border-gray-200 bg-gray-50">
-        <div className="flex items-center justify-between max-w-6xl">
-          <button
-            onClick={handleNewBooking}
-            className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
-          >
-            New Booking
-          </button>
+        <div className="flex items-center justify-between max-w-6xl gap-3">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleNewBooking}
+              className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+            >
+              New Booking
+            </button>
+
+            <button
+              onClick={handleDownloadPdf}
+              className="px-6 py-3 border border-gray-300 text-gray-800 rounded-lg font-medium hover:bg-gray-100 transition-colors inline-flex items-center gap-2"
+              title="Download this confirmation as PDF"
+            >
+              <Download className="w-4 h-4" />
+              Download Confirmation
+            </button>
+          </div>
 
           <button
             onClick={handleCloseWidget}

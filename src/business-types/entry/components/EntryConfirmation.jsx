@@ -1,8 +1,9 @@
-// src/business-types/entry/components/EntryConfirmation.jsx - FIXED No Nesting
-import React from "react";
+// src/business-types/entry/components/EntryConfirmation.jsx - FIXED Download
+import React, { useRef } from "react";
 import { useUniversalBooking } from "../../../core/UniversalStateManager";
-import { CheckCircle, Users, Ticket } from "lucide-react";
+import { CheckCircle, Users, Ticket, Download } from "lucide-react";
 import { ActionTypes } from "../../../core/UniversalStateManager";
+import { generatePdfFromElement } from "../../../utils/pdfUtils";
 
 const EntryConfirmation = ({ config = {} }) => {
   const { state, dispatch } = useUniversalBooking();
@@ -15,6 +16,8 @@ const EntryConfirmation = ({ config = {} }) => {
   const customerInfo = state.customerInfo;
   const totalAmount = state.totalAmount;
   const selectedDate = state.bookingData?.date;
+
+  const contentRef = useRef(null);
 
   const handleCloseWidget = () => {
     // Clear the selected business type
@@ -51,6 +54,23 @@ const EntryConfirmation = ({ config = {} }) => {
     }).format(amount);
   };
 
+  const handleDownloadPdf = async () => {
+    try {
+      await generatePdfFromElement(
+        contentRef.current,
+        `Entry-Confirmation-${bookingRef || Date.now()}`,
+        {
+          scale: 2,
+          margin: 10,
+          orientation: "p",
+          format: "a4",
+        }
+      );
+    } catch (error) {
+      console.error("Download failed:", error);
+    }
+  };
+
   // This component fits into the center column of the three-column layout
   return (
     <div className="h-full flex flex-col">
@@ -70,9 +90,12 @@ const EntryConfirmation = ({ config = {} }) => {
         </div>
       </div>
 
-      {/* Content */}
+      {/* Content - THIS IS WHAT GETS DOWNLOADED */}
       <div className="flex-1 p-6 overflow-y-auto">
-        <div className="max-w-6xl space-y-6">
+        <div
+          ref={contentRef}
+          className="max-w-6xl space-y-6 bg-white p-8 rounded-lg"
+        >
           {/* Success Icon & Message */}
           <div className="text-center">
             <div className="mx-auto w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
@@ -168,7 +191,7 @@ const EntryConfirmation = ({ config = {} }) => {
                         </div>
                         <div className="text-right">
                           <p className="font-semibold text-gray-900">
-                            {formatCurrency(ticket.price)}
+                            {formatCurrency(ticket.price * ticket.quantity)}
                           </p>
                           <p className="text-sm text-gray-600">
                             {formatCurrency(ticket.price)} each
@@ -207,13 +230,24 @@ const EntryConfirmation = ({ config = {} }) => {
 
       {/* Footer Actions */}
       <div className="p-6 border-t border-gray-200 bg-gray-50">
-        <div className="flex items-center justify-between max-w-6xl">
-          <button
-            onClick={handleNewBooking}
-            className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
-          >
-            New Booking
-          </button>
+        <div className="flex items-center justify-between max-w-6xl gap-3">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleNewBooking}
+              className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+            >
+              New Booking
+            </button>
+
+            <button
+              onClick={handleDownloadPdf}
+              className="px-6 py-3 border border-gray-300 text-gray-800 rounded-lg font-medium hover:bg-gray-100 transition-colors inline-flex items-center gap-2"
+              title="Download this confirmation as PDF"
+            >
+              <Download className="w-4 h-4" />
+              Download Confirmation
+            </button>
+          </div>
 
           <button
             onClick={handleCloseWidget}
