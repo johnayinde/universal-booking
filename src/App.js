@@ -18,17 +18,16 @@ function App({ config = {} }) {
   const defaultConfig = {
     businessType: null, // null = show bookables list by default
     theme: "light",
-    apiBaseUrl:
-      process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:8000/api",
+    apiBaseUrl: config.apiBaseUrl,
+    locationId: config.locationId || 1,
     publicKey: config.paystackPK || "",
     branding: {
-      primaryColor: "#f97316", // Orange for Nike Lake Resort
+      primaryColor: "#f97316",
       logoUrl: "",
-      companyName: "Nike Lake Resort",
-      locationName: "Nike Lake Resort, Enugu",
+      companyName: "",
+      locationName: "",
       locationImage: "",
-      description:
-        " Experience the serenity of Nike Lake Resort, Enugu's premier getaway nestled by the tranquil Nike Lake. Enjoy luxurious accommodations, exquisite dining, and a variety of recreational activities in a picturesque setting.",
+      description: "",
     },
     autoShow: false,
     position: "bottom-right",

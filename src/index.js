@@ -10,6 +10,8 @@ if (process.env.NODE_ENV === "development") {
   const devConfig = {
     businessType: "",
     apiBaseUrl: "http://127.0.0.1:8000/api",
+    locationId: 1,
+    publicKey: "",
     branding: {
       primaryColor: "#3b82f6",
       locationName: "Landmark Oniru Lagos, Nigeria",
