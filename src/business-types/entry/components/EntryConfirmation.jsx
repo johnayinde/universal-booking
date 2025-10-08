@@ -17,18 +17,25 @@ const EntryConfirmation = ({ config = {} }) => {
   const selectedDate = state.bookingData?.date;
 
   const handleCloseWidget = () => {
+    // Clear the selected business type
     sessionStorage.removeItem("selectedBusinessType");
-    sessionStorage.removeItem("isReloading");
 
+    // Destroy current widget
     if (window.UniversalBookingWidget) {
       window.UniversalBookingWidget.destroyAll?.();
-      setTimeout(() => {
-        const newConfig = { ...config, businessType: null };
-        window.UniversalBookingWidget.init(newConfig).open();
-      }, 100);
     }
 
-    if (window.parent) window.parent.postMessage({ type: "close-widget" }, "*");
+    // Reinitialize widget without business type (shows bookables list)
+    setTimeout(() => {
+      const widget = window.UniversalBookingWidget.init({
+        businessType: null, // This shows the bookables list
+        locationId: state.config?.locationId || 1,
+        apiBaseUrl: state.config?.apiBaseUrl,
+        branding: state.config?.branding,
+        autoShow: true,
+      });
+      widget.open();
+    }, 100);
   };
 
   const handleNewBooking = () => {

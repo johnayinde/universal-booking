@@ -205,7 +205,7 @@ const UniversalBookablesList = ({ config = {} }) => {
             <div className="h-full flex flex-col lg:flex-row">
               {/* LEFT: Intro panel (white) */}
               <aside className="border-b lg:border-b-0 lg:border-r border-gray-200 bg-white">
-                <div className="p-4 sm:p-6 lg:w-80">
+                <div className="p-4 sm:p-6 lg:w-[24rem]">
                   <SidebarInfo
                     locationImage={config.branding.locationImage}
                     companyName={config.branding.companyName}

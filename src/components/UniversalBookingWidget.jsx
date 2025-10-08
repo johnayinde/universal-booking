@@ -489,8 +489,7 @@ export const SidebarInfo = ({
   return (
     <div className="mb-8">
       {/* Card container */}
-      <div>
-        {/* Row: image + title */}
+      {/* <div>
         <div className="flex flex-col sm:flex-row items-center gap-3">
           {locationImage && (
             <img
@@ -505,10 +504,8 @@ export const SidebarInfo = ({
           </h2>
         </div>
 
-        {/* Divider-like spacing */}
         <div className="mt-5" />
 
-        {/* “Welcome to …” block */}
         <h2 className="text-base sm:text-lg font-semibold text-gray-900">
           Welcome to{" "}
           {companyName ||
@@ -521,6 +518,42 @@ export const SidebarInfo = ({
           {description ||
             "Enjoy the perfect business getaway with breath-taking views in a very secure and tranquil setting"}
         </p>
+      </div> */}
+
+      <div className="flex flex-col">
+        {/* Top Row: Image + Title Side by Side */}
+        <div className="flex items-center gap-4">
+          {locationImage && (
+            <img
+              src={locationImage}
+              alt={companyName || "Location image"}
+              className="w-36 h-36 sm:w-96 sm:h-56 rounded-lg object-cover" // Increased size
+            />
+          )}
+
+          <h2 className="text-xl font-semibold text-gray-900 leading-snug">
+            {locationName || companyName || "Your Location"}
+          </h2>
+        </div>
+
+        {/* Spacing */}
+        <div className="mt-4" />
+
+        {/* Welcome Block */}
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">
+            Welcome to{" "}
+            {companyName ||
+              (locationName
+                ? (locationName.split(",")[0] || "").trim()
+                : "Our Resort")}
+          </h3>
+
+          <p className="mt-1 text-gray-600 text-sm leading-relaxed">
+            {description ||
+              "Enjoy the perfect business getaway with breath-taking views in a very secure and tranquil setting"}
+          </p>
+        </div>
       </div>
     </div>
   );
