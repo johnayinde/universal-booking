@@ -467,6 +467,11 @@ const EntryTicketList = ({ apiService, adapter }) => {
         {/* Ticket Type Selection */}
         {!selectedType && (
           <div className="max-w-2xl">
+            {/* ✅ Clear label/header */}
+            <h2 className="text-sm font-medium text-gray-700 mb-3">
+              Select Ticket
+            </h2>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
               {ticketTypes.map((type) => (
                 <div
@@ -489,7 +494,7 @@ const EntryTicketList = ({ apiService, adapter }) => {
                     </div>
                   </div>
 
-                  {/* Right: chevron or indicator */}
+                  {/* Right: chevron */}
                   <svg
                     className="w-5 h-5 text-orange-600"
                     fill="none"

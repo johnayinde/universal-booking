@@ -292,7 +292,7 @@ const FurnitureDateSelection = ({ adapter }) => {
           {/* Furniture */}
           <div className="bg-white rounded-xl sm:p-3">
             <div className="flex items-baseline justify-start mb-3">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2 mr-3">
                 Furniture
               </label>
 

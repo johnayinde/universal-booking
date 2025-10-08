@@ -4,377 +4,272 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Debug - Entry Booking Test</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Universal Booking Widget - Test Page</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="dist/universal-booking-widget.min.js"></script>
+    <!-- <script src="https://universal-booking.onrender.com/universal-booking-widget.min.js"></script> -->
+    <script src="https://js.paystack.co/v2/inline.js"></script>
+
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            margin: 20px;
-            background: #f5f5f5;
+        .config-card {
+            transition: all 0.3s ease;
         }
 
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        .config-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
         }
 
-        .test-section {
-            margin: 20px 0;
-            padding: 20px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
+        .status-badge {
+            animation: pulse 2s infinite;
         }
 
-        .btn {
-            padding: 12px 24px;
-            background: #f97316;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            margin: 5px;
-            font-weight: 500;
-        }
+        @keyframes pulse {
 
-        .btn:hover {
-            background: #ea580c;
-        }
+            0%,
+            100% {
+                opacity: 1;
+            }
 
-        .btn:disabled {
-            background: #d1d5db;
-            cursor: not-allowed;
-        }
-
-        .status {
-            margin: 10px 0;
-            padding: 12px;
-            border-radius: 6px;
-            font-size: 14px;
-        }
-
-        .status.info {
-            background: #dbeafe;
-            color: #1e40af;
-            border: 1px solid #bfdbfe;
-        }
-
-        .status.success {
-            background: #dcfce7;
-            color: #166534;
-            border: 1px solid #bbf7d0;
-        }
-
-        .status.error {
-            background: #fee2e2;
-            color: #dc2626;
-            border: 1px solid #fecaca;
-        }
-
-        .debug-info {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            padding: 15px;
-            margin: 10px 0;
-            font-family: monospace;
-            font-size: 12px;
-        }
-
-        pre {
-            white-space: pre-wrap;
-            word-wrap: break-word;
+            50% {
+                opacity: 0.6;
+            }
         }
     </style>
 </head>
 
-<body>
-    <div class="container">
-        <h1>🐛 Debug - Entry Booking Widget Test</h1>
-        <p>This page is designed to test and debug the entry booking functionality step by step.</p>
-
-        <div class="test-section">
-            <h2>1. Widget Loading Test</h2>
-            <p>First, let's check if the widget loads properly.</p>
-            <button onclick="testWidgetLoad()" class="btn">Test Widget Load</button>
-            <div id="load-status"></div>
+<body class="bg-gray-50 min-h-screen">
+    <div class="bg-gradient-to-r from-orange-600 to-orange-500 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <h1 class="text-3xl font-bold mb-2">🎫 Universal Booking Widget Test Page</h1>
+            <p class="text-orange-100">Test different configurations and business types</p>
         </div>
-
-        <div class="test-section">
-            <h2>2. Bookables List Test</h2>
-            <p>Test the universal bookables list with different configurations.</p>
-
-            <h3>🏢 Lagos Location (ID: 1)</h3>
-            <button onclick="testLagosBookables()" class="btn">Show Lagos Bookables</button>
-
-            <h3>🏔️ Enugu Location (ID: 2)</h3>
-            <button onclick="testEnuguBookables()" class="btn">Show Enugu Bookables</button>
-
-            <div id="bookables-status"></div>
-        </div>
-
-        <div class="test-section">
-            <h2>3. Direct Entry Booking Test</h2>
-            <p>Skip bookables selection and go directly to entry booking.</p>
-
-            <button onclick="testDirectEntry(1)" class="btn">Direct Entry - Lagos</button>
-            <button onclick="testDirectEntry(2)" class="btn">Direct Entry - Enugu</button>
-
-            <div id="entry-status"></div>
-        </div>
-
-        <div class="test-section">
-            <h2>4. API Endpoints Test</h2>
-            <p>Test the actual API endpoints to see what's working.</p>
-
-            <button onclick="testApiEndpoints()" class="btn">Test API Endpoints</button>
-            <div id="api-status"></div>
-            <div id="api-results" class="debug-info" style="display: none;"></div>
-        </div>
-
-        <div class="test-section">
-            <h2>5. Debug Information</h2>
-            <button onclick="showDebugInfo()" class="btn">Show Debug Info</button>
-            <div id="debug-info"></div>
-        </div>
-
-        <div id="global-status"></div>
     </div>
 
-    <!-- Load the Universal Booking Widget -->
-    <script src="dist/universal-booking-widget.min.js"></script>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="mb-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">📊 Widget Status</h2>
+            <div id="widget-status" class="space-y-2">
+                <div class="flex items-center">
+                    <span class="status-badge inline-block w-3 h-3 bg-yellow-500 rounded-full mr-3"></span>
+                    <span class="text-gray-600">Waiting for widget initialization...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">🎨 Business Type Configurations</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="config-card bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                            <span class="text-2xl">🎫</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">Entry Tickets</h3>
+                            <p class="text-sm text-gray-500">Standard admission</p>
+                        </div>
+                    </div>
+                    <button onclick="openWidget('entry')"
+                        class="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                        Open Entry Widget
+                    </button>
+                </div>
+
+                <div class="config-card bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mr-4">
+                            <span class="text-2xl">💪</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">Package</h3>
+                            <p class="text-sm text-gray-500">Group bookings</p>
+                        </div>
+                    </div>
+                    <button onclick="openWidget('group')"
+                        class="w-full px-4 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors font-medium">
+                        Open Fitness Widget
+                    </button>
+                </div>
+
+                <div class="config-card bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mr-4">
+                            <span class="text-2xl">🪑</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">Furniture</h3>
+                            <p class="text-sm text-gray-500">Furniture rental</p>
+                        </div>
+                    </div>
+                    <button onclick="openWidget('furniture')"
+                        class="w-full px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium">
+                        Open Furniture Widget
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">⚙️ Custom Configurations</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="config-card bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">🌍 Lagos Location</h3>
+                    <div class="bg-gray-50 rounded-lg p-4 mb-4 text-sm">
+                        <pre class="text-gray-700 overflow-x-auto">locationId: 1
+primaryColor: '#f97316'
+companyName: 'Landmark Lagos'</pre>
+                    </div>
+                    <button onclick="openLagosWidget()"
+                        class="w-full px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium">
+                        Open Lagos Bookables
+                    </button>
+                </div>
+
+                <div class="config-card bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">🌍 Enugu Location</h3>
+                    <div class="bg-gray-50 rounded-lg p-4 mb-4 text-sm">
+                        <pre class="text-gray-700 overflow-x-auto">locationId: 2
+primaryColor: '#059669'
+companyName: 'Nike Lake Resort'</pre>
+                    </div>
+                    <button onclick="openEnuguWidget()"
+                        class="w-full px-4 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium">
+                        Open Enugu Bookables
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">📝 Event Log</h2>
+            <div id="event-log" class="space-y-2 max-h-96 overflow-y-auto font-mono text-sm">
+                <div class="text-gray-500">Events will appear here...</div>
+            </div>
+        </div>
+    </div>
 
     <script>
-        // Utility functions
-        function updateStatus(elementId, message, type = 'info') {
-            const element = document.getElementById(elementId);
-            if (element) {
-                element.innerHTML = `<div class="status ${type}">${message}</div>`;
-            }
-            console.log(`[${type.toUpperCase()}] ${message}`);
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('widget-status');
+            const colors = {
+                info: 'bg-blue-500',
+                success: 'bg-green-500',
+                error: 'bg-red-500',
+                warning: 'bg-yellow-500'
+            };
+            statusDiv.innerHTML = `
+                <div class="flex items-center">
+                    <span class="inline-block w-3 h-3 ${colors[type]} rounded-full mr-3"></span>
+                    <span class="text-gray-700">${message}</span>
+                </div>
+            `;
         }
 
-        function appendStatus(elementId, message, type = 'info') {
-            const element = document.getElementById(elementId);
-            if (element) {
-                const statusDiv = document.createElement('div');
-                statusDiv.className = `status ${type}`;
-                statusDiv.textContent = message;
-                element.appendChild(statusDiv);
+        function logEvent(event, detail = {}) {
+            const eventLog = document.getElementById('event-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const eventDiv = document.createElement('div');
+            eventDiv.className = 'p-2 bg-gray-50 rounded border-l-4 border-blue-500';
+            eventDiv.innerHTML = `
+                <span class="text-gray-500">[${timestamp}]</span> 
+                <span class="text-blue-600 font-semibold">${event}</span>
+                ${Object.keys(detail).length > 0 ? `<pre class="text-xs text-gray-600 mt-1">${JSON.stringify(detail, null, 2)}</pre>` : ''}
+            `;
+            if (eventLog.firstChild.textContent === 'Events will appear here...') {
+                eventLog.innerHTML = '';
             }
-            console.log(`[${type.toUpperCase()}] ${message}`);
+            eventLog.insertBefore(eventDiv, eventLog.firstChild);
         }
 
-        // Test 1: Widget Loading
         function testWidgetLoad() {
-            updateStatus('load-status', 'Testing widget load...', 'info');
-
-            setTimeout(() => {
-                if (window.UniversalBookingWidget) {
-                    updateStatus('load-status', '✅ Widget loaded successfully!', 'success');
-
-                    // Check supported business types
-                    try {
-                        const supportedTypes = UniversalBookingWidget.getSupportedBusinessTypes();
-                        appendStatus('load-status', `Supported types: ${supportedTypes.join(', ')}`, 'info');
-                    } catch (error) {
-                        appendStatus('load-status', `Error getting supported types: ${error.message}`, 'error');
-                    }
-                } else {
-                    updateStatus('load-status', '❌ Widget failed to load', 'error');
-                }
-            }, 500);
+            if (typeof UniversalBookingWidget !== 'undefined') {
+                updateStatus('✅ Widget loaded successfully', 'success');
+                logEvent('Widget Load Test', { status: 'success' });
+            } else {
+                updateStatus('❌ Widget not loaded', 'error');
+                logEvent('Widget Load Test', { status: 'failed' });
+            }
         }
 
-        // Test 2: Lagos Bookables
-        function testLagosBookables() {
-            updateStatus('bookables-status', 'Opening Lagos bookables...', 'info');
-
+        function openWidget(businessType) {
             try {
-                const widget = UniversalBookingWidget.init({
-                    businessType: null, // Show bookables list
+                currentWidget = UniversalBookingWidget.init({
+                    businessType: businessType,
                     locationId: 1,
+                    apiBaseUrl: 'http://127.0.0.1:8000/api',
+                    paystackPK: "pk_test_2f8fae4bb6dd2237987189834fbdbaa2f7c4ce9f",
+                    branding: {
+                        primaryColor: '#3b82f6',
+                        companyName: 'Universal Booking'
+                    },
+                    autoShow: true
+                });
+                updateStatus(`✅ Opened ${businessType} widget`, 'success');
+                logEvent('Widget Opened', { businessType });
+            } catch (error) {
+                updateStatus(`❌ Error: ${error.message}`, 'error');
+                logEvent('Widget Error', { error: error.message });
+            }
+        }
+
+        function openLagosWidget() {
+            try {
+                currentWidget = UniversalBookingWidget.init({
+                    businessType: null,
+                    locationId: 1,
+                    apiBaseUrl: 'http://127.0.0.1:8000/api',
+                    paystackPK: "pk_test_2f8fae4bb6dd2237987189834fbdbaa2f7c4ce9f",
                     bookables: ['entry', 'hotel', 'group', 'furniture'],
                     branding: {
                         primaryColor: '#f97316',
                         companyName: 'Landmark Lagos',
                         locationName: 'Landmark Oniru Lagos, Nigeria',
-                        locationImage: "https://pbs.twimg.com/media/GfgQsLwXIAA6aCQ?format=jpg&name=large",
-                        description: "The premier event and leisure destination in Lagos."
-                    },
-                    autoShow: true,
-                    //paystackPK: 'pk_test_lagos'
-                });
-
-                widget.open();
-                updateStatus('bookables-status', '✅ Lagos bookables opened', 'success');
-            } catch (error) {
-                updateStatus('bookables-status', `❌ Error: ${error.message}`, 'error');
-            }
-        }
-
-        // Test 3: Enugu Bookables
-        function testEnuguBookables() {
-            updateStatus('bookables-status', 'Opening Enugu bookables...', 'info');
-
-            try {
-                const widget = UniversalBookingWidget.init({
-                    businessType: null,
-                    locationId: 2,
-                    bookables: ['entry', 'hotel', 'group', 'furniture'],
-                    branding: {
-                        primaryColor: '#f97316',
-                        companyName: 'Nike Lake Resort - Enugu',
-                        locationName: 'Nike Lake Resort, Enugu',
-                        locationImage: "https://pbs.twimg.com/profile_images/1902362596965007360/epM_0g3-_400x400.jpg",
-                        description: "A serene getaway nestled in the hills of Enugu."
-                    },
-                    autoShow: true,
-                    // paystackPK: 'pk_test_Enugu' 
-
-                });
-
-                widget.open();
-                updateStatus('bookables-status', '✅ Enugu bookables opened', 'success');
-            } catch (error) {
-                updateStatus('bookables-status', `❌ Error: ${error.message}`, 'error');
-            }
-        }
-
-        // Test 4: Direct Entry Booking
-        function testDirectEntry(locationId) {
-            const locationName = locationId === 1 ? 'Lagos' : 'Enugu';
-            updateStatus('entry-status', `Opening direct entry booking for ${locationName}...`, 'info');
-
-            try {
-                const widget = UniversalBookingWidget.init({
-                    businessType: 'entry',
-                    locationId: locationId,
-                    branding: {
-                        primaryColor: '#f97316',
-                        companyName: `Nike Lake Resort - ${locationName}`
+                        locationImage: 'https://pbs.twimg.com/media/GfgQsLwXIAA6aCQ?format=jpg&name=large',
+                        description: 'The premier event and leisure destination in Lagos.'
                     },
                     autoShow: true
                 });
-
-                widget.open();
-                updateStatus('entry-status', `✅ Direct entry opened for ${locationName}`, 'success');
+                updateStatus('✅ Opened Lagos bookables', 'success');
+                logEvent('Lagos Widget Opened', { locationId: 1 });
             } catch (error) {
-                updateStatus('entry-status', `❌ Error: ${error.message}`, 'error');
+                updateStatus(`❌ Error: ${error.message}`, 'error');
+                logEvent('Widget Error', { error: error.message });
             }
         }
 
-        // Test 5: API Endpoints
-        async function testApiEndpoints() {
-            updateStatus('api-status', 'Testing API endpoints...', 'info');
-            document.getElementById('api-results').style.display = 'block';
-
-            const results = {};
-
-            // Test Lagos entry types
+        function openEnuguWidget() {
             try {
-                updateStatus('api-results', 'Testing Lagos entry types...', 'info');
-                const response1 = await fetch('http://127.0.0.1:8000/api/booking/entry/type?landmark_location_id=1');
-                results.lagosTypes = {
-                    status: response1.status,
-                    ok: response1.ok,
-                    data: response1.ok ? await response1.json() : await response1.text()
-                };
-                appendStatus('api-status', `Lagos types: ${response1.status} ${response1.ok ? '✅' : '❌'}`, response1.ok ? 'success' : 'error');
+                currentWidget = UniversalBookingWidget.init({
+                    businessType: null,
+                    locationId: 2,
+                    apiBaseUrl: 'http://127.0.0.1:8000/api',
+                    paystackPK: "pk_test_2f8fae4bb6dd2237987189834fbdbaa2f7c4ce9f",
+                    bookables: ['entry', 'hotel', 'group', 'furniture'],
+                    branding: {
+                        primaryColor: '#059669',
+                        companyName: 'Nike Lake Resort - Enugu',
+                        locationName: 'Nike Lake Resort, Enugu',
+                        locationImage: 'https://pbs.twimg.com/profile_images/1902362596965007360/epM_0g3-_400x400.jpg',
+                        description: 'A serene getaway nestled in the hills of Enugu.'
+                    },
+                    autoShow: true
+                });
+                updateStatus('✅ Opened Enugu bookables', 'success');
+                logEvent('Enugu Widget Opened', { locationId: 2 });
             } catch (error) {
-                results.lagosTypes = { error: error.message };
-                appendStatus('api-status', `Lagos types error: ${error.message}`, 'error');
+                updateStatus(`❌ Error: ${error.message}`, 'error');
+                logEvent('Widget Error', { error: error.message });
             }
-
-            // Test Enugu entry types
-            try {
-                updateStatus('api-results', 'Testing Enugu entry types...', 'info');
-                const response2 = await fetch('http://127.0.0.1:8000/api/booking/entry/type?landmark_location_id=2');
-                results.enuguTypes = {
-                    status: response2.status,
-                    ok: response2.ok,
-                    data: response2.ok ? await response2.json() : await response2.text()
-                };
-                appendStatus('api-status', `Enugu types: ${response2.status} ${response2.ok ? '✅' : '❌'}`, response2.ok ? 'success' : 'error');
-            } catch (error) {
-                results.enuguTypes = { error: error.message };
-                appendStatus('api-status', `Enugu types error: ${error.message}`, 'error');
-            }
-
-            // Test entry items (if we have a valid type ID)
-            if (results.lagosTypes?.ok && results.lagosTypes.data?.[0]?.id) {
-                try {
-                    const typeId = results.lagosTypes.data[0].id;
-                    updateStatus('api-results', `Testing entry items for type ${typeId}...`, 'info');
-                    const response3 = await fetch(`http://127.0.0.1:8000/api/booking/entry/items?type_id=${typeId}&platform=web`);
-                    results.entryItems = {
-                        status: response3.status,
-                        ok: response3.ok,
-                        data: response3.ok ? await response3.json() : await response3.text()
-                    };
-                    appendStatus('api-status', `Entry items: ${response3.status} ${response3.ok ? '✅' : '❌'}`, response3.ok ? 'success' : 'error');
-                } catch (error) {
-                    results.entryItems = { error: error.message };
-                    appendStatus('api-status', `Entry items error: ${error.message}`, 'error');
-                }
-            }
-
-            // Display full results
-            document.getElementById('api-results').innerHTML = '<h4>📊 API Test Results:</h4><pre>' + JSON.stringify(results, null, 2) + '</pre>';
         }
 
-        // Test 6: Debug Information
-        function showDebugInfo() {
-            const debugInfo = {
-                timestamp: new Date().toISOString(),
-                userAgent: navigator.userAgent,
-                windowLocation: window.location.href,
-                widgetLoaded: !!window.UniversalBookingWidget,
-                supportedTypes: window.UniversalBookingWidget ? window.UniversalBookingWidget.getSupportedBusinessTypes() : 'Widget not loaded',
-                sessionStorage: {
-                    selectedBusinessType: sessionStorage.getItem('selectedBusinessType'),
-                    isReloading: sessionStorage.getItem('isReloading')
-                },
-                currentInstances: window.UniversalBookingWidget ? Object.keys(window.UniversalBookingWidget.instances || {}) : 'No instances'
-            };
-
-            document.getElementById('debug-info').innerHTML =
-                '<div class="debug-info"><h4>🐛 Debug Information:</h4><pre>' +
-                JSON.stringify(debugInfo, null, 2) +
-                '</pre></div>';
-        }
-
-        // Auto-load test
-        document.addEventListener('DOMContentLoaded', function () {
+        window.addEventListener('load', () => {
             setTimeout(() => {
-                updateStatus('global-status', 'Page loaded. Click tests above to debug issues.', 'info');
-                testWidgetLoad(); // Auto-run basic test
-            }, 1000);
+                testWidgetLoad();
+            }, 500);
         });
-
-        // Global error handler
-        window.addEventListener('error', function (event) {
-            console.error('Global error:', event.error);
-            appendStatus('global-status', `Global error: ${event.error?.message || event.message}`, 'error');
-        });
-
-        // Console override for better debugging
-        const originalLog = console.log;
-        console.log = function (...args) {
-            originalLog.apply(console, args);
-            // Also show important logs in the UI
-            const message = args.join(' ');
-            if (message.includes('EntryAdapter') || message.includes('UniversalBookablesList') || message.includes('Error')) {
-                const logDiv = document.createElement('div');
-                logDiv.className = 'status info';
-                logDiv.style.fontSize = '11px';
-                logDiv.style.opacity = '0.7';
-                logDiv.textContent = `Console: ${message}`;
-                document.getElementById('global-status').appendChild(logDiv);
-            }
-        };
     </script>
 </body>
 

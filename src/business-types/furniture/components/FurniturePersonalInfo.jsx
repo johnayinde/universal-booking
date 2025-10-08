@@ -524,7 +524,7 @@ const FurniturePersonalInfo = ({ apiService, adapter }) => {
               ) : (
                 <div className="flex items-center justify-center">
                   <CreditCard className="mr-2" size={20} />
-                  Proceed to Payment
+                  Make Payment
                 </div>
               )}
             </button>
